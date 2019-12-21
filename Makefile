@@ -4,7 +4,8 @@ CC=gcc
 CFLAGS=-Iinclude -Wall -g -O0 -std=c99 -fsanitize=address
 #CFLAGS=-Iinclude -Wall -O3 -std=c99
 LIBS=-lprotobuf-c
-OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/onnx.proto3.pb-c.o
+OPSET_OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
+OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 
 all: main
 
@@ -12,17 +13,21 @@ run: all
 	./main
 
 clean:
+	rm src/opset.c
 	rm -rf obj
 	rm -f main
+
+cleanall: clean
+	rm src/onnx.proto3.pb-c.c
+	rm include/onnx/onnx.proto3.pb-c.h
+	rmdir include/onnx
 
 main: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-clear:
-	rm src/onnx.proto3.pb-c.c
-	rm include/onnx/onnx.proto3.pb-c.h
-	rmdir include/onnx
-	rm main
+
+src/opset.c:
+	bin/opset.sh $(OPSET_OBJS)
 
 src/onnx.proto3.pb-c.c: onnx/onnx/onnx.proto3
 	cd onnx; protoc-c onnx/onnx.proto3 --c_out ../src
