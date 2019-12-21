@@ -1,6 +1,5 @@
 include/onnx/onnx.proto3.pb-c.h
 src/onnx.proto3.pb-c.c
-onnx
 obj
 test/env
 main
