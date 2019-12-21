@@ -30,7 +30,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 	connx_Runtime* runtime = connx_Runtime_create(model);
 	connx_Value* result;
 	uint64_t time_start = get_time();
-	for(uint32_t i = 0; i < 1000; i++) {
+	for(uint32_t i = 0; i < 100; i++) {
 		result = connx_Runtime_run(runtime, (connx_Value*)input);
 	}
 	uint64_t time_end = get_time();
@@ -44,6 +44,11 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 
 	printf("* output\n");
 	connx_Tensor_dump(output);
+
+	connx_Tensor_delete(output);
+	connx_Tensor_delete(input);
+	connx_Runtime_delete(runtime);
+	onnx_ModelProto_delete(model);
 
 	return 0;
 }

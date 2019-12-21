@@ -1,10 +1,6 @@
 #ifndef __CONNX_H__
 #define __CONNX_H__
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <onnx/onnx.proto3.pb-c.h>
 #include <connx/onnx.h>
 
 // connx
@@ -164,23 +160,7 @@ void connx_Attribute_delete(void* attr);
 uint32_t connx_Attribute_length(void* attr);
 void* connx_Attribute_base(void* attr);
 
-// ONNX
-onnx_ModelProto* onnx_Model_create_from_file(const char* path);
-
-void onnx_Attribute_dump(onnx_AttributeProto* attribute);
-void onnx_ValueInfo_dump(onnx_ValueInfoProto* valueInfo);
-void onnx_Node_dump(onnx_NodeProto* node);
-void onnx_Model_dump(onnx_ModelProto* model);
-void onnx_Graph_dump(onnx_GraphProto* graph);
-void onnx_Tensor_dump(onnx_TensorProto* tensor);
-void onnx_SparseTensor_dump(onnx_SparseTensorProto* sparse);
-void onnx_TensorType_dump(onnx_TypeProto_Tensor* type);
-void onnx_SequenceType_dump(onnx_TypeProto_Sequence* type);
-void onnx_MapType_dump(onnx_TypeProto_Map* type);
-void onnx_Type_dump(onnx_TypeProto* type);
-void onnx_DataType_dump(int32_t type);
-
-// ONNX Runtime
+// Runtime
 typedef struct _connx_Runtime {
 	onnx_ModelProto*		model;
 
@@ -200,11 +180,11 @@ typedef struct _connx_Runtime {
 
 	uint32_t				stackCount;
 	uintptr_t*				stack;
-	uintptr_t*				stackClean;
 	bool					isDirty;
 } connx_Runtime;
 
 connx_Runtime* connx_Runtime_create(onnx_ModelProto* model);
+void connx_Runtime_delete(connx_Runtime* runtime);
 bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value);
 connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name);
 connx_Value* connx_Runtime_run(connx_Runtime* runtime, connx_Value* input);

@@ -10,20 +10,6 @@
 
 static char _connx_exception_message[EXCEPTION_MESSAGE_SIZE];
 
-static void* _default_alloc(__attribute__((unused)) void* ctx, size_t size) {
-	return connx_alloc(size);
-}
-
-static void _default_free(__attribute__((unused)) void* ctx, void* ptr) {
-	connx_free(ptr);
-}
-
-static ProtobufCAllocator _default_allocator = {
-	.alloc = _default_alloc,
-	.free = _default_free,
-	.allocator_data = NULL
-};
-
 // exception
 void connx_exception(char* format, ...) {
 	va_list list;
@@ -489,35 +475,6 @@ connx_Tensor* connx_Tensor_create_from_onnx(onnx_TensorProto* onnx) {
 	}
 
 	return tensor;
-}
-
-connx_Tensor* connx_Tensor_create_from_file(const char* path) {
-	FILE* file = fopen(path, "r");
-	if(file == NULL) {
-		connx_exception("'%s' is not found.", path);
-		return NULL;
-	}
-
-	fseek(file, 0L, SEEK_END);
-	long len = ftell(file);
-
-	uint8_t buf[len];
-	fseek(file, 0L, SEEK_SET);
-	size_t len2 = fread(buf, 1, len, file);
-	fclose(file);
-
-	if((long)len2 != len) {
-		connx_exception("Cannot fully read ONNX file, expected: %d != read: %d", len, len2);
-		return NULL;
-	}
-
-	onnx_TensorProto* onnx = onnx__tensor_proto__unpack(&_default_allocator, len, buf);
-	if(onnx == NULL) {
-		connx_exception("'%s' is not an onnx file.", path);
-		return NULL;
-	}
-
-	return connx_Tensor_create_from_onnx(onnx);
 }
 
 connx_Tensor* connx_Tensor_clone(connx_Tensor* tensor) {
@@ -1039,503 +996,13 @@ void* connx_Attribute_base(void* attr) {
 	return attr + sizeof(uint32_t);
 }
 
-// ONNX
-onnx_ModelProto* onnx_Model_create_from_file(const char* path) {
-	FILE* file = fopen(path, "r");
-	if(file == NULL) {
-		connx_exception("'%s' is not found.", path);
-		return NULL;
+static connx_Tensor* _GraphProto_getInitializer(onnx_GraphProto* graph, const char* name) {
+	for(uint32_t i = 0; i < graph->n_initializer; i++) {
+		if(strcmp(graph->initializer[i]->name, name) == 0)
+			return connx_Tensor_create_from_onnx(graph->initializer[i]);
 	}
 
-	fseek(file, 0L, SEEK_END);
-	long len = ftell(file);
-
-	uint8_t buf[len];
-	fseek(file, 0L, SEEK_SET);
-
-	size_t len2 = fread(buf, 1, len, file);
-	fclose(file);
-
-	if((long)len2 != len) {
-		connx_exception("Cannot fully read ONNX file, expected: %d != read: %d", len, len2);
-		return NULL;
-	}
-
-	onnx_ModelProto* onnx = onnx__model_proto__unpack(&_default_allocator, len, buf);
-	if(onnx == NULL) {
-		connx_exception("'%s' is not an onnx file.", path);
-		return NULL;
-	}
-
-	return onnx;
-}
-
-static int depth = 0;
-
-static void tab() {
-	for(int i = 0; i < depth; i++)
-		fprintf(stdout, "\t");
-}
-
-void onnx_Attribute_dump(onnx_AttributeProto* attribute) {
-	tab(); fprintf(stdout, "Attribute: %s\n", attribute->name);
-	depth++;
-
-	tab(); fprintf(stdout, "ref_attr_name=%s\n",attribute->ref_attr_name);
-
-	if(attribute->doc_string != NULL) {
-		tab(); fprintf(stdout, "doc_string=%s\n", attribute->doc_string);
-	}
-
-	switch(attribute->type) {
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__FLOAT:
-			tab(); fprintf(stdout, "float: %f\n", attribute->f);
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__INT:
-			tab(); fprintf(stdout, "int: %ld\n", attribute->i);
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__STRING:
-			{
-				char buf[attribute->s.len + 1];
-				memcpy(buf, attribute->s.data, attribute->s.len);
-				buf[attribute->s.len] = 0;
-
-				tab(); fprintf(stdout, "string: %s\n", buf);
-			}
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__TENSOR:
-			onnx_Tensor_dump(attribute->t);
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__GRAPH:
-			onnx_Graph_dump(attribute->g);
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__SPARSE_TENSOR:
-			onnx_SparseTensor_dump(attribute->sparse_tensor);
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__FLOATS:
-			tab(); fprintf(stdout, "float: [");
-			for(size_t i = 0; i < attribute->n_floats; i++) {
-				fprintf(stdout, "%f", attribute->floats[i]);
-				if(i + 1 < attribute->n_floats)
-					fprintf(stdout, ", ");
-			}
-			fprintf(stdout, "]\n");
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__INTS:
-			tab(); fprintf(stdout, "int: [");
-			for(size_t i = 0; i < attribute->n_ints; i++) {
-				fprintf(stdout, "%ld", attribute->ints[i]);
-				if(i + 1 < attribute->n_ints)
-					fprintf(stdout, ", ");
-			}
-			fprintf(stdout, "]\n");
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__STRINGS:
-			tab(); fprintf(stdout, "string: [");
-			for(size_t i = 0; i < attribute->n_strings; i++) {
-				char buf[attribute->strings[i].len + 1];
-				memcpy(buf, attribute->strings[i].data, attribute->strings[i].len);
-				buf[attribute->strings[i].len] = 0;
-
-				fprintf(stdout, "%s", buf);
-				if(i + 1 < attribute->n_strings)
-					fprintf(stdout, ", ");
-			}
-			fprintf(stdout, "]\n");
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__TENSORS:
-			tab(); fprintf(stdout, "tensor: [");
-			for(size_t i = 0; i < attribute->n_tensors; i++) {
-				onnx_Tensor_dump(attribute->tensors[i]);
-			}
-			fprintf(stdout, "]\n");
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__GRAPHS:
-			tab(); fprintf(stdout, "graph: [");
-			for(size_t i = 0; i < attribute->n_graphs; i++) {
-				onnx_Graph_dump(attribute->graphs[i]);
-			}
-			fprintf(stdout, "]\n");
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__SPARSE_TENSORS:
-			tab(); fprintf(stdout, "sparseTensor: [");
-			for(size_t i = 0; i < attribute->n_sparse_tensors; i++) {
-				onnx_SparseTensor_dump(attribute->sparse_tensors[i]);
-			}
-			fprintf(stdout, "]\n");
-			break;
-		case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__UNDEFINED:
-		default:
-			tab(); fprintf(stdout, "undefined");
-	}
-
-	depth--;
-}
-
-void onnx_ValueInfo_dump(onnx_ValueInfoProto* valueInfo) {
-	tab(); fprintf(stdout, "ValueInfo: %s, ", valueInfo->name);
-	onnx_Type_dump(valueInfo->type);
-
-	if(valueInfo->doc_string != NULL) {
-		fprintf(stdout, ", doc_string: %s\n", valueInfo->doc_string);
-	} else {
-		fprintf(stdout, "\n");
-	}
-}
-
-void onnx_Node_dump(onnx_NodeProto* node)  {
-	tab(); fprintf(stdout, "%s: %s\n", node->op_type, node->name);
-
-	depth++;
-
-	tab(); fprintf(stdout, "input: ");
-	for(size_t i = 0; i < node->n_input; i++) {
-		fprintf(stdout, "%s", node->input[i]);
-
-		if(i + 1 < node->n_input)
-			fprintf(stdout, ", ");
-	}
-	fprintf(stdout, "\n");
-
-	tab(); fprintf(stdout, "output: ");
-	for(size_t i = 0; i < node->n_output; i++) {
-		fprintf(stdout, "%s", node->output[i]);
-
-		if(i + 1 < node->n_output)
-			fprintf(stdout, ", ");
-	}
-	fprintf(stdout, "\n");
-
-	tab(); fprintf(stdout, "domain: %s\n", node->domain);
-
-	tab(); fprintf(stdout, "attribute: %ld\n", node->n_attribute);
-
-	depth++;
-	for(size_t i = 0; i < node->n_attribute; i++) {
-		onnx_Attribute_dump(node->attribute[i]);
-	}
-	depth--;
-
-	if(node->doc_string != NULL) {
-		tab(); fprintf(stdout, "doc_string: %s\n", node->doc_string);
-	}
-
-	depth--;
-}
-
-void onnx_Model_dump(onnx_ModelProto* model) {
-	tab(); fprintf(stdout, "ir_version: %ld\n", model->ir_version);
-	tab(); fprintf(stdout, "opset_import\n");
-
-	for(size_t i = 0; i < model->n_opset_import; i++) {
-		tab(); fprintf(stdout, "\tdomain: %s, ver: %ld\n", model->opset_import[i]->domain, model->opset_import[i]->version);
-	}
-
-	tab(); fprintf(stdout, "producer_name: %s\n", model->producer_name);
-	tab(); fprintf(stdout, "producer_version: %s\n", model->producer_version);
-	tab(); fprintf(stdout, "domain: %s\n", model->domain);
-	tab(); fprintf(stdout, "model_version: %ld\n", model->model_version);
-
-	if(model->doc_string != NULL) {
-		tab(); fprintf(stdout, "doc_string: %s\n", model->doc_string);
-	}
-
-	for(size_t i = 0; i < model->n_metadata_props; i++) {
-		tab(); fprintf(stdout, "\tkey: %s, value: %s\n", model->metadata_props[i]->key, model->metadata_props[i]->value);
-	}
-	onnx_Graph_dump(model->graph);
-}
-
-void onnx_Graph_dump(onnx_GraphProto* graph) {
-	tab(); fprintf(stdout, "Graph: %s\n", graph->name);
-
-	depth++;
-
-	tab(); fprintf(stdout, "initializer: %ld\n", graph->n_initializer);
-	depth++;
-	for(size_t i = 0; i < graph->n_initializer; i++) {
-		onnx_Tensor_dump(graph->initializer[i]);
-
-		if(i + 1 < graph->n_initializer)
-			fprintf(stdout, "\n");
-	}
-	depth--;
-
-	tab(); fprintf(stdout, "sparse_initializer: %ld\n", graph->n_sparse_initializer);
-	for(size_t i = 0; i < graph->n_sparse_initializer; i++) {
-		tab(); fprintf(stdout, "[%ld]\n", i);
-		depth++;
-		onnx_SparseTensor_dump(graph->sparse_initializer[i]);
-		depth--;
-	}
-
-	if(graph->doc_string != NULL) {
-		tab(); fprintf(stdout, "doc_string: %s\n", graph->doc_string);
-	}
-
-	tab(); fprintf(stdout, "input\n");
-	depth++;
-	for(size_t i = 0; i < graph->n_input; i++) {
-		onnx_ValueInfo_dump(graph->input[i]);
-	}
-	depth--;
-
-	tab(); fprintf(stdout, "output\n");
-	depth++;
-	for(size_t i = 0; i < graph->n_output; i++) {
-		onnx_ValueInfo_dump(graph->output[i]);
-	}
-	depth--;
-
-	tab(); fprintf(stdout, "value_info\n");
-	depth++;
-	for(size_t i = 0; i < graph->n_value_info; i++) {
-		onnx_ValueInfo_dump(graph->value_info[i]);
-	}
-	depth--;
-
-	tab(); fprintf(stdout, "quantization_annotation\n");
-	depth++;
-	for(size_t i = 0; i < graph->n_quantization_annotation; i++) {
-		Onnx__TensorAnnotation* anno = graph->quantization_annotation[i];
-		fprintf(stdout, "tensor_name: %s, qualt_parameter_tensor_names: ", anno->tensor_name);
-		for(size_t j = 0; j < anno->n_quant_parameter_tensor_names; j++) {
-			fprintf(stdout, "(key: %s, value: %s)", anno->quant_parameter_tensor_names[j]->key, anno->quant_parameter_tensor_names[j]->value);
-			if(j + 1 < anno->n_quant_parameter_tensor_names)
-				fprintf(stdout, ", ");
-		}
-		fprintf(stdout, "\n");
-	}
-	depth--;
-
-	tab(); fprintf(stdout, "node\n");
-	depth++;
-	for(size_t i = 0; i < graph->n_node; i++) {
-		onnx_Node_dump(graph->node[i]);
-	}
-	depth--;
-
-	depth--;
-}
-
-void onnx_Tensor_dump(onnx_TensorProto* tensor) {
-	tab(); fprintf(stdout, "Tensor: %s\n", tensor->name);
-
-	depth++;
-
-	tab(); onnx_DataType_dump(tensor->data_type);
-	fprintf(stdout, "[ ");
-	for(size_t i = 0; i < tensor->n_dims; i++) {
-		fprintf(stdout, "%ld", tensor->dims[i]);
-
-		if(i + 1 < tensor->n_dims)
-			fprintf(stdout, ", ");
-	}
-	if(tensor->segment != NULL) {
-		fprintf(stdout, "| %ld ~ %ld ", tensor->segment->begin, tensor->segment->end);
-	}
-
-	fprintf(stdout, " ] : ");
-
-	switch(tensor->data_type) {
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UNDEFINED:
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__FLOAT:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__COMPLEX64:
-			for(size_t i = 0; i < tensor->n_float_data; i++) {
-				fprintf(stdout, "%f ", tensor->float_data[i]);
-			}
-			fprintf(stdout, "\n");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT8:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT16:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT8:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT16:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT32:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__FLOAT16:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__BOOL:
-			for(size_t i = 0; i < tensor->n_int32_data; i++) {
-				fprintf(stdout, "%d ", tensor->int32_data[i]);
-			}
-			fprintf(stdout, "\n");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__STRING:
-			for(size_t i = 0; i < tensor->n_string_data; i++) {
-				char buf[tensor->string_data[i].len + 1];
-				memcpy(buf, tensor->string_data[i].data, tensor->string_data[i].len);
-				buf[tensor->string_data[i].len] = 0;
-
-				fprintf(stdout, "%s (%lu)", tensor->string_data[i].data, tensor->string_data[i].len);
-			}
-			fprintf(stdout, "\n");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT64:
-			for(size_t i = 0; i < tensor->n_int64_data; i++) {
-				fprintf(stdout, "%ld ", tensor->int64_data[i]);
-			}
-			fprintf(stdout, "\n");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__DOUBLE:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__COMPLEX128:
-			for(size_t i = 0; i < tensor->n_double_data; i++) {
-				fprintf(stdout, "%f ", tensor->double_data[i]);
-			}
-			fprintf(stdout, "\n");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT32:
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT64:
-			for(size_t i = 0; i < tensor->n_uint64_data; i++) {
-				fprintf(stdout, "%lu ", tensor->uint64_data[i]);
-			}
-			fprintf(stdout, "\n");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__BFLOAT16:
-		default:
-			; // Do nothing
-	}
-
-	if(tensor->doc_string != NULL) {
-		tab(); fprintf(stdout, "doc_string: %s\n", tensor->doc_string);
-	}
-
-	tab(); fprintf(stdout, "raw_data: %ld", tensor->raw_data.len);
-	tab();
-	for(size_t i = 0; i < tensor->raw_data.len; i++) {
-		fprintf(stdout, "%u ", tensor->raw_data.data[i]);
-	}
-	fprintf(stdout, "\n");
-
-	// TODO: externel data
-	// TODO: data location
-
-	depth--;
-}
-
-void onnx_SparseTensor_dump(onnx_SparseTensorProto* sparse) {
-	tab(); fprintf(stdout, "values: ");
-	onnx_Tensor_dump(sparse->values);
-	tab(); fprintf(stdout, "indices: ");
-	onnx_Tensor_dump(sparse->indices);
-	tab(); fprintf(stdout, "dims: [%ld] ", sparse->n_dims);
-	for(size_t i = 0; i < sparse->n_dims; i++) {
-		fprintf(stdout, "%ld ", sparse->dims[i]);
-	}
-	fprintf(stdout, "\n");
-}
-
-void onnx_TensorType_dump(onnx_TypeProto_Tensor* type) {
-	fprintf(stdout, "Tensor<");
-	onnx_DataType_dump(type->elem_type);
-	fprintf(stdout, ">[ ");
-
-	Onnx__TensorShapeProto* shape = type->shape;
-	for(size_t i = 0; i < shape->n_dim; i++) {
-		switch(shape->dim[i]->value_case) {
-		case ONNX__TENSOR_SHAPE_PROTO__DIMENSION__VALUE_DIM_VALUE:
-			fprintf(stdout, "%ld", shape->dim[i]->dim_value);
-			break;
-		case ONNX__TENSOR_SHAPE_PROTO__DIMENSION__VALUE_DIM_PARAM:
-			fprintf(stdout, "%s", shape->dim[i]->dim_param);
-			break;
-		case ONNX__TENSOR_SHAPE_PROTO__DIMENSION__VALUE__NOT_SET:
-		default:
-			fprintf(stdout, "not set");
-		}
-
-		if(i + 1 < shape->n_dim)
-			fprintf(stdout, ", ");
-	}
-	fprintf(stdout, " ]");
-}
-
-void onnx_SequenceType_dump(onnx_TypeProto_Sequence* type) {
-	fprintf(stdout, "sequence<");
-	onnx_Type_dump(type->elem_type);
-	fprintf(stdout, ">");
-}
-
-void onnx_MapType_dump(onnx_TypeProto_Map* type) {
-	fprintf(stdout, "map<");
-	onnx_DataType_dump(type->key_type);
-	fprintf(stdout, ", ");
-	onnx_Type_dump(type->value_type);
-	fprintf(stdout, ">");
-}
-
-void onnx_Type_dump(onnx_TypeProto* type) {
-	switch(type->value_case) {
-		case ONNX__TYPE_PROTO__VALUE__NOT_SET:
-			fprintf(stdout, "N/A");
-			break;
-		case ONNX__TYPE_PROTO__VALUE_TENSOR_TYPE:
-			onnx_TensorType_dump(type->tensor_type);
-			break;
-		case ONNX__TYPE_PROTO__VALUE_SEQUENCE_TYPE:
-			onnx_SequenceType_dump(type->sequence_type);
-			break;
-		case ONNX__TYPE_PROTO__VALUE_MAP_TYPE:
-			onnx_MapType_dump(type->map_type);
-			break;
-		default:
-			;
-	}
-}
-
-void onnx_DataType_dump(int32_t type) {
-	switch(type) {
-		case ONNX__TENSOR_PROTO__DATA_TYPE__FLOAT:
-			fprintf(stdout, "float");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT8:
-			fprintf(stdout, "uint8");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT8:
-			fprintf(stdout, "int8");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT16:
-			fprintf(stdout, "uint16");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT16:
-			fprintf(stdout, "int16");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT32:
-			fprintf(stdout, "int32");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__INT64:
-			fprintf(stdout, "int64");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__STRING:
-			fprintf(stdout, "string");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__BOOL:
-			fprintf(stdout, "bool");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__FLOAT16:
-			fprintf(stdout, "float16");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__DOUBLE:
-			fprintf(stdout, "double");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT32:
-			fprintf(stdout, "uint32");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT64:
-			fprintf(stdout, "uint64");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__COMPLEX64:
-			fprintf(stdout, "complex64");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__COMPLEX128:
-			fprintf(stdout, "complex128");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__BFLOAT16:
-			fprintf(stdout, "bfloat16");
-			break;
-		case ONNX__TENSOR_PROTO__DATA_TYPE__UNDEFINED:
-		default:
-			fprintf(stdout, "undefined");
-			break;
-	}
+	return NULL;
 }
 
 static bool _ValueInfoProto_enqueue(onnx_ValueInfoProto** values, uint32_t* valueTail, onnx_ValueInfoProto* value) {
@@ -1569,15 +1036,6 @@ static onnx_ValueInfoProto* _GraphProto_getValueInfo(onnx_GraphProto* graph, con
 	for(uint32_t i = 0; i < graph->n_value_info; i++) {
 		if(strcmp(graph->value_info[i]->name, name) == 0)
 			return graph->value_info[i];
-	}
-
-	return NULL;
-}
-
-static connx_Tensor* _GraphProto_getInitializer(onnx_GraphProto* graph, const char* name) {
-	for(uint32_t i = 0; i < graph->n_initializer; i++) {
-		if(strcmp(graph->initializer[i]->name, name) == 0)
-			return connx_Tensor_create_from_onnx(graph->initializer[i]);
 	}
 
 	return NULL;
@@ -1743,7 +1201,6 @@ next_output:
 
 	runtime->stackCount = stackCount;
 	runtime->stack = connx_alloc(sizeof(uintptr_t) * stackCount);
-	runtime->stackClean = connx_alloc(sizeof(uintptr_t) * stackCount);
 	uint32_t stackIdx = 0;
 	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
 		onnx_NodeProto* node = runtime->dependencies[i - 1];
@@ -1769,8 +1226,7 @@ next_output:
 				return NULL;
 			}
 
-			runtime->stackClean[stackIdx] = (uintptr_t)value;
-			runtime->stack[stackIdx++] = (uintptr_t)value;//(uintptr_t)connx_Value_clone(value);
+			runtime->stack[stackIdx++] = (uintptr_t)value;
 		}
 
 		// input
@@ -1787,7 +1243,6 @@ next_output:
 				return NULL;
 			}
 
-			runtime->stackClean[stackIdx] = (uintptr_t)value;
 			runtime->stack[stackIdx++] = (uintptr_t)value;
 		}
 
@@ -1863,6 +1318,39 @@ next_output:
 	}
 
 	return runtime;
+}
+
+void connx_Runtime_delete(connx_Runtime* runtime) {
+	uint32_t stackIdx = 0;
+	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
+		connx_Operator* op = runtime->operators[i - 1];
+
+		stackIdx++;	// count
+		stackIdx += op->outputCount;
+		stackIdx += op->inputCount;
+		for(uint32_t j = 0; j < op->attributeCount; j++) {
+			connx_Attribute_delete((void*)runtime->stack[stackIdx++]);
+		}
+	}
+
+	connx_free(runtime->stack);
+	for(uint32_t i = 0; i < runtime->variableCount; i++) {
+		if(runtime->initializers[i] != NULL) {
+			connx_Value_delete(runtime->initializers[i]);
+		}
+	}
+	connx_free(runtime->initializers);
+	for(uint32_t i = 0; i < runtime->variableCount; i++) {
+		if(runtime->variables[i] != NULL) {
+			connx_Value_delete(runtime->variables[i]);
+		}
+	}
+	connx_free(runtime->variables);
+	connx_free(runtime->outputs);
+	connx_free(runtime->inputs);
+	connx_free(runtime->operators);
+	connx_free(runtime->dependencies);
+	connx_free(runtime);
 }
 
 bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value) {
@@ -2058,6 +1546,13 @@ connx_Operator* connx_Operator_get(const char* name) {
 	}
 
 	return NULL;
+}
+
+static int depth = 0;
+
+static void tab() {
+	for(int i = 0; i < depth; i++)
+		fprintf(stdout, "\t");
 }
 
 void connx_Operator_dump() {
