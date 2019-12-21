@@ -1,8 +1,13 @@
 .PHONY: all clean cleanall run
 
+RELEASE ?= 0
 CC=gcc
-CFLAGS=-Iinclude -Wall -g -O0 -std=c99 -fsanitize=address
-#CFLAGS=-Iinclude -Wall -O3 -std=c99
+ifeq ($(RELEASE), 1)
+	CFLAGS=-Iinclude -Wall -O3 -std=c99
+else
+	CFLAGS=-Iinclude -Wall -g -O0 -fsanitize=address
+endif
+
 LIBS=-lprotobuf-c
 OPSET_OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
 OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
