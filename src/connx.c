@@ -264,7 +264,7 @@ connx_Tensor* connx_Tensor_create2(connx_DataType type, uint32_t dimension, uint
 	return tensor;
 }
 
-connx_Tensor* connx_Tensor_create_from_onnx(onnx_TensorProto* onnx) {
+connx_Tensor* connx_Tensor_create_from_onnx(Onnx__TensorProto* onnx) {
 	uint32_t dimension = onnx->n_dims;
 	uint32_t lengths[dimension];
 	uint32_t total = 1;
@@ -773,11 +773,11 @@ connx_Map* connx_Map_create(connx_DataType keyType, connx_DataType valueType, ui
 	return map;
 }
 
-connx_Value* connx_Value_create_from_onnx(onnx_TypeProto* type) {
+connx_Value* connx_Value_create_from_onnx(connx_Type* type) {
 	switch(type->value_case) {
 		case ONNX__TYPE_PROTO__VALUE_TENSOR_TYPE:
 			{
-				onnx_TypeProto_Tensor* tensor = type->tensor_type;
+				connx_Type_Tensor* tensor = type->tensor_type;
 				uint32_t lengths[tensor->shape->n_dim];
 				for(uint32_t i = 0; i < tensor->shape->n_dim; i++) {
 					switch(tensor->shape->dim[i]->value_case) {
@@ -798,14 +798,14 @@ connx_Value* connx_Value_create_from_onnx(onnx_TypeProto* type) {
 		case ONNX__TYPE_PROTO__VALUE_SEQUENCE_TYPE:
 			{
 				// TODO: Implement it
-				// onnx_TypeProto_Sequence* seq = valueInfo->type->sequence_type;
+				// connx_Type_Sequence* seq = valueInfo->type->sequence_type;
 				// value = (connx_Value*)connx_Sequence_create(connx_DataType_from_onnx(seq->elem_type), 0);
 			}
 			break;
 		case ONNX__TYPE_PROTO__VALUE_MAP_TYPE:
 			{
 				// TODO: Implement it
-				// onnx_TypeProto_Map* map = valueInfo->type->map_type;
+				// connx_Type_Map* map = valueInfo->type->map_type;
 				// value = (connx_Value*)connx_Map_create(connx_DataType_from_onnx(map->key_type), connx_DataType_from_onnx(map->value_type), 0);
 			}
 			break;
@@ -996,7 +996,7 @@ void* connx_Attribute_base(void* attr) {
 	return attr + sizeof(uint32_t);
 }
 
-static connx_Tensor* _GraphProto_getInitializer(onnx_GraphProto* graph, const char* name) {
+static connx_Tensor* _Graph_getInitializer(connx_Graph* graph, const char* name) {
 	for(uint32_t i = 0; i < graph->n_initializer; i++) {
 		if(strcmp(graph->initializer[i]->name, name) == 0)
 			return connx_Tensor_create_from_onnx(graph->initializer[i]);
@@ -1005,7 +1005,7 @@ static connx_Tensor* _GraphProto_getInitializer(onnx_GraphProto* graph, const ch
 	return NULL;
 }
 
-static bool _ValueInfoProto_enqueue(onnx_ValueInfoProto** values, uint32_t* valueTail, onnx_ValueInfoProto* value) {
+static bool _ValueInfo_enqueue(connx_ValueInfo** values, uint32_t* valueTail, connx_ValueInfo* value) {
 	for(uint32_t i = 0; i < *valueTail; i++) {
 		if(values[i] == value)
 			return false;
@@ -1016,14 +1016,14 @@ static bool _ValueInfoProto_enqueue(onnx_ValueInfoProto** values, uint32_t* valu
 	return true;
 }
 
-static onnx_ValueInfoProto* _ValueInfoProto_dequeue(onnx_ValueInfoProto** values, uint32_t* valueHead, uint32_t* valueTail) {
+static connx_ValueInfo* _ValueInfo_dequeue(connx_ValueInfo** values, uint32_t* valueHead, uint32_t* valueTail) {
 	if(*valueHead < *valueTail)
 		return values[(*valueHead)++];
 	else
 		return NULL;
 }
 
-static onnx_ValueInfoProto* _GraphProto_getInput(onnx_GraphProto* graph, const char* name) {
+static connx_ValueInfo* _Graph_getInput(connx_Graph* graph, const char* name) {
 	for(uint32_t i = 0; i < graph->n_input; i++) {
 		if(strcmp(graph->input[i]->name, name) == 0)
 			return graph->input[i];
@@ -1032,7 +1032,7 @@ static onnx_ValueInfoProto* _GraphProto_getInput(onnx_GraphProto* graph, const c
 	return NULL;
 }
 
-static onnx_ValueInfoProto* _GraphProto_getValueInfo(onnx_GraphProto* graph, const char* name) {
+static connx_ValueInfo* _Graph_getValueInfo(connx_Graph* graph, const char* name) {
 	for(uint32_t i = 0; i < graph->n_value_info; i++) {
 		if(strcmp(graph->value_info[i]->name, name) == 0)
 			return graph->value_info[i];
@@ -1041,30 +1041,30 @@ static onnx_ValueInfoProto* _GraphProto_getValueInfo(onnx_GraphProto* graph, con
 	return NULL;
 }
 
-connx_Runtime* connx_Runtime_create(onnx_ModelProto* model) {
+connx_Runtime* connx_Runtime_create(connx_Model* model) {
 	connx_Runtime* runtime = connx_alloc(sizeof(connx_Runtime));
 	runtime->model = model;
 
 	// dependency
-	onnx_GraphProto* graph = model->graph;
+	connx_Graph* graph = model->graph;
 
 	runtime->dependencyCount = graph->n_node;
-	runtime->dependencies = connx_alloc(sizeof(onnx_NodeProto*) * runtime->dependencyCount);
+	runtime->dependencies = connx_alloc(sizeof(connx_Node*) * runtime->dependencyCount);
 	runtime->operators = connx_alloc(sizeof(connx_Operator*) * runtime->dependencyCount);
 
 	uint32_t valueHead = 0;
 	uint32_t valueTail = 0;
 	uint32_t valueCount = graph->n_input + graph->n_output + graph->n_value_info;
-	onnx_ValueInfoProto* values[valueCount];
+	connx_ValueInfo* values[valueCount];
 	for(uint32_t i = 0; i < graph->n_output; i++) {
-		_ValueInfoProto_enqueue(values, &valueTail, graph->output[i]);
+		_ValueInfo_enqueue(values, &valueTail, graph->output[i]);
 	}
 
 	uint32_t nodeIdx = 0;
-	onnx_ValueInfoProto* value = _ValueInfoProto_dequeue(values, &valueHead, &valueTail);
+	connx_ValueInfo* value = _ValueInfo_dequeue(values, &valueHead, &valueTail);
 	while(value != NULL) {
 		for(uint32_t i = 0; i < graph->n_node; i++) {
-			onnx_NodeProto* node = graph->node[i];
+			connx_Node* node = graph->node[i];
 
 			for(size_t j = 0; j < node->n_output; j++) {
 				if(strcmp(value->name, node->output[j]) == 0) {
@@ -1078,15 +1078,15 @@ connx_Runtime* connx_Runtime_create(onnx_ModelProto* model) {
 
 					for(size_t k = 0; k < node->n_input; k++) {
 						char* name = node->input[k];
-						onnx_ValueInfoProto* input = _GraphProto_getInput(graph, name);
+						connx_ValueInfo* input = _Graph_getInput(graph, name);
 						if(input != NULL) {
-							_ValueInfoProto_enqueue(values, &valueTail, input);
+							_ValueInfo_enqueue(values, &valueTail, input);
 							continue;
 						}
 
-						input = _GraphProto_getValueInfo(graph, name);
+						input = _Graph_getValueInfo(graph, name);
 						if(input != NULL) {
-							_ValueInfoProto_enqueue(values, &valueTail, input);
+							_ValueInfo_enqueue(values, &valueTail, input);
 							continue;
 						}
 					}
@@ -1094,15 +1094,15 @@ connx_Runtime* connx_Runtime_create(onnx_ModelProto* model) {
 			}
 		}
 
-		value = _ValueInfoProto_dequeue(values, &valueHead, &valueTail);
+		value = _ValueInfo_dequeue(values, &valueHead, &valueTail);
 	}
 	runtime->dependencyCount = nodeIdx;
 
 	// inputs
 	uint32_t inputIdx = 0;
-	onnx_ValueInfoProto* inputs[graph->n_input];
+	connx_ValueInfo* inputs[graph->n_input];
 	for(uint32_t i = 0; i < graph->n_input; i++) {
-		onnx_ValueInfoProto* input = graph->input[i];
+		connx_ValueInfo* input = graph->input[i];
 
 		for(uint32_t j = 0; j < graph->n_initializer; j++) {
 			if(strcmp(graph->initializer[j]->name, input->name) == 0) {
@@ -1116,17 +1116,17 @@ next_input:
 	}
 
 	runtime->inputCount = inputIdx;
-	runtime->inputs = connx_alloc(sizeof(onnx_ValueInfoProto*) * inputIdx);
-	memcpy(runtime->inputs, inputs, sizeof(onnx_ValueInfoProto*) * inputIdx);
+	runtime->inputs = connx_alloc(sizeof(connx_ValueInfo*) * inputIdx);
+	memcpy(runtime->inputs, inputs, sizeof(connx_ValueInfo*) * inputIdx);
 
 	// outputs
 	uint32_t outputIdx = 0;
-	onnx_ValueInfoProto* outputs[graph->n_output];
+	connx_ValueInfo* outputs[graph->n_output];
 	for(uint32_t i = 0; i < graph->n_output; i++) {
-		onnx_ValueInfoProto* output = graph->output[i];
+		connx_ValueInfo* output = graph->output[i];
 
 		for(uint32_t j = 0; j < graph->n_node; j++) {
-			onnx_NodeProto* node = graph->node[j];
+			connx_Node* node = graph->node[j];
 			for(uint32_t k = 0; k < node->n_input; k++) {
 				if(strcmp(node->input[k], output->name) == 0) {
 					goto next_output;
@@ -1140,8 +1140,8 @@ next_output:
 	}
 
 	runtime->outputCount = outputIdx;
-	runtime->outputs = connx_alloc(sizeof(onnx_ValueInfoProto*) * outputIdx);
-	memcpy(runtime->outputs, outputs, sizeof(onnx_ValueInfoProto*) * outputIdx);
+	runtime->outputs = connx_alloc(sizeof(connx_ValueInfo*) * outputIdx);
+	memcpy(runtime->outputs, outputs, sizeof(connx_ValueInfo*) * outputIdx);
 
 	// variables
 	runtime->variableCount = graph->n_input + graph->n_output + graph->n_value_info;
@@ -1150,8 +1150,8 @@ next_output:
 
 	uint32_t variableIdx = 0;
 	for(uint32_t i = 0; i < graph->n_input; i++) {
-		onnx_ValueInfoProto* valueInfo = graph->input[i];
-		connx_Tensor* tensor = _GraphProto_getInitializer(graph, valueInfo->name);
+		connx_ValueInfo* valueInfo = graph->input[i];
+		connx_Tensor* tensor = _Graph_getInitializer(graph, valueInfo->name);
 		if(tensor != NULL) {
 			tensor->name = valueInfo->name;
 			runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
@@ -1164,8 +1164,8 @@ next_output:
 	}
 
 	for(uint32_t i = 0; i < graph->n_output; i++) {
-		onnx_ValueInfoProto* valueInfo = graph->output[i];
-		connx_Tensor* tensor = _GraphProto_getInitializer(graph, valueInfo->name);
+		connx_ValueInfo* valueInfo = graph->output[i];
+		connx_Tensor* tensor = _Graph_getInitializer(graph, valueInfo->name);
 		if(tensor != NULL) {
 			tensor->name = valueInfo->name;
 			runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
@@ -1178,8 +1178,8 @@ next_output:
 	}
 
 	for(uint32_t i = 0; i < graph->n_value_info; i++) {
-		onnx_ValueInfoProto* valueInfo = graph->value_info[i];
-		connx_Tensor* tensor = _GraphProto_getInitializer(graph, valueInfo->name);
+		connx_ValueInfo* valueInfo = graph->value_info[i];
+		connx_Tensor* tensor = _Graph_getInitializer(graph, valueInfo->name);
 		if(tensor != NULL) {
 			tensor->name = valueInfo->name;
 			runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
@@ -1203,7 +1203,7 @@ next_output:
 	runtime->stack = connx_alloc(sizeof(uintptr_t) * stackCount);
 	uint32_t stackIdx = 0;
 	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
-		onnx_NodeProto* node = runtime->dependencies[i - 1];
+		connx_Node* node = runtime->dependencies[i - 1];
 		connx_Operator* op = runtime->operators[i - 1];
 
 		uintptr_t count = 1 + op->outputCount + op->inputCount + op->attributeCount;
@@ -1248,9 +1248,9 @@ next_output:
 
 		// attribute
 		for(uint32_t j = 0; j < op->attributeCount; j++) {
-			onnx_AttributeProto* attr = NULL;
+			connx_Attribute* attr = NULL;
 			for(uint32_t k = 0; k < node->n_attribute; k++) {
-				onnx_AttributeProto* a = node->attribute[k];
+				connx_Attribute* a = node->attribute[k];
 				if(strcmp(a->name, op->attributeNames[j]) == 0) {
 					attr = a;
 					break;

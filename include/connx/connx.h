@@ -94,7 +94,7 @@ typedef struct _connx_Map {
 
 connx_Tensor* connx_Tensor_create(connx_DataType type, uint32_t dimension, ...);
 connx_Tensor* connx_Tensor_create2(connx_DataType type, uint32_t dimension, uint32_t* lengths);
-connx_Tensor* connx_Tensor_create_from_onnx(onnx_TensorProto* onnx);
+connx_Tensor* connx_Tensor_create_from_onnx(Onnx__TensorProto* onnx);
 connx_Tensor* connx_Tensor_create_from_file(const char* path);
 connx_Tensor* connx_Tensor_clone(connx_Tensor* tensor);
 bool connx_Tensor_copy(connx_Tensor* tensor, connx_Tensor* dest);
@@ -108,7 +108,7 @@ int connx_Tensor_toShapeString(connx_Tensor* tensor, int len, char* buf);
 connx_Sequence* connx_Sequence_create(connx_DataType type, uint32_t length);
 connx_Map* connx_Map_create(connx_DataType keyType, connx_DataType valueType, uint32_t length);
 
-connx_Value* connx_Value_create_from_onnx(onnx_TypeProto* type);
+connx_Value* connx_Value_create_from_onnx(connx_Type* type);
 connx_Value* connx_Value_clone(connx_Value* value);
 bool connx_Value_copy(connx_Value* value, connx_Value* dest);
 void connx_Value_clean(connx_Value* value);
@@ -134,7 +134,7 @@ typedef struct _connx_Operator {
 } connx_Operator;
 
 extern uint32_t connx_operator_count;
-extern connx_Operator* connx_operators;
+extern connx_Operator connx_operators[];
 
 void connx_Operator_add(const char* name, 
 		uint32_t outputCount, uint32_t inputCount, uint32_t attributeCount,
@@ -162,28 +162,28 @@ void* connx_Attribute_base(void* attr);
 
 // Runtime
 typedef struct _connx_Runtime {
-	onnx_ModelProto*		model;
+	connx_Model*		model;
 
-	uint32_t				dependencyCount;
-	onnx_NodeProto**		dependencies;
-	connx_Operator**		operators;
+	uint32_t			dependencyCount;
+	connx_Node**		dependencies;
+	connx_Operator**	operators;
 
-	uint32_t				variableCount;
-	connx_Value**			variables;
-	connx_Value**			initializers;
+	uint32_t			variableCount;
+	connx_Value**		variables;
+	connx_Value**		initializers;
 
-	uint32_t				inputCount;
-	onnx_ValueInfoProto**	inputs;
+	uint32_t			inputCount;
+	connx_ValueInfo**	inputs;
 
-	uint32_t				outputCount;
-	onnx_ValueInfoProto**	outputs;
+	uint32_t			outputCount;
+	connx_ValueInfo**	outputs;
 
-	uint32_t				stackCount;
-	uintptr_t*				stack;
-	bool					isDirty;
+	uint32_t			stackCount;
+	uintptr_t*			stack;
+	bool				isDirty;
 } connx_Runtime;
 
-connx_Runtime* connx_Runtime_create(onnx_ModelProto* model);
+connx_Runtime* connx_Runtime_create(connx_Model* model);
 void connx_Runtime_delete(connx_Runtime* runtime);
 bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value);
 connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name);

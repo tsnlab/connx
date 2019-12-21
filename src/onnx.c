@@ -17,7 +17,7 @@ static ProtobufCAllocator _default_allocator = {
 	.allocator_data = NULL
 };
 
-onnx_ModelProto* onnx_Model_create_from_file(const char* path) {
+connx_Model* connx_Model_create_from_file(const char* path) {
 	FILE* file = fopen(path, "r");
 	if(file == NULL) {
 		connx_exception("'%s' is not found.", path);
@@ -38,7 +38,7 @@ onnx_ModelProto* onnx_Model_create_from_file(const char* path) {
 		return NULL;
 	}
 
-	onnx_ModelProto* onnx = onnx__model_proto__unpack(&_default_allocator, len, buf);
+	connx_Model* onnx = onnx__model_proto__unpack(&_default_allocator, len, buf);
 	if(onnx == NULL) {
 		connx_exception("'%s' is not an onnx file.", path);
 		return NULL;
@@ -47,7 +47,7 @@ onnx_ModelProto* onnx_Model_create_from_file(const char* path) {
 	return onnx;
 }
 
-void onnx_ModelProto_delete(onnx_ModelProto* onnx) {
+void connx_Model_delete(connx_Model* onnx) {
 	onnx__model_proto__free_unpacked(onnx, &_default_allocator);
 }
 
@@ -71,20 +71,16 @@ connx_Tensor* connx_Tensor_create_from_file(const char* path) {
 		return NULL;
 	}
 
-	onnx_TensorProto* onnx = onnx__tensor_proto__unpack(&_default_allocator, len, buf);
+	Onnx__TensorProto* onnx = onnx__tensor_proto__unpack(&_default_allocator, len, buf);
 	if(onnx == NULL) {
 		connx_exception("'%s' is not an onnx file.", path);
 		return NULL;
 	}
 
 	connx_Tensor* tensor = connx_Tensor_create_from_onnx(onnx);
-	onnx_TensorProto_delete(onnx);
+	onnx__tensor_proto__free_unpacked(onnx, &_default_allocator);
 
 	return tensor;
-}
-
-void onnx_TensorProto_delete(onnx_TensorProto* onnx) {
-	onnx__tensor_proto__free_unpacked(onnx, &_default_allocator);
 }
 
 static int depth = 0;
@@ -94,7 +90,19 @@ static void tab() {
 		fprintf(stdout, "\t");
 }
 
-void onnx_Attribute_dump(onnx_AttributeProto* attribute) {
+static void onnx_Attribute_dump(connx_Attribute* attribute);
+static void onnx_ValueInfo_dump(connx_ValueInfo* valueInfo);
+static void onnx_Node_dump(connx_Node* node);
+static void onnx_Graph_dump(connx_Graph* graph);
+static void onnx_Tensor_dump(Onnx__TensorProto* tensor);
+static void onnx_SparseTensor_dump(connx_SparseTensor* sparse);
+static void onnx_TensorType_dump(connx_Type_Tensor* type);
+static void onnx_SequenceType_dump(connx_Type_Sequence* type);
+static void onnx_MapType_dump(connx_Type_Map* type);
+static void onnx_Type_dump(connx_Type* type);
+static void onnx_DataType_dump(int32_t type);
+
+void onnx_Attribute_dump(connx_Attribute* attribute) {
 	tab(); fprintf(stdout, "Attribute: %s\n", attribute->name);
 	depth++;
 
@@ -189,7 +197,7 @@ void onnx_Attribute_dump(onnx_AttributeProto* attribute) {
 	depth--;
 }
 
-void onnx_ValueInfo_dump(onnx_ValueInfoProto* valueInfo) {
+void onnx_ValueInfo_dump(connx_ValueInfo* valueInfo) {
 	tab(); fprintf(stdout, "ValueInfo: %s, ", valueInfo->name);
 	onnx_Type_dump(valueInfo->type);
 
@@ -200,7 +208,7 @@ void onnx_ValueInfo_dump(onnx_ValueInfoProto* valueInfo) {
 	}
 }
 
-void onnx_Node_dump(onnx_NodeProto* node)  {
+void onnx_Node_dump(connx_Node* node)  {
 	tab(); fprintf(stdout, "%s: %s\n", node->op_type, node->name);
 
 	depth++;
@@ -240,7 +248,7 @@ void onnx_Node_dump(onnx_NodeProto* node)  {
 	depth--;
 }
 
-void onnx_Model_dump(onnx_ModelProto* model) {
+void connx_Model_dump(connx_Model* model) {
 	tab(); fprintf(stdout, "ir_version: %ld\n", model->ir_version);
 	tab(); fprintf(stdout, "opset_import\n");
 
@@ -263,7 +271,7 @@ void onnx_Model_dump(onnx_ModelProto* model) {
 	onnx_Graph_dump(model->graph);
 }
 
-void onnx_Graph_dump(onnx_GraphProto* graph) {
+void onnx_Graph_dump(connx_Graph* graph) {
 	tab(); fprintf(stdout, "Graph: %s\n", graph->name);
 
 	depth++;
@@ -335,7 +343,7 @@ void onnx_Graph_dump(onnx_GraphProto* graph) {
 	depth--;
 }
 
-void onnx_Tensor_dump(onnx_TensorProto* tensor) {
+void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 	tab(); fprintf(stdout, "Tensor: %s\n", tensor->name);
 
 	depth++;
@@ -428,7 +436,7 @@ void onnx_Tensor_dump(onnx_TensorProto* tensor) {
 	depth--;
 }
 
-void onnx_SparseTensor_dump(onnx_SparseTensorProto* sparse) {
+void onnx_SparseTensor_dump(connx_SparseTensor* sparse) {
 	tab(); fprintf(stdout, "values: ");
 	onnx_Tensor_dump(sparse->values);
 	tab(); fprintf(stdout, "indices: ");
@@ -440,7 +448,7 @@ void onnx_SparseTensor_dump(onnx_SparseTensorProto* sparse) {
 	fprintf(stdout, "\n");
 }
 
-void onnx_TensorType_dump(onnx_TypeProto_Tensor* type) {
+void onnx_TensorType_dump(connx_Type_Tensor* type) {
 	fprintf(stdout, "Tensor<");
 	onnx_DataType_dump(type->elem_type);
 	fprintf(stdout, ">[ ");
@@ -465,13 +473,13 @@ void onnx_TensorType_dump(onnx_TypeProto_Tensor* type) {
 	fprintf(stdout, " ]");
 }
 
-void onnx_SequenceType_dump(onnx_TypeProto_Sequence* type) {
+void onnx_SequenceType_dump(connx_Type_Sequence* type) {
 	fprintf(stdout, "sequence<");
 	onnx_Type_dump(type->elem_type);
 	fprintf(stdout, ">");
 }
 
-void onnx_MapType_dump(onnx_TypeProto_Map* type) {
+void onnx_MapType_dump(connx_Type_Map* type) {
 	fprintf(stdout, "map<");
 	onnx_DataType_dump(type->key_type);
 	fprintf(stdout, ", ");
@@ -479,7 +487,7 @@ void onnx_MapType_dump(onnx_TypeProto_Map* type) {
 	fprintf(stdout, ">");
 }
 
-void onnx_Type_dump(onnx_TypeProto* type) {
+void onnx_Type_dump(connx_Type* type) {
 	switch(type->value_case) {
 		case ONNX__TYPE_PROTO__VALUE__NOT_SET:
 			fprintf(stdout, "N/A");

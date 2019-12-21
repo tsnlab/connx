@@ -1331,12 +1331,9 @@ static bool Conv_exec(uintptr_t* stack) {
 #define OPERATOR_COUNT	6
 
 uint32_t connx_operator_count;
-connx_Operator* connx_operators;
+connx_Operator connx_operators[OPERATOR_COUNT];
 
 bool connx_init() {
-	connx_operator_count = 0;
-	connx_operators = connx_alloc(sizeof(connx_Operator) * OPERATOR_COUNT);
-
 	connx_Operator_add("Add", 1, 2, 0, Add_resolve, Add_exec,
 		connx_DataType_TENSOR_INTEGER32_FLOAT,
 		connx_DataType_TENSOR_INTEGER32_FLOAT,

@@ -21,8 +21,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 	connx_Tensor* output = connx_Tensor_create_from_file("examples/mnist/test_data_set_0/output_0.pb");
 	connx_Tensor_dump(output);
 
-	onnx_ModelProto* model = onnx_Model_create_from_file("examples/mnist/model.onnx");
-	onnx_Model_dump(model);
+	connx_Model* model = connx_Model_create_from_file("examples/mnist/model.onnx");
+	connx_Model_dump(model);
 
 	printf("* operators\n");
 	connx_Operator_dump();
@@ -48,7 +48,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 	connx_Tensor_delete(output);
 	connx_Tensor_delete(input);
 	connx_Runtime_delete(runtime);
-	onnx_ModelProto_delete(model);
+	connx_Model_delete(model);
 
 	return 0;
 }
