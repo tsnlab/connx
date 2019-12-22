@@ -9,9 +9,11 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
-    - name: submodule init
+    - name: Install protobuf-c-compiler
+      run: sudo apt install protobuf-c-compiler
+    - name: Initialize submodule
       run: git submodule init
-    - name: submodule update
+    - name: Update submodule
       run: git submodule update
     - name: make
       run: make
