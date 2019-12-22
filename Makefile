@@ -12,22 +12,22 @@ LIBS=-lprotobuf-c
 OPSET_OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
 OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 
-all: main
+all: connx
 
 run: all
-	./main
+	./connx
 
 clean:
 	rm src/opset.c
 	rm -rf obj
-	rm -f main
+	rm -f connx
 
 cleanall: clean
 	rm src/onnx.proto3.pb-c.c
 	rm include/onnx/onnx.proto3.pb-c.h
 	rmdir include/onnx
 
-main: $(OBJS)
+connx: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 

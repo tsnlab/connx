@@ -725,6 +725,15 @@ uint32_t connx_Tensor_total(connx_Tensor* tensor) {
 	return total;
 }
 
+bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2) {
+	if(!connx_Tensor_isShapeEquals(tensor, tensor2)) {
+		return false;
+	}
+
+	uint32_t total = connx_Tensor_total(tensor);
+	return memcmp(tensor->base, tensor2->base, connx_DataType_size(tensor->elemType) * total) == 0;
+}
+
 bool connx_Tensor_isShapeEquals(connx_Tensor* tensor, connx_Tensor* tensor2) {
 	if(tensor->elemType != tensor2->elemType)
 		return false;

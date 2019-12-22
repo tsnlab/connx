@@ -3,4 +3,4 @@ src/onnx.proto3.pb-c.c
 src/opset.c
 obj
 test/env
-main
+connx
