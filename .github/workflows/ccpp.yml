@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install ubuntu packages
-      run: sudo apt install protobuf-c-compiler libprotobuf-c-dev racket
+      run: sudo apt install protobuf-c-compiler libprotobuf-c-dev
     - name: Initialize submodule
       run: git submodule init
     - name: Update submodule
@@ -18,4 +18,6 @@ jobs:
     - name: make
       run: make
     - name: make run
+      run: make run
+    - name: make test
       run: make run
