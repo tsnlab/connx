@@ -523,7 +523,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			fprintf(stdout, ", ");
 		}
 	}
-	fprintf(stdout, " ] = { ");
+	fprintf(stdout, " ] = {\n\t");
 
 	uint32_t enter = tensor->lengths[tensor->dimension - 1];
 	uint32_t enter2 = -1;
@@ -710,13 +710,343 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			fprintf(stdout, "Illegal type: %d", tensor->type);
 	}
 
-	fprintf(stdout, " }\n");
+	fprintf(stdout, "\n}\n");
+}
+
+void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, double epsilon) {
+#define RED "\033[0;31m"
+#define END "\033[0m"
+
+	char buf[32];
+	connx_DataType_toString(tensor->elemType, 32, buf);
+	fprintf(stdout, "%s = %s[ ", tensor->name == NULL ? "<noname>" : tensor->name, buf);
+	uint32_t total = 1;
+	for(uint32_t i = 0; i < tensor->dimension; i++) {
+		total *= tensor->lengths[i];
+
+		fprintf(stdout, "%u", tensor->lengths[i]);
+
+		if(i >= tensor2->dimension) {
+			fprintf(stdout, RED "(%s)" END, "N/A");
+		} else if(tensor2->lengths[i] != tensor->lengths[i]) {
+			fprintf(stdout, RED "(%u)" END, tensor2->lengths[i]);
+		}
+
+		if(i + 1 < tensor->dimension) {
+			fprintf(stdout, ", ");
+		}
+	}
+	fprintf(stdout, " ] = {\n\t");
+
+	uint32_t total2 = connx_Tensor_total(tensor2);
+
+	uint32_t enter = tensor->lengths[tensor->dimension - 1];
+	uint32_t enter2 = -1;
+	if(tensor->dimension > 1)
+		enter2 = tensor->lengths[tensor->dimension - 2] * enter;
+
+	switch(tensor->elemType) {
+		case connx_DataType_VOID:
+			break;
+		case connx_DataType_UINT8:
+			{
+				uint8_t* array = (uint8_t*)tensor->base;
+				uint8_t* array2 = (uint8_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%u", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%u)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_UINT16:
+			{
+				uint16_t* array = (uint16_t*)tensor->base;
+				uint16_t* array2 = (uint16_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%u", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%u)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_UINT32:
+			{
+				uint32_t* array = (uint32_t*)tensor->base;
+				uint32_t* array2 = (uint32_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%u", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%u)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_UINT64:
+			{
+				uint64_t* array = (uint64_t*)tensor->base;
+				uint64_t* array2 = (uint64_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%lu", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%lu)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_INT8:
+			{
+				int8_t* array = (int8_t*)tensor->base;
+				int8_t* array2 = (int8_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%d", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%d)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_INT16:
+			{
+				int16_t* array = (int16_t*)tensor->base;
+				int16_t* array2 = (int16_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%d", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%d)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_INT32:
+			{
+				int32_t* array = (int32_t*)tensor->base;
+				int32_t* array2 = (int32_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%d", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%d)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_INT64:
+			{
+				int64_t* array = (int64_t*)tensor->base;
+				int64_t* array2 = (int64_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%ld", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%ld)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_FLOAT32:
+			{
+				float* array = (float*)tensor->base;
+				float* array2 = (float*)tensor2->base;
+				float diff;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%f", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						diff = array[i] - array2[i];
+
+						if(diff < -epsilon || diff > epsilon) {
+							fprintf(stdout, RED "(%f)" END, array2[i]);
+						}
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % enter == 0) {
+							fprintf(stdout, "\n\t");
+
+							if((i + 1) % enter2 == 0) {
+								fprintf(stdout, "\n\t");
+							}
+						}
+					}
+				}
+			}
+			break;
+		case connx_DataType_FLOAT64:
+			{
+				double* array = (double*)tensor->base;
+				double* array2 = (double*)tensor2->base;
+				double diff;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%f", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						diff = array[i] - array2[i];
+
+						if(diff < -epsilon || diff > epsilon) {
+							fprintf(stdout, RED "(%f)" END, array2[i]);
+						}
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_BOOL:
+			{
+				bool* array = (bool*)tensor->base;
+				bool* array2 = (bool*)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%s", array[i] ? "true" : "false");
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] != array2[i]) {
+						fprintf(stdout, RED "(%s)" END, array2[i] ? "true" : "false");
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		case connx_DataType_STRING:
+			{
+				char** array = (char**)tensor->base;
+				char** array2 = (char**)tensor2->base;
+
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "\"%s\"", array[i]);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(strcmp(array[i],array2[i]) != 0) {
+						fprintf(stdout, RED "(%s)" END, array2[i]);
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % 8 == 0)
+							fprintf(stdout, "\n\t");
+					}
+				}
+			}
+			break;
+		default:
+			fprintf(stdout, "Illegal type: %d", tensor->type);
+	}
+
+	fprintf(stdout, "\n}\n");
 }
 
 uint32_t connx_Tensor_total(connx_Tensor* tensor) {
-	if(tensor->dimension == 0)
-		return 0;
-
 	uint32_t total = 1;
 	for(uint32_t i = 0; i < tensor->dimension; i++) {
 		total *= tensor->lengths[i];
@@ -730,8 +1060,135 @@ bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2) {
 		return false;
 	}
 
-	uint32_t total = connx_Tensor_total(tensor);
-	return memcmp(tensor->base, tensor2->base, connx_DataType_size(tensor->elemType) * total) == 0;
+	uint32_t count = connx_Tensor_total(tensor);
+
+	switch(tensor->elemType) {
+		case connx_DataType_UINT8:
+		case connx_DataType_UINT16:
+		case connx_DataType_UINT32:
+		case connx_DataType_UINT64:
+		case connx_DataType_INT8:
+		case connx_DataType_INT16:
+		case connx_DataType_INT32:
+		case connx_DataType_INT64:
+		case connx_DataType_BOOL:
+			return memcmp(tensor->base, tensor2->base, connx_DataType_size(tensor->elemType) * count) == 0;
+		case connx_DataType_FLOAT16:
+		case connx_DataType_FLOAT32:
+			{
+				float* base = (float*)tensor->base;
+				float* base2 = (float*)tensor2->base;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] != base2[i])
+						return false;
+				}
+
+				return true;
+			}
+		case connx_DataType_FLOAT64:
+			{
+				double* base = (double*)tensor->base;
+				double* base2 = (double*)tensor2->base;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] != base2[i])
+						return false;
+				}
+
+				return true;
+			}
+		case connx_DataType_STRING:
+			{
+				char** base = (char**)tensor->base;
+				char** base2 = (char**)tensor2->base;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(strcmp(base[i], base2[i]) != 0) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+		default:
+			return false;
+	}
+}
+
+bool connx_Tensor_isNearlyEquals(connx_Tensor* tensor, connx_Tensor* tensor2, double epsilon) {
+	if(!connx_Tensor_isShapeEquals(tensor, tensor2)) {
+		return false;
+	}
+
+	uint32_t count = connx_Tensor_total(tensor);
+
+	switch(tensor->elemType) {
+		case connx_DataType_UINT8:
+		case connx_DataType_UINT16:
+		case connx_DataType_UINT32:
+		case connx_DataType_UINT64:
+		case connx_DataType_INT8:
+		case connx_DataType_INT16:
+		case connx_DataType_INT32:
+		case connx_DataType_INT64:
+		case connx_DataType_BOOL:
+			return memcmp(tensor->base, tensor2->base, connx_DataType_size(tensor->elemType) * count) == 0;
+		case connx_DataType_FLOAT16:
+		case connx_DataType_FLOAT32:
+			{
+				float* base = (float*)tensor->base;
+				float* base2 = (float*)tensor2->base;
+				float e = epsilon;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] == base2[i])
+						continue;
+
+					float diff = base[i] - base2[i];
+					if(diff >= -e && diff <= e)
+						continue;
+
+					return false;
+				}
+
+				return true;
+			}
+		case connx_DataType_FLOAT64:
+			{
+				double* base = (double*)tensor->base;
+				double* base2 = (double*)tensor2->base;
+				double e = epsilon;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] == base2[i])
+						continue;
+
+					double diff = base[i] - base2[i];
+					if(diff >= -e && diff <= e)
+						continue;
+
+					return false;
+				}
+
+				return true;
+			}
+		case connx_DataType_STRING:
+			{
+				char** base = (char**)tensor->base;
+				char** base2 = (char**)tensor2->base;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(strcmp(base[i], base2[i]) != 0) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+		default:
+			return false;
+	}
 }
 
 bool connx_Tensor_isShapeEquals(connx_Tensor* tensor, connx_Tensor* tensor2) {

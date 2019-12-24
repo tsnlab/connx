@@ -1,4 +1,4 @@
-.PHONY: all clean cleanall run
+.PHONY: all run test clean cleanall
 
 RELEASE ?= 0
 CC=gcc
@@ -15,7 +15,7 @@ OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.prot
 all: connx
 
 run: all
-	./connx
+	./connx examples/mnist/model.onnx -i examples/mnist/test_data_set_0/input_0.pb -t examples/mnist/test_data_set_0/output_0.pb -l 1000
 
 clean:
 	rm src/opset.c
@@ -26,6 +26,19 @@ cleanall: clean
 	rm src/onnx.proto3.pb-c.c
 	rm include/onnx/onnx.proto3.pb-c.h
 	rmdir include/onnx
+
+test: bin/re2c
+	make -C test run
+
+bin/re2c: bin/re2c-1.3.tar.gz
+	rm -rf obj
+	mkdir -p obj
+	cd obj; tar fxz ../$^
+	cd obj/$(notdir $(basename $(basename $^))); autoreconf -i -W all
+	cd obj/$(notdir $(basename $(basename $^))); ./configure
+	cd obj/$(notdir $(basename $(basename $^))); make
+	cp obj/$(notdir $(basename $(basename $^)))/re2c bin/
+	rm -rf obj
 
 connx: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)

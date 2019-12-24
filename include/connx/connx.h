@@ -101,8 +101,10 @@ bool connx_Tensor_copy(connx_Tensor* tensor, connx_Tensor* dest);
 void connx_Tensor_clean(connx_Tensor* tensor);
 void connx_Tensor_delete(connx_Tensor* tensor);
 void connx_Tensor_dump(connx_Tensor* tensor);
+void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, double epsilon);
 uint32_t connx_Tensor_total(connx_Tensor* tensor);
 bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2);
+bool connx_Tensor_isNearlyEquals(connx_Tensor* tensor, connx_Tensor* tensor2, double epsilon);
 bool connx_Tensor_isShapeEquals(connx_Tensor* tensor, connx_Tensor* tensor2);
 int connx_Tensor_toShapeString(connx_Tensor* tensor, int len, char* buf);
 
