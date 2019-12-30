@@ -8,6 +8,7 @@ bool connx_init();
 
 // exception
 void connx_exception(char* format, ...);
+const char* connx_exception_message();
 
 // memory management
 void* connx_alloc(size_t size) __attribute__((weak));

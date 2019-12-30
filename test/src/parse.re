@@ -58,7 +58,7 @@ char* parse_int(char *YYCURSOR, char** _number) {
 
     * { return NULL; }
 
-	ws @number integer @number2 ws @end { 
+	ws_brack @number integer @number2 ws_brack @end { 
 		*_number = number;
 		*number2 = '\0';
 		return end;

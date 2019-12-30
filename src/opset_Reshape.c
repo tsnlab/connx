@@ -1,7 +1,7 @@
 #include <string.h>
 #include <connx/connx.h>
 
-static bool Reshape_resolve(uintptr_t* stack) {
+static bool Reshape_resolve(__attribute__((unused)) uintptr_t* stack) {
 	return true;
 }
 
@@ -24,7 +24,7 @@ static bool Reshape_exec(uintptr_t* stack) {
 			if(i < data->dimension) {
 				lengths[i] = data->lengths[i];
 			} else {
-				connx_exception("zero index cannot be set out of bounds: %ld", i);
+				connx_exception("zero index cannot be set out of bounds: %ld >= %ld", i, data->dimension);
 				return false;
 			}
 			len *= lengths[i];

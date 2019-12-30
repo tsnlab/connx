@@ -5,7 +5,7 @@
 #include <malloc.h>
 #include <connx/connx.h>
 
-#define EPSILON 0.00000001
+#define EPSILON 0.000001
 #define GREEN "\033[0;32m"
 #define RED "\033[0;31m"
 #define END "\033[0m"
@@ -99,7 +99,8 @@ char* parse_id(char *YYCURSOR, char** _id);
 
 static bool exec_testcase(connx_Operator* op) {
 	char* line = readline();
-	printf("* Test: %s ", line);
+	printf("\t* Test case: %s ", line);
+	fflush(stdout);
 
 	// Read variables
 	stackIdx = 1;
@@ -117,6 +118,8 @@ static bool exec_testcase(connx_Operator* op) {
 			connx_DataType elemType;
 			if(strcmp("float32", type) == 0) {
 				elemType = connx_DataType_FLOAT32;
+			} else if(strcmp("int64", type) == 0) {
+				elemType = connx_DataType_INT64;
 			} else {
 				fprintf(stderr, "Not supported type: %s\n", type);
 				abort();
@@ -124,14 +127,8 @@ static bool exec_testcase(connx_Operator* op) {
 
 			uint32_t dimension = 0;
 			uint32_t lengths[16];
-			char* num = NULL;
-			line = parse_int(line, &num);
-			if(num != NULL) {
-				lengths[dimension++] = (uint32_t)strtoul(num, NULL, 10);
-			}
-
 			while(line != NULL) {
-				num = NULL;
+				char* num = NULL;
 				line = parse_int(line, &num);
 				if(num != NULL) {
 					lengths[dimension++] = (uint32_t)strtoul(num, NULL, 10);
@@ -147,13 +144,8 @@ static bool exec_testcase(connx_Operator* op) {
 
 				line = readline();
 				while(line != NULL && strchr(line, '=') == NULL) {
-					line = parse_float(line, &num);
-					if(num != NULL) {
-						base[i++] = strtof(num, NULL);
-					}
-
 					while(line != NULL) {
-						num = NULL;
+						char* num = NULL;
 						line = parse_float(line, &num);
 						if(num != NULL) {
 							base[i++] = strtof(num, NULL);
@@ -162,6 +154,24 @@ static bool exec_testcase(connx_Operator* op) {
 
 					line = readline();
 				}
+			} else if(elemType == connx_DataType_INT64) {
+				uint32_t i = 0;
+				int64_t* base = (int64_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtoll(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else {
+				abort();
 			}
 
 			stack[stackIdx++] = (uintptr_t)tensor;
@@ -169,96 +179,66 @@ static bool exec_testcase(connx_Operator* op) {
 			if(strcmp("float", type) == 0) {
 				char* num = NULL;
 				parse_float(line, &num);
-				line = readline();
 
-				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_float(strtof(num, NULL));
-			} else if(strcmp("floats", type) == 0) {
-				char* num = NULL;
-				float base[32];
-				int i = 0;
+				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_float(num != NULL ? strtof(num, NULL) : 0);
 				line = readline();
-				while(line != NULL && strchr(line, '=') == NULL) {
+			} else if(strcmp("floats", type) == 0) {
+				float base[32];
+				int count = 0;
+
+				while(line != NULL) {
+					char* num = NULL;
 					line = parse_float(line, &num);
 					if(num != NULL) {
-						base[i++] = strtof(num, NULL);
+						base[count++] = strtof(num, NULL);
 					}
-
-					while(line != NULL) {
-						num = NULL;
-						line = parse_float(line, &num);
-						if(num != NULL) {
-							base[i++] = strtof(num, NULL);
-						}
-					}
-
-					line = readline();
 				}
 
-				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_floats(i, base);
+				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_floats(count, base);
+				line = readline();
 			} else if(strcmp("int", type) == 0) {
 				char* num = NULL;
 				parse_int(line, &num);
-				line = readline();
 
-				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_int(strtol(num, NULL, 10));
+				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_int(num != NULL ? strtol(num, NULL, 10) : 0);
+				line = readline();
 			} else if(strcmp("ints", type) == 0) {
-				char* num = NULL;
 				int64_t base[32];
-				int i = 0;
-				line = readline();
-				while(line != NULL && strchr(line, '=') == NULL) {
-					line = parse_float(line, &num);
+				int count = 0;
+
+				while(line != NULL) {
+					char* num = NULL;
+					line = parse_int(line, &num);
 					if(num != NULL) {
-						base[i++] = strtol(num, NULL, 10);
+						base[count++] = strtoll(num, NULL, 10);
 					}
-
-					while(line != NULL) {
-						num = NULL;
-						line = parse_float(line, &num);
-						if(num != NULL) {
-							base[i++] = strtol(num, NULL, 10);
-						}
-					}
-
-					line = readline();
 				}
 
-				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_ints(i, base);
+				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_ints(count, base);
+				line = readline();
 			} else if(strcmp("string", type) == 0) {
 				char* id = NULL;
-				parse_int(line, &id);
-				line = readline();
+				parse_id(line, &id);
 
-				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_string(id);
+				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_string(id != NULL ? id : "");
+				line = readline();
 			} else if(strcmp("strings", type) == 0) {
 				char* id = NULL;
 				char* base[32];
-				int i = 0;
-				line = readline();
-				while(line != NULL && strchr(line, '=') == NULL) {
+				int count = 0;
+
+				while(line != NULL) {
 					line = parse_id(line, &id);
 					if(id != NULL) {
 						int len = strlen(id + 1);
-						base[i] = connx_alloc(len);
-						memcpy(base[i], id, len);
-						i++;
+						base[count] = connx_alloc(len);
+						memcpy(base[count], id, len);
+						count++;
 					}
-
-					while(line != NULL) {
-						id = NULL;
-						line = parse_id(line, &id);
-						if(id != NULL) {
-							int len = strlen(id + 1);
-							base[i] = connx_alloc(len);
-							memcpy(base[i], id, len);
-							i++;
-						}
-					}
-
-					line = readline();
 				}
 
-				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_strings(i, base);
+				stack[stackIdx++] = (uintptr_t)connx_Attribute_create_strings(count, base);
+				line = readline();
 			} else {
 				fprintf(stderr, "Not supported type: %s\n", type);
 				abort();
@@ -272,17 +252,17 @@ static bool exec_testcase(connx_Operator* op) {
 	stack[0] = stackIdx - 2;
 
 	if(stack[0] != op->outputCount + op->inputCount + op->attributeCount) {
-		printf(RED "\tSTACK COUNT MISMATCH: %lu", stack[0]);
+		printf(RED "\tSTACK COUNT MISMATCH: expected: %u but %lu\n", op->outputCount + op->inputCount + op->attributeCount, stack[0]);
 		return false;
 	}
 
 	if(!op->resolve(stack)) {
-		printf(RED "\tRESOLVE FAILED\n" END);
+		printf(RED "\tRESOLVE FAILED: %s\n" END, connx_exception_message());
 		return false;
 	}
 
 	if(!op->exec(stack)) {
-		printf(RED "\tEXECUTION FAILED\n" END);
+		printf(RED "\tEXECUTION FAILED: %s\n" END, connx_exception_message());
 		return false;
 	}
 
@@ -294,12 +274,35 @@ static bool exec_testcase(connx_Operator* op) {
 	}
 
 	// clean up
-	for(uint32_t i = 1; i < stackIdx; i++) {
-		// TODO: Change it to op
-		if(stack[i] != 0) {
-			connx_Tensor* tensor = (connx_Tensor*)stack[i];
+	// delete outputs
+	uint32_t stackIdx2 = 1;
+	for(uint32_t i = 0; i < op->outputCount; i++, stackIdx2++) {
+		if(stack[stackIdx2] != 0) {
+			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
 			connx_Tensor_delete(tensor);
 		}
+	}
+
+	// delete inputs
+	for(uint32_t i = 0; i < op->inputCount; i++, stackIdx2++) {
+		if(stack[stackIdx2] != 0) {
+			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
+			connx_Tensor_delete(tensor);
+		}
+	}
+
+	// delete attributes
+	for(uint32_t i = 0; i < op->attributeCount; i++, stackIdx2++) {
+		if(stack[stackIdx2] != 0) {
+			connx_Attribute* attr = (connx_Attribute*)stack[stackIdx2];
+			connx_Attribute_delete(attr);
+		}
+	}
+
+	// delete _result
+	if(stack[stackIdx2] != 0) {
+		connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
+		connx_Tensor_delete(tensor);
 	}
 
 	free(buf);
@@ -340,6 +343,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char** argv) {
 			}
 		}
 	}
+	printf("* Test done\n");
 
 	return 0;
 }

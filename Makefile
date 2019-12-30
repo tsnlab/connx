@@ -18,6 +18,7 @@ run: all
 	./connx examples/mnist/model.onnx -i examples/mnist/test_data_set_0/input_0.pb -t examples/mnist/test_data_set_0/output_0.pb -l 1000
 
 clean:
+	make -C test clean
 	rm src/opset.c
 	rm -rf obj
 	rm -f connx
@@ -27,7 +28,7 @@ cleanall: clean
 	rm include/onnx/onnx.proto3.pb-c.h
 	rmdir include/onnx
 
-test: bin/re2c
+test: all bin/re2c
 	make -C test run
 
 bin/re2c: bin/re2c-1.3.tar.gz

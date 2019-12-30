@@ -18,6 +18,7 @@ static bool Conv_resolve(uintptr_t* stack) {
 	uint32_t kernel_shape_length = connx_Attribute_length(attr_kernel_shape);
 	int64_t* pads = connx_Attribute_base(attr_pads);
 	uint32_t pads_length = connx_Attribute_length(attr_pads);
+	int64_t* strides = connx_Attribute_base(attr_strides);
 	uint32_t strides_length = connx_Attribute_length(attr_strides);
 
 	if(auto_pad[0] == 'S') {	// SAME_UPPER, SAME_LOWER
@@ -47,6 +48,19 @@ static bool Conv_resolve(uintptr_t* stack) {
 		stack[5] = connx_Attribute_create_ints(kernel_shape_length, array);
 		attr_dilations = (void*)stack[5];
 		dilations_length = connx_Attribute_length(attr_dilations);
+	}
+
+	if(strides_length == 0) {
+		int64_t array[kernel_shape_length];
+		for(uint32_t i = 0; i < kernel_shape_length; i++) {
+			array[i] = 1;
+		}
+
+		connx_Attribute_delete(attr_strides);
+		stack[9] = connx_Attribute_create_ints(kernel_shape_length, array);
+		attr_strides = (void*)stack[9];
+		strides = connx_Attribute_base(attr_strides);
+		strides_length = connx_Attribute_length(attr_strides);
 	}
 
 	if(kernel_shape_length * 2 != pads_length) {
@@ -90,10 +104,10 @@ static bool Conv_resolve(uintptr_t* stack) {
 	}
 
 	for(uint32_t i = 0; i < kernel_shape_length; i++) {
-		if(Y->lengths[i + 2] != X->lengths[i + 2] - (kernel_shape[i] - 1) + (pads[i] + pads[i + kernel_shape_length])) {
+		if(Y->lengths[i + 2] != (X->lengths[i + 2] - kernel_shape[i] + pads[i] + pads[i + kernel_shape_length]) / strides[i] + 1) {
 			connx_exception("Y's %uth shape is not matching: Y: %u, expected: %u", i + 2,
 					Y->lengths[i + 2],
-					X->lengths[i + 2] - (kernel_shape[i] - 1) + (pads[i] + pads[i + kernel_shape_length]));
+					(X->lengths[i + 2] - kernel_shape[i] + pads[i] + pads[i + kernel_shape_length]) / strides[i] + 1);
 			return false;
 		}
 	}
@@ -112,7 +126,7 @@ static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y,
 					int64_t x2 = x + kx;
 
 					if(y2 >= 0 && x2 >= 0 && y2 < X_lengths[0] && x2 < X_lengths[1]) {
-						tmp += X[y2 * X_lengths[0] + x2] * W[ky * W_lengths[0] + kx];
+						tmp += X[y2 * X_lengths[1] + x2] * W[ky * W_lengths[1] + kx];
 					}
 				}
 			}
@@ -138,9 +152,7 @@ static bool Conv_exec(uintptr_t* stack) {
 	int64_t* kernel_shape = connx_Attribute_base(attr_kernel_shape);
 	uint32_t kernel_shape_length = connx_Attribute_length(attr_kernel_shape);
 	int64_t* pads = connx_Attribute_base(attr_pads);
-	__attribute__((unused)) uint32_t pads_length = connx_Attribute_length(attr_pads);
 	int64_t* strides = connx_Attribute_base(attr_strides);
-	__attribute__((unused)) uint32_t strides_length = connx_Attribute_length(attr_strides);
 
 	// make output tensor
 	uint32_t x_unit = 1;

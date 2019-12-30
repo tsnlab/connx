@@ -1,0 +1,18 @@
+Add(axis 0 with an 1D array)
+
+C = tensor float32 4 3
+
+A = tensor float32 4 3
+[[ 0  1  2]
+ [ 3  4  5]
+ [ 6  7  8]
+ [ 9 10 11]]
+
+B = tensor float32 3
+[0 1 2]
+
+_result = tensor float32 4 3
+[[ 0  2  4]
+ [ 3  5  7]
+ [ 6  8 10]
+ [ 9 11 13]]

@@ -21,6 +21,10 @@ void connx_exception(char* format, ...) {
 	fprintf(stderr, "%s\n", _connx_exception_message);
 }
 
+const char* connx_exception_message() {
+	return _connx_exception_message;
+}
+
 // memory management
 void* connx_alloc(size_t size) {
 	void* ptr = calloc(1, size);
