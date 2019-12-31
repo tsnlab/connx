@@ -1999,9 +1999,27 @@ void connx_Operator_add(const char* name,
 					op->attributeValues[i] = connx_Attribute_create_ints(count, array);
 				}
 				break;
+			case connx_DataType_FLOAT32:
+				{
+					float v = va_arg(list, double);
+					op->attributeValues[i] = connx_Attribute_create_float(v);
+				}
+				break;
+			case connx_DataType_FLOAT32_ARRAY:
+				{
+					uint32_t count = va_arg(list, uint32_t);
+					float* array = va_arg(list, float*);
+					op->attributeValues[i] = connx_Attribute_create_floats(count, array);
+				}
+				break;
 			default:
 				// TODO: implement it
-				abort();
+				{
+					char buf[32];
+					connx_DataType_toString(op->attributes[i], 32, buf);
+					fprintf(stderr, "attribute datatype %s is not supported yet.\n", buf);
+					abort();
+				}
 		}
 	}
 

@@ -1,0 +1,11 @@
+LeakyRelu(array)
+
+Y = tensor float32 3
+
+X = tensor float32 3
+[-1.  0.  1.]
+
+alpha = attribute float 0.1
+
+_result = tensor float32 3
+[-0.1  0.   1. ]
