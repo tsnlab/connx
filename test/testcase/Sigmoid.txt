@@ -1,0 +1,9 @@
+Sigmoid(array)
+
+Y = tensor float32 3
+
+X = tensor float32 3
+[-1.  0.  1.]
+
+_result = tensor float32 3
+[0.26894143 0.5        0.7310586 ]

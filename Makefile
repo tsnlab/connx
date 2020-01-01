@@ -8,7 +8,7 @@ else
 	CFLAGS=-Iinclude -Wall -g -O0 -fsanitize=address
 endif
 
-LIBS=-lprotobuf-c
+LIBS=-lprotobuf-c -lm
 OPSET_OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
 OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 

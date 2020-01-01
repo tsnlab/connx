@@ -1,0 +1,9 @@
+Ceil(array)
+
+Y = tensor float32 3
+
+X = tensor float32 3
+[-1.5  1.2]
+
+_result = tensor float32 3
+[-1.  2.]
