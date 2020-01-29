@@ -34,7 +34,7 @@ typedef enum _connx_DataType {
 	connx_DataType_FLOAT64	= (1 << 10),
 	connx_DataType_FLOAT	= connx_DataType_FLOAT16 | connx_DataType_FLOAT32 | connx_DataType_FLOAT64,
 	connx_DataType_INTEGER32_FLOAT= connx_DataType_INTEGER32 | connx_DataType_FLOAT,
-	connx_DataType_NUMBER	= connx_DataType_INTEGER| connx_DataType_FLOAT,
+	connx_DataType_NUMBER	= connx_DataType_INTEGER | connx_DataType_FLOAT,
 	connx_DataType_BOOL		= (1 << 11),
 	connx_DataType_STRING	= (1 << 12),
 	connx_DataType_ARRAY	= (1 << 13),

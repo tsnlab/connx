@@ -1,21 +1,21 @@
 # MNIST
-[O] Add
-[O] MatMul
-[O] Reshape
-[O] Conv
-[O] MaxPool
-[O] Relu
+[X] Add
+[X] MatMul
+[X] Reshape
+[X] Conv
+[X] MaxPool
+[X] Relu
 
-# Tiny YOLO
-[O] Sub
-[O] Mul
-[O] Div
-[O] LeakyRelu
-[O] Ceil
-[O] Exp
-[O] Sigmoid
-[O] Round
-[ ] Identify
+# Tiny YXLO
+[X] Sub
+[X] Mul
+[X] Div
+[X] LeakyRelu
+[X] Ceil
+[X] Exp
+[X] Sigmoid
+[X] Round
+[X] Identify
 [ ] Transpose
 [ ] BatchNormalization
 [ ] Cast

@@ -1,0 +1,11 @@
+Identity
+
+output = tensor float32 1 1 2 2
+
+input = tensor float32 1 1 2 2
+[[[[1. 2.]
+   [3. 4.]]]]
+
+_result = tensor float32 1 1 2 2
+[[[[1. 2.]
+   [3. 4.]]]]

@@ -3,9 +3,9 @@
 RELEASE ?= 0
 CC=gcc
 ifeq ($(RELEASE), 1)
-	CFLAGS=-Iinclude -Wall -O3 -std=c99
+	CFLAGS=-Iinclude -Wall -std=c99 -O3
 else
-	CFLAGS=-Iinclude -Wall -g -O0 -fsanitize=address
+	CFLAGS=-Iinclude -Wall -std=c99 -O0 -g -fsanitize=address
 endif
 
 LIBS=-lprotobuf-c -lm

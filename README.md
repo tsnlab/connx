@@ -5,7 +5,6 @@ C implementation of Open Neural Network Exchange Runtime
 ## ONNX submodule
 CONNX depends on ONNX
 
-sudo apt install git
 git submodule init
 git submodule update
 
@@ -21,13 +20,13 @@ sudo apt install libprotobuf-c-dev
 
 # Compile
 make			# for debug
-make release	# for release
+make RELEASE=1	# for release
 
 # Test
 make test
 
 # License
- * CONNX can be distributed under dual license, GPL3 or MIT.
- * ONNX submodule is MIT license
- * re2c is public domain license
- * protobuf-c is BSD-2-Clause license
+ * CONNX is licensed under dual license GPLv3 or MIT
+ * ONNX is licensed under MIT
+ * re2c is licensed under public domain
+ * protobuf-c is licensed under BSD-2-Clause

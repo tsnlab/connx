@@ -7,3 +7,4 @@ test/src/parse.c
 test/env
 test/test
 connx
+*.swp
