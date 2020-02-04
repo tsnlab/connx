@@ -1,15 +1,4 @@
-#include <stdlib.h>
-#include "opset.h"
 #include <connx/connx.h>
-
-#define MINMAX(min, max, a, b)	\
-	if((a) > (b)) {		\
-		(max) = (a); 	\
-		(min) = (b);	\
-	} else {			\
-		(min) = (b);	\
-		(max) = (a);	\
-	}
 
 static bool Identity_resolve(uintptr_t* stack) {
 	connx_Tensor* output = (void*)stack[1];
