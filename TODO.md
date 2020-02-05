@@ -16,8 +16,8 @@
 [X] Sigmoid
 [X] Round
 [X] Identify
-[ ] Transpose
-[ ] BatchNormalization
+[X] Transpose
+[X] BatchNormalization
 [ ] Cast
 [ ] Slice
 [ ] Squeeze
