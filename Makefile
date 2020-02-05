@@ -1,16 +1,16 @@
 .PHONY: all run test clean cleanall
 
 RELEASE ?= 0
-CC=gcc
+CC:=gcc
 ifeq ($(RELEASE), 1)
-	CFLAGS=-Iinclude -Wall -std=c99 -O3
+	CFLAGS:=-Iinclude -Wall -std=c99 -O3
 else
-	CFLAGS=-Iinclude -Wall -std=c99 -O0 -g -fsanitize=address
+	CFLAGS:=-Iinclude -Wall -std=c99 -O0 -g -fsanitize=address
 endif
 
-LIBS=-lprotobuf-c -lm
-OPSET_OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
-OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
+LIBS:=-lprotobuf-c -lm
+OPSET_OBJS:=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
+OBJS:=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 
 all: connx
 
@@ -53,7 +53,7 @@ src/onnx.proto3.pb-c.c: onnx/onnx/onnx.proto3
 	mv src/onnx/onnx.proto3.pb-c.c src/
 	mv src/onnx include/
 
-obj/%.d : src/%.c src/onnx.proto3.pb-c.c
+obj/%.d: src/%.c src/onnx.proto3.pb-c.c
 	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
 
 -include $(patsubst src/%.c, obj/%.d, $(wildcard src/*.c))  
