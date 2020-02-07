@@ -193,4 +193,8 @@ bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value);
 connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name);
 connx_Value* connx_Runtime_run(connx_Runtime* runtime, connx_Value* input);
 
+// Utility
+uint16_t connx_float32_to_float16(float in);
+float connx_float16_to_float32(uint16_t in);
+
 #endif /* __CONNX_H__ */

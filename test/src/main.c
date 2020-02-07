@@ -116,8 +116,12 @@ static bool exec_testcase(connx_Operator* op) {
 
 		if(strcmp(kind, "tensor") == 0) {
 			connx_DataType elemType;
-			if(strcmp("float32", type) == 0) {
+			if(strcmp("float16", type) == 0) {
+				elemType = connx_DataType_FLOAT16;
+			} else if(strcmp("float32", type) == 0) {
 				elemType = connx_DataType_FLOAT32;
+			} else if(strcmp("int32", type) == 0) {
+				elemType = connx_DataType_INT32;
 			} else if(strcmp("int64", type) == 0) {
 				elemType = connx_DataType_INT64;
 			} else {
@@ -138,7 +142,23 @@ static bool exec_testcase(connx_Operator* op) {
 			connx_Tensor* tensor = connx_Tensor_create2(elemType, dimension, lengths);
 			tensor->name = id;
 
-			if(elemType == connx_DataType_FLOAT32) {
+			if(elemType == connx_DataType_FLOAT16) {
+				uint32_t i = 0;
+				uint16_t* base = (uint16_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_float(line, &num);
+						if(num != NULL) {
+							base[i++] = connx_float32_to_float16(strtof(num, NULL));
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_FLOAT32) {
 				uint32_t i = 0;
 				float* base = (float*)tensor->base;
 

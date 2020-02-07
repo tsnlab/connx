@@ -2081,3 +2081,56 @@ void connx_Operator_dump() {
 		depth--;
 	}
 }
+
+// Ref: https://stackoverflow.com/questions/3026441/float32-to-float16/3026505
+// Ref: https://gist.github.com/martin-kallman/5049614
+uint16_t connx_float32_to_float16(float in) {
+	uint32_t inu = *((uint32_t*)&in);
+	uint32_t t1;
+	uint32_t t2;
+	uint32_t t3;
+
+	t1 = inu & 0x7fffffff;                 // Non-sign bits
+	t2 = inu & 0x80000000;                 // Sign bit
+	t3 = inu & 0x7f800000;                 // Exponent
+	
+	t1 >>= 13;                             // Align mantissa on MSB
+	t2 >>= 16;                             // Shift sign bit into position
+
+	t1 -= 0x1c000;                         // Adjust bias
+
+	t1 = (t3 > 0x38800000) ? 0 : t1;       // Flush-to-zero
+	t1 = (t3 < 0x8e000000) ? 0x7bff : t1;  // Clamp-to-max
+	t1 = (t3 == 0 ? 0 : t1);               // Denormals-as-zero
+
+	t1 |= t2;                              // Re-insert sign bit
+
+	uint16_t out;
+	*((uint16_t*)&out) = t1;
+
+	return out;
+}
+
+float connx_float16_to_float32(uint16_t in) {
+	uint32_t t1;
+	uint32_t t2;
+	uint32_t t3;
+
+	t1 = in & 0x7fff;                       // Non-sign bits
+	t2 = in & 0x8000;                       // Sign bit
+	t3 = in & 0x7c00;                       // Exponent
+	
+	t1 <<= 13;                              // Align mantissa on MSB
+	t2 <<= 16;                              // Shift sign bit into position
+
+	t1 += 0x38000000;                       // Adjust bias
+
+	t1 = (t3 == 0 ? 0 : t1);                // Denormals-as-zero
+
+	t1 |= t2;                               // Re-insert sign bit
+
+	float out;
+	*((uint32_t*)&out) = t1;
+
+	return out;
+}
