@@ -18,7 +18,7 @@
 [X] Identify
 [X] Transpose
 [X] BatchNormalization
-[ ] Cast
+[X] Cast
 [ ] Slice
 [ ] Squeeze
 [ ] Shape
