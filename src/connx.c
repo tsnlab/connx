@@ -4,6 +4,7 @@
 #include <strings.h>
 #include <setjmp.h>
 #include <stdarg.h>
+#include <math.h>
 #include <connx/connx.h>
 
 #define EXCEPTION_MESSAGE_SIZE 128
@@ -114,6 +115,12 @@ int connx_DataType_toString(connx_DataType type, int len, char* buf) {
 		if(pos > 0)
 			pos += snprintf(buf + pos, len - pos, " | ");
 		pos += snprintf(buf + pos, len - pos, "int64");
+	}
+
+	if((type & connx_DataType_FLOAT16) > 0) {
+		if(pos > 0)
+			pos += snprintf(buf + pos, len - pos, " | ");
+		pos += snprintf(buf + pos, len - pos, "float16");
 	}
 
 	if((type & connx_DataType_FLOAT32) > 0) {
@@ -510,6 +517,16 @@ void connx_Tensor_clean(connx_Tensor* tensor) {
 }
 
 void connx_Tensor_delete(connx_Tensor* tensor) {
+	if(tensor->elemType == connx_DataType_STRING) {
+		uint32_t total =connx_Tensor_total(tensor);
+		char** base = (char**)tensor->base;
+		for(uint32_t i = 0; i < total; i++) {
+			if(base[i] != NULL) {
+				connx_free(base[i]);
+			}
+		}
+	}
+
 	connx_free(tensor->lengths);
 	connx_free(tensor);
 }
@@ -649,6 +666,25 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 				}
 			}
 			break;
+		case connx_DataType_FLOAT16:
+			{
+				uint16_t* array = (uint16_t*)tensor->base;
+				for(uint32_t i = 0; i < total; i++) {
+					fprintf(stdout, "%f", connx_float16_to_float32(array[i]));
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % enter == 0) {
+							fprintf(stdout, "\n\t");
+
+							if((i + 1) % enter2 == 0) {
+								fprintf(stdout, "\n\t");
+							}
+						}
+					}
+				}
+			}
+			break;
 		case connx_DataType_FLOAT32:
 			{
 				float* array = (float*)tensor->base;
@@ -711,7 +747,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			}
 			break;
 		default:
-			fprintf(stdout, "Illegal type: %d", tensor->type);
+			fprintf(stdout, "Illegal type: %d", tensor->elemType);
 	}
 
 	fprintf(stdout, "\n}\n");
@@ -936,6 +972,43 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				}
 			}
 			break;
+		case connx_DataType_FLOAT16:
+			{
+				uint16_t* array = (uint16_t*)tensor->base;
+				uint16_t* array2 = (uint16_t*)tensor2->base;
+				float diff;
+
+				for(uint32_t i = 0; i < total; i++) {
+					float v1 = connx_float16_to_float32(array[i]);
+					fprintf(stdout, "%f", v1);
+
+					if(i >= total2) {
+						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(array[i] == array2[i]) {
+						// Do nothing
+					} else {
+						float v2 = connx_float16_to_float32(array2[i]);
+						diff = v1 - v2;
+
+						if(diff < -epsilon || diff > epsilon) {
+							fprintf(stdout, RED "(%f)" END, v2);
+						}
+					}
+
+					if(i + 1 < total) {
+						fprintf(stdout, ", ");
+
+						if((i + 1) % enter == 0) {
+							fprintf(stdout, "\n\t");
+
+							if((i + 1) % enter2 == 0) {
+								fprintf(stdout, "\n\t");
+							}
+						}
+					}
+				}
+			}
+			break;
 		case connx_DataType_FLOAT32:
 			{
 				float* array = (float*)tensor->base;
@@ -947,6 +1020,10 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(isnan(array[i]) && isnan(array2[i])) {
+						// Do nothing
+					} else if(isnan(array[i]) || isnan(array2[i])) {
+						fprintf(stdout, RED "(%f)" END, array2[i]);
 					} else if(array[i] != array2[i]) {
 						diff = array[i] - array2[i];
 
@@ -980,6 +1057,10 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
+					} else if(isnan(array[i]) && isnan(array2[i])) {
+						// Do nothing
+					} else if(isnan(array[i]) || isnan(array2[i])) {
+						fprintf(stdout, RED "(%f)" END, array2[i]);
 					} else if(array[i] != array2[i]) {
 						diff = array[i] - array2[i];
 
@@ -1044,7 +1125,7 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 			}
 			break;
 		default:
-			fprintf(stdout, "Illegal type: %d", tensor->type);
+			fprintf(stdout, "Illegal type: %d", tensor->elemType);
 	}
 
 	fprintf(stdout, "\n}\n");
@@ -1060,11 +1141,13 @@ uint32_t connx_Tensor_total(connx_Tensor* tensor) {
 }
 
 bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2) {
+	printf("Step 1\n");
 	if(!connx_Tensor_isShapeEquals(tensor, tensor2)) {
 		return false;
 	}
 
 	uint32_t count = connx_Tensor_total(tensor);
+	printf("Step 2: %d\n", tensor->elemType);
 
 	switch(tensor->elemType) {
 		case connx_DataType_UINT8:
@@ -1078,14 +1161,29 @@ bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2) {
 		case connx_DataType_BOOL:
 			return memcmp(tensor->base, tensor2->base, connx_DataType_size(tensor->elemType) * count) == 0;
 		case connx_DataType_FLOAT16:
+			{
+				uint16_t* base = (uint16_t*)tensor->base;
+				uint16_t* base2 = (uint16_t*)tensor2->base;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] == base2[i])
+						continue;
+
+					return false;
+				}
+
+				return true;
+			}
 		case connx_DataType_FLOAT32:
 			{
 				float* base = (float*)tensor->base;
 				float* base2 = (float*)tensor2->base;
 
 				for(uint32_t i = 0; i < count; i++) {
-					if(base[i] != base2[i])
-						return false;
+					if(base[i] == base2[i] || (isnan(base[i]) && isnan(base2[i])))
+						continue;
+
+					return false;
 				}
 
 				return true;
@@ -1096,8 +1194,10 @@ bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2) {
 				double* base2 = (double*)tensor2->base;
 
 				for(uint32_t i = 0; i < count; i++) {
-					if(base[i] != base2[i])
-						return false;
+					if(base[i] == base2[i] || (isnan(base[i]) && isnan(base2[i])))
+						continue;
+
+					return false;
 				}
 
 				return true;
@@ -1139,6 +1239,24 @@ bool connx_Tensor_isNearlyEquals(connx_Tensor* tensor, connx_Tensor* tensor2, do
 		case connx_DataType_BOOL:
 			return memcmp(tensor->base, tensor2->base, connx_DataType_size(tensor->elemType) * count) == 0;
 		case connx_DataType_FLOAT16:
+			{
+				uint16_t* base = (uint16_t*)tensor->base;
+				uint16_t* base2 = (uint16_t*)tensor2->base;
+				float e = epsilon;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] == base2[i])
+						continue;
+
+					float diff = connx_float16_to_float32(base[i]) - connx_float16_to_float32(base2[i]);
+					if(diff >= -e && diff <= e)
+						continue;
+
+					return false;
+				}
+
+				return true;
+			}
 		case connx_DataType_FLOAT32:
 			{
 				float* base = (float*)tensor->base;
@@ -1147,6 +1265,9 @@ bool connx_Tensor_isNearlyEquals(connx_Tensor* tensor, connx_Tensor* tensor2, do
 
 				for(uint32_t i = 0; i < count; i++) {
 					if(base[i] == base2[i])
+						continue;
+
+					if(isnan(base[i]) && isnan(base2[i]))
 						continue;
 
 					float diff = base[i] - base2[i];
@@ -1168,6 +1289,9 @@ bool connx_Tensor_isNearlyEquals(connx_Tensor* tensor, connx_Tensor* tensor2, do
 					if(base[i] == base2[i])
 						continue;
 
+					if(isnan(base[i]) && isnan(base2[i]))
+						continue;
+
 					double diff = base[i] - base2[i];
 					if(diff >= -e && diff <= e)
 						continue;
@@ -1182,8 +1306,46 @@ bool connx_Tensor_isNearlyEquals(connx_Tensor* tensor, connx_Tensor* tensor2, do
 				char** base = (char**)tensor->base;
 				char** base2 = (char**)tensor2->base;
 
-				for(uint32_t i = 0; i < count; i++) {
-					if(strcmp(base[i], base2[i]) != 0) {
+				if(epsilon == 0.0) {
+					for(uint32_t i = 0; i < count; i++) {
+						if(strcmp(base[i], base2[i]) != 0) {
+							return false;
+						}
+					}
+				} else {
+					int prefix = 0;
+					while(epsilon < 1.0) {
+						prefix++;
+						epsilon *= 10;
+					}
+
+					for(uint32_t i = 0; i < count; i++) {
+						if(strcmp(base[i], base2[i]) == 0) {
+							continue;
+						}
+
+						char* pos1 = strchr(base[i], '.');
+						char* pos2 = strchr(base2[i], '.');
+
+						if(pos1 != NULL && pos2 != NULL) {
+							int prefixLen1 = (int)(pos1 - base[i]);
+							int prefixLen2 = (int)(pos2 - base2[i]);
+							if(prefixLen1 != prefixLen2) {
+								return false;
+							}
+
+							int strLen1 = strlen(base[i]);
+							int strLen2 = strlen(base2[i]);
+
+							int len = prefixLen1 + prefix;
+							len = len < strLen1 ? len : strLen1;
+							len = len < strLen2 ? len : strLen2;
+
+							if(memcmp(base[i], base2[i], len) == 0) {
+								continue;
+							}
+						}
+
 						return false;
 					}
 				}
@@ -2084,53 +2246,69 @@ void connx_Operator_dump() {
 
 // Ref: https://stackoverflow.com/questions/3026441/float32-to-float16/3026505
 // Ref: https://gist.github.com/martin-kallman/5049614
-uint16_t connx_float32_to_float16(float in) {
-	uint32_t inu = *((uint32_t*)&in);
-	uint32_t t1;
-	uint32_t t2;
-	uint32_t t3;
+// Ref: https://tool.oschina.net/uploads/apidocs/ogre3d/api/html/OgreBitwise_8h_source.html
+uint16_t connx_float32_to_float16(float v) {
+	uint32_t i = *(uint32_t*)&v;
 
-	t1 = inu & 0x7fffffff;                 // Non-sign bits
-	t2 = inu & 0x80000000;                 // Sign bit
-	t3 = inu & 0x7f800000;                 // Exponent
-	
-	t1 >>= 13;                             // Align mantissa on MSB
-	t2 >>= 16;                             // Shift sign bit into position
+	int32_t s = (i >> 16) & 0x00008000;
+	int32_t e = ((i >> 23) & 0x000000ff) - (127 - 15);
+	int32_t m = i & 0x007fffff;
 
-	t1 -= 0x1c000;                         // Adjust bias
+	if(e <= 0) {
+		if(e < -10) {
+			return 0;
+		}
+		m = (m | 0x00800000) >> (1 - e);
 
-	t1 = (t3 > 0x38800000) ? 0 : t1;       // Flush-to-zero
-	t1 = (t3 < 0x8e000000) ? 0x7bff : t1;  // Clamp-to-max
-	t1 = (t3 == 0 ? 0 : t1);               // Denormals-as-zero
-
-	t1 |= t2;                              // Re-insert sign bit
-
-	uint16_t out;
-	*((uint16_t*)&out) = t1;
-
-	return out;
+		return s | (m >> 13);
+	} else if(e == 0xff - (127 - 15)) {
+		if(m == 0) {	// Inf
+			return s | 0x7c00;
+		} else {		// NaN
+			m >>= 13;
+			return s | 0x7c00 | m | (m == 0);
+		}
+	} else {
+		if(e > 30) {	// Overflow
+			return s | 0x7c00;
+		} else {
+			return s | (e << 10) | (m >> 13);
+		}
+	}
 }
 
-float connx_float16_to_float32(uint16_t in) {
-	uint32_t t1;
-	uint32_t t2;
-	uint32_t t3;
+float connx_float16_to_float32(uint16_t v) {
+	int32_t s = (v >> 15) & 0x00000001;
+	int32_t e = (v >> 10) & 0x0000001f;
+	int32_t m = v & 0x000003ff;
 
-	t1 = in & 0x7fff;                       // Non-sign bits
-	t2 = in & 0x8000;                       // Sign bit
-	t3 = in & 0x7c00;                       // Exponent
-	
-	t1 <<= 13;                              // Align mantissa on MSB
-	t2 <<= 16;                              // Shift sign bit into position
+	uint32_t r;
+	if(e == 0) {
+		if(m == 0) {	// plus or minus zero
+			r = s << 31;
+			return *(float*)&r;
+		} else {
+			while(!(m & 0x00000400)) {
+				m <<= 1;
+				e -= 1;
+			}
 
-	t1 += 0x38000000;                       // Adjust bias
+			e += 1;
+			m &= ~0x00000400;
+		}
+	} else if(e == 31) {
+		if(m == 0) {	// Inf
+			r = (s << 31) | 0x7f800000;
+			return *(float*)&r;
+		} else {		// NaN
+			r = (s << 31) | 0x7f800000 | (m << 13);
+			return *(float*)&r;
+		}
+	}
 
-	t1 = (t3 == 0 ? 0 : t1);                // Denormals-as-zero
+	e += 127 - 15;
+	m <<= 13;
 
-	t1 |= t2;                               // Re-insert sign bit
-
-	float out;
-	*((uint32_t*)&out) = t1;
-
-	return out;
+	r = (s << 31) | (e << 23) | m;
+	return *(float*)&r;
 }

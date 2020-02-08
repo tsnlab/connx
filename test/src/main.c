@@ -5,7 +5,14 @@
 #include <malloc.h>
 #include <connx/connx.h>
 
-#define EPSILON 0.00001
+#define EPSILON16 0.001
+#define EPSILON32 0.00001
+#define EPSILON64 0.0000001
+
+#define EPSILON(type) (type == connx_DataType_FLOAT16 ? EPSILON16 : \
+	type == connx_DataType_FLOAT32 ? EPSILON32 :					\
+	type == connx_DataType_FLOAT64 ? EPSILON64 : 0)
+
 #define GREEN "\033[0;32m"
 #define RED "\033[0;31m"
 #define END "\033[0m"
@@ -97,14 +104,89 @@ char* parse_int(char *YYCURSOR, char** _number);
 char* parse_float(char *YYCURSOR, char** _number);
 char* parse_id(char *YYCURSOR, char** _id);
 
+char* parse_string(char *YYCURSOR, char** _str) {
+	int type = 0;
+	char* start = NULL;
+	char* end = NULL;
+
+	while(*YYCURSOR != 0) {
+		switch(type) {
+			case 0:
+				switch(*YYCURSOR) {
+					case '\'':
+						type = 1;
+						start = YYCURSOR;
+						break;
+					case '\"':
+						type = 2;
+						start = YYCURSOR;
+						break;
+					default:
+						;
+				}
+				break;
+			case 1:
+				switch(*YYCURSOR) {
+					case '\'':
+						end = YYCURSOR;
+						YYCURSOR++;
+						goto done;
+					default:
+						;
+				}
+				break;
+			case 2:
+				switch(*YYCURSOR) {
+					case '\"':
+						end = YYCURSOR;
+						YYCURSOR++;
+						goto done;
+					default:
+						;
+				}
+				break;
+		}
+
+		YYCURSOR++;
+	}
+
+	return NULL;
+
+done:
+
+	;
+	int len = (int)(end - start);
+	*_str = connx_alloc(len);
+	memcpy(*_str, start + 1, len - 1);
+	(*_str)[len - 1] = 0;
+
+	if(*YYCURSOR == 0)
+		return NULL;
+	else
+		return YYCURSOR;
+}
+
 static bool exec_testcase(connx_Operator* op) {
+	float epsilon = 0.0;
+
 	char* line = readline();
 	printf("\t* Test case: %s ", line);
 	fflush(stdout);
 
-	// Read variables
 	stackIdx = 1;
 	line = readline();
+	// Read metadata
+	while(line != NULL && (line[0] == '\0' || line[0] == '@')) {
+		if(line[0] == '@') {
+			if(strncmp(line, "@epsilon ", 9) == 0) {
+				epsilon = strtof(line + 9, NULL);
+			}
+		}
+
+		line = readline();
+	}
+
+	// Read variables
 	while(line != NULL) {
 		while(strchr(line, '=') == NULL)
 			line = readline();
@@ -120,10 +202,26 @@ static bool exec_testcase(connx_Operator* op) {
 				elemType = connx_DataType_FLOAT16;
 			} else if(strcmp("float32", type) == 0) {
 				elemType = connx_DataType_FLOAT32;
+			} else if(strcmp("float64", type) == 0) {
+				elemType = connx_DataType_FLOAT64;
+			} else if(strcmp("uint8", type) == 0) {
+				elemType = connx_DataType_UINT8;
+			} else if(strcmp("uint16", type) == 0) {
+				elemType = connx_DataType_UINT16;
+			} else if(strcmp("uint32", type) == 0) {
+				elemType = connx_DataType_UINT32;
+			} else if(strcmp("uint64", type) == 0) {
+				elemType = connx_DataType_UINT64;
+			} else if(strcmp("int8", type) == 0) {
+				elemType = connx_DataType_INT8;
+			} else if(strcmp("int16", type) == 0) {
+				elemType = connx_DataType_INT16;
 			} else if(strcmp("int32", type) == 0) {
 				elemType = connx_DataType_INT32;
 			} else if(strcmp("int64", type) == 0) {
 				elemType = connx_DataType_INT64;
+			} else if(strcmp("string", type) == 0) {
+				elemType = connx_DataType_STRING;
 			} else {
 				fprintf(stderr, "Not supported type: %s\n", type);
 				abort();
@@ -174,6 +272,134 @@ static bool exec_testcase(connx_Operator* op) {
 
 					line = readline();
 				}
+			} else if(elemType == connx_DataType_FLOAT64) {
+				uint32_t i = 0;
+				double* base = (double*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_float(line, &num);
+						if(num != NULL) {
+							base[i++] = strtod(num, NULL);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_UINT8) {
+				uint32_t i = 0;
+				uint8_t* base = (uint8_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtoul(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_UINT16) {
+				uint32_t i = 0;
+				uint16_t* base = (uint16_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtoul(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_UINT32) {
+				uint32_t i = 0;
+				uint32_t* base = (uint32_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtoul(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_UINT64) {
+				uint32_t i = 0;
+				uint64_t* base = (uint64_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtoull(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_INT8) {
+				uint32_t i = 0;
+				int8_t* base = (int8_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtol(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_INT16) {
+				uint32_t i = 0;
+				int16_t* base = (int16_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtol(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_INT32) {
+				uint32_t i = 0;
+				int32_t* base = (int32_t*)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* num = NULL;
+						line = parse_int(line, &num);
+						if(num != NULL) {
+							base[i++] = strtol(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
 			} else if(elemType == connx_DataType_INT64) {
 				uint32_t i = 0;
 				int64_t* base = (int64_t*)tensor->base;
@@ -185,6 +411,22 @@ static bool exec_testcase(connx_Operator* op) {
 						line = parse_int(line, &num);
 						if(num != NULL) {
 							base[i++] = strtoll(num, NULL, 10);
+						}
+					}
+
+					line = readline();
+				}
+			} else if(elemType == connx_DataType_STRING) {
+				uint32_t i = 0;
+				char** base = (char**)tensor->base;
+
+				line = readline();
+				while(line != NULL && strchr(line, '=') == NULL) {
+					while(line != NULL) {
+						char* str = NULL;
+						line = parse_string(line, &str);
+						if(str != NULL) {
+							base[i++] = str;
 						}
 					}
 
@@ -286,11 +528,16 @@ static bool exec_testcase(connx_Operator* op) {
 		return false;
 	}
 
-	if(connx_Tensor_isNearlyEquals((connx_Tensor*)stack[1], (connx_Tensor*)stack[stackIdx - 1], EPSILON)) {
+	connx_Tensor* output = (connx_Tensor*)stack[1];
+	connx_Tensor* result= (connx_Tensor*)stack[stackIdx - 1];
+	if(epsilon == 0.0)
+		epsilon = EPSILON(output->elemType);
+
+	if(connx_Tensor_isNearlyEquals(output, result, epsilon)) {
 		printf(GREEN "\tPASS\n" END);
 	} else {
 		printf(RED "\tFAILED\n" END);
-		connx_Tensor_dump_compare((connx_Tensor*)stack[1], (connx_Tensor*)stack[stackIdx - 1], EPSILON);
+		connx_Tensor_dump_compare(output, result, epsilon);
 	}
 
 	// clean up

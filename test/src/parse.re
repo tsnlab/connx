@@ -7,8 +7,8 @@
 	ws_brack= [ \[\]]*;
 	id		= [A-Za-z_] [A-Za-z0-9_-]*;
     digit	= [0-9];
-    integer	= [-]? digit+;
-    real	= [-]? digit+ "."? digit*;
+    integer	= ([-] | [+])? digit+;
+    real	= "nan" | ([-] | [+])? "inf" | ( ([-] | [+])? digit+ "."? digit* );
 	EQ		= "=";
 */
 
