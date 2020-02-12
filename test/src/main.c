@@ -505,6 +505,8 @@ static bool exec_testcase(connx_Operator* op) {
 				fprintf(stderr, "Not supported type: %s\n", type);
 				abort();
 			}
+		} else if(strcmp(kind, "nul") == 0) {
+			stack[stackIdx++] = 0;
 		} else {
 			fprintf(stderr, "Illegal variable kind: %s\n", kind);
 			abort();

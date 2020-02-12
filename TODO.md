@@ -19,7 +19,7 @@
 [X] Transpose
 [X] BatchNormalization
 [X] Cast
-[ ] Slice
+[X] Slice
 [ ] Squeeze
 [ ] Shape
 [ ] Concat
