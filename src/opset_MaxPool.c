@@ -781,7 +781,7 @@ bool connx_opset_MaxPool_init() {
 		"kernel_shape", connx_DataType_INT64_ARRAY, 0, NULL, 
 		"pads", connx_DataType_INT64_ARRAY, 0, NULL, 
 		"storage_order", connx_DataType_INT64, 0,
-		"strides", connx_DataType_INT64_ARRAY, 0);
+		"strides", connx_DataType_INT64_ARRAY, 0, NULL);
 
 	return true;
 }
