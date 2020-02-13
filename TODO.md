@@ -20,10 +20,10 @@
 [X] BatchNormalization
 [X] Cast
 [X] Slice
-[ ] Squeeze
+[X] Squeeze
 [ ] Shape
 [ ] Concat
-[ ] Unsqueeze
+[X] Unsqueeze
 [ ] Loop
 [ ] Tile
 [ ] ReduceMin
