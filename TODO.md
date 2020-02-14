@@ -21,7 +21,7 @@
 [X] Cast
 [X] Slice
 [X] Squeeze
-[ ] Shape
+[X] Shape
 [ ] Concat
 [X] Unsqueeze
 [ ] Loop
