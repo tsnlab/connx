@@ -1141,13 +1141,11 @@ uint32_t connx_Tensor_total(connx_Tensor* tensor) {
 }
 
 bool connx_Tensor_equals(connx_Tensor* tensor, connx_Tensor* tensor2) {
-	printf("Step 1\n");
 	if(!connx_Tensor_isShapeEquals(tensor, tensor2)) {
 		return false;
 	}
 
 	uint32_t count = connx_Tensor_total(tensor);
-	printf("Step 2: %d\n", tensor->elemType);
 
 	switch(tensor->elemType) {
 		case connx_DataType_UINT8:
@@ -1826,9 +1824,10 @@ next_output:
 	// stack
 	uint32_t stackCount = 0;
 	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
+		connx_Node* node = runtime->dependencies[i - 1];
 		connx_Operator* op = runtime->operators[i - 1];
 
-		stackCount += 1 + op->outputCount + op->inputCount + op->attributeCount;
+		stackCount += 1 + node->n_output + node->n_input + op->attributeCount;
 	}
 
 	runtime->stackCount = stackCount;
@@ -1838,7 +1837,7 @@ next_output:
 		connx_Node* node = runtime->dependencies[i - 1];
 		connx_Operator* op = runtime->operators[i - 1];
 
-		uintptr_t count = 1 + op->outputCount + op->inputCount + op->attributeCount;
+		uintptr_t count = 1 + node->n_output + node->n_input + op->attributeCount;
 
 		// count
 		uintptr_t* stack = runtime->stack + stackIdx;
@@ -1862,9 +1861,16 @@ next_output:
 		}
 
 		// input
-		if(node->n_input != op->inputCount) {
-			connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
-			return NULL;
+		if(op->isVarArgs) {
+			if(node->n_input < op->inputCount) {
+				connx_exception("Input count too small: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
+				return NULL;
+			}
+		} else {
+			if(node->n_input != op->inputCount) {
+				connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
+				return NULL;
+			}
 		}
 
 		for(uint32_t j = 0; j < op->inputCount; j++) {
@@ -1955,11 +1961,12 @@ next_output:
 void connx_Runtime_delete(connx_Runtime* runtime) {
 	uint32_t stackIdx = 0;
 	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
+		connx_Node* node = runtime->dependencies[i - 1];
 		connx_Operator* op = runtime->operators[i - 1];
 
 		stackIdx++;	// count
-		stackIdx += op->outputCount;
-		stackIdx += op->inputCount;
+		stackIdx += node->n_output;
+		stackIdx += node->n_input;
 		for(uint32_t j = 0; j < op->attributeCount; j++) {
 			connx_Attribute_delete((void*)runtime->stack[stackIdx++]);
 		}
@@ -2113,6 +2120,11 @@ void connx_Operator_add(const char* name,
 
 	op->outputCount = outputCount;
 	op->outputs = connx_alloc(sizeof(connx_DataType) * outputCount);
+
+	if(!!(inputCount & CONNX_VARARGS)) {
+		op->isVarArgs = true;
+		inputCount ^= CONNX_VARARGS;
+	}
 
 	op->inputCount = inputCount;
 	op->inputs = connx_alloc(sizeof(connx_DataType) * inputCount);

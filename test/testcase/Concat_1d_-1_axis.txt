@@ -1,0 +1,14 @@
+Concat(1d -1 axis)
+
+concat_result = tensor float32 4
+
+input0 = tensor float32 2
+[1. 2.]
+
+input1 = tensor float32 2
+[3. 4.]
+
+axis = attribute int -1 
+
+_result = tensor float32 4
+[1. 2. 3. 4.]

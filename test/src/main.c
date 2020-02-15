@@ -515,9 +515,16 @@ static bool exec_testcase(connx_Operator* op) {
 
 	stack[0] = stackIdx - 2;
 
-	if(stack[0] != op->outputCount + op->inputCount + op->attributeCount) {
-		printf(RED "\tSTACK COUNT MISMATCH: expected: %u but %lu\n", op->outputCount + op->inputCount + op->attributeCount, stack[0]);
-		return false;
+	if(op->isVarArgs) {
+		if(stack[0] < op->outputCount + op->inputCount + op->attributeCount) {
+			printf(RED "\tSTACK COUNT TOO SMALL: expected: more than %u but %lu\n" END, op->outputCount + op->inputCount + op->attributeCount, stack[0]);
+			return false;
+		}
+	} else {
+		if(stack[0] != op->outputCount + op->inputCount + op->attributeCount) {
+			printf(RED "\tSTACK COUNT MISMATCH: expected: %u but %lu\n" END, op->outputCount + op->inputCount + op->attributeCount, stack[0]);
+			return false;
+		}
 	}
 
 	if(!op->resolve(stack)) {
@@ -543,17 +550,9 @@ static bool exec_testcase(connx_Operator* op) {
 	}
 
 	// clean up
-	// delete outputs
+	// delete outputs and inputs
 	uint32_t stackIdx2 = 1;
-	for(uint32_t i = 0; i < op->outputCount; i++, stackIdx2++) {
-		if(stack[stackIdx2] != 0) {
-			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
-			connx_Tensor_delete(tensor);
-		}
-	}
-
-	// delete inputs
-	for(uint32_t i = 0; i < op->inputCount; i++, stackIdx2++) {
+	for(uint32_t i = 0; i < stack[0] - op->attributeCount; i++, stackIdx2++) {
 		if(stack[stackIdx2] != 0) {
 			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
 			connx_Tensor_delete(tensor);

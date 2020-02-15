@@ -120,12 +120,15 @@ void connx_Value_clean(connx_Value* value);
 void connx_Value_delete(connx_Value* value);
 
 // Operations
+#define CONNX_VARARGS	(uint32_t)(1 << 31)
+
 typedef struct _connx_Operator {
 	char*				name;
 
 	uint32_t			outputCount;
 	connx_DataType*		outputs;
 
+	bool				isVarArgs;
 	uint32_t			inputCount;
 	connx_DataType*		inputs;
 

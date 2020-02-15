@@ -22,7 +22,7 @@
 [X] Slice
 [X] Squeeze
 [X] Shape
-[ ] Concat
+[X] Concat
 [X] Unsqueeze
 [ ] Loop
 [ ] Tile

@@ -1,0 +1,26 @@
+Concat(3d -1 axis)
+
+concat_result = tensor float32 2 2 4
+
+input0 = tensor float32 2 2 2
+[[[1. 2.]
+  [3. 4.]]
+
+ [[5. 6.]
+  [7. 8.]]]
+
+input1 = tensor float32 2 2 2
+[[[ 9. 10.]
+  [11. 12.]]
+
+ [[13. 14.]
+  [15. 16.]]]
+
+axis = attribute int -1
+
+_result = tensor float32 2 2 4
+[[[ 1.  2.  9. 10.]
+  [ 3.  4. 11. 12.]]
+
+ [[ 5.  6. 13. 14.]
+  [ 7.  8. 15. 16.]]]

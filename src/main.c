@@ -30,7 +30,7 @@ static void pretty_number(char* buf) {
 }
 
 static void print_notice() {
-	printf("CONNX  Copyright (C) 2019  " COPYRIGHT_HOLDER "\n\n");
+	printf("CONNX  Copyright (C) 2019-2020  " COPYRIGHT_HOLDER "\n\n");
     printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
     printf("This is free software, and you are welcome to redistribute it\n");
     printf("under certain conditions; use -c option for details.\n\n");
@@ -38,7 +38,7 @@ static void print_notice() {
 
 static void print_copyright() {
 	printf(TITLE "\n");
-	printf("Copyright (C) 2019  " COPYRIGHT_HOLDER "\n\n");
+	printf("Copyright (C) 2019-2020  " COPYRIGHT_HOLDER "\n\n");
 
 	printf("This program is free software: you can redistribute it and/or modify\n");
 	printf("it under the terms of the GNU General Public License as published by\n");
@@ -164,6 +164,10 @@ int main(int argc, char** argv) {
 			connx_Tensor* target = connx_Tensor_create_from_file(fileTarget);
 			if(connx_Tensor_equals(tensor, target)) {
 				printf("Target matched\n");
+			} else if(connx_Tensor_isNearlyEquals(tensor, target, 0.00001)) {
+				printf("Target nearly matched: epsilon is 0.00001\n");
+			} else if(connx_Tensor_isNearlyEquals(tensor, target, 0.001)) {
+				printf("Target nearly matched: epsilon is 0.001\n");
 			} else {
 				printf("Target not matched\n");
 				target->name = "target";
