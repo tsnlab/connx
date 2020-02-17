@@ -1,0 +1,17 @@
+Tile(precomputed)
+
+output = tensor float32 4 4
+
+input = tensor float32 2 2
+[[0. 1.]
+ [2. 3.]]
+
+repeats = tensor int64 2
+[2 2]
+
+_result = tensor float32 4 4
+[[0. 1. 0. 1.]
+ [2. 3. 2. 3.]
+ [0. 1. 0. 1.]
+ [2. 3. 2. 3.]]
+
