@@ -1,0 +1,24 @@
+ReduceMin(keepdims)
+
+reduced = tensor float32 3 1 2
+
+data = tensor float32 3 2 2
+[[[ 5.  1.]
+  [20.  2.]]
+
+ [[30.  1.]
+  [40.  2.]]
+
+ [[55.  1.]
+  [60.  2.]]]
+
+axes = attribute ints 1
+
+keepdims = attribute int 1
+
+_result = tensor float32 3 1 2
+[[[ 5.  1.]]
+
+ [[30.  1.]]
+
+ [[55.  1.]]]

@@ -1,0 +1,20 @@
+ReduceMin(default axes keepdims random)
+
+reduced = tensor float32 1 1 1
+
+data = tensor float32 3 2 2
+[[[ 0.9762701   4.303787  ]
+  [ 2.0552676   0.89766365]]
+
+ [[-1.526904    2.9178822 ]
+  [-1.2482557   7.83546   ]]
+
+ [[ 9.273255   -2.3311696 ]
+  [ 5.834501    0.5778984 ]]]
+
+axes = null
+
+keepdims = attribute int 1
+
+_result = tensor float32 1 1 1
+[[[-2.3311696]]]

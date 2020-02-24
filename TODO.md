@@ -26,7 +26,7 @@
 [X] Unsqueeze
 [ ] Loop
 [X] Tile
-[ ] ReduceMin
+[X] ReduceMin
 [ ] NonMaxSupression
 
 # Full YOLO
