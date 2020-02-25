@@ -1,0 +1,31 @@
+NonMaxSuppression(center point box format)
+
+selected_indices = tensor int64 3 3
+
+boxes = tensor float32 1 6 4
+[[[  0.5   0.5   1.    1. ]
+  [  0.5   0.6   1.    1. ]
+  [  0.5   0.4   1.    1. ]
+  [  0.5  10.5   1.    1. ]
+  [  0.5  10.6   1.    1. ]
+  [  0.5 100.5   1.    1. ]]]
+
+scores = tensor float32 1 1 6
+[[[0.9  0.75 0.6  0.95 0.5  0.3 ]]]
+
+max_output_boxes_per_class = tensor int64 1
+[3]
+
+iou_threshold = tensor float32 1
+[0.5]
+
+score_threshold = tensor float32 1
+[0.]
+
+center_point_box = attribute int 1
+
+_result = tensor int64 3 3
+[[0 0 3]
+ [0 0 0]
+ [0 0 5]]
+

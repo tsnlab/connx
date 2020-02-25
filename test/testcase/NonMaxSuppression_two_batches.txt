@@ -1,0 +1,41 @@
+NonMaxSuppression(two batches)
+
+selected_indices = tensor int64 4 3
+
+boxes = tensor float32 2 6 4
+[[[  0.    0.    1.    1. ]
+  [  0.    0.1   1.    1.1]
+  [  0.   -0.1   1.    0.9]
+  [  0.   10.    1.   11. ]
+  [  0.   10.1   1.   11.1]
+  [  0.  100.    1.  101. ]]
+
+ [[  0.    0.    1.    1. ]
+  [  0.    0.1   1.    1.1]
+  [  0.   -0.1   1.    0.9]
+  [  0.   10.    1.   11. ]
+  [  0.   10.1   1.   11.1]
+  [  0.  100.    1.  101. ]]]
+
+scores = tensor float32 2 1 6
+[[[0.9  0.75 0.6  0.95 0.5  0.3 ]]
+
+ [[0.9  0.75 0.6  0.95 0.5  0.3 ]]]
+
+max_output_boxes_per_class = tensor int64 1
+[2]
+
+iou_threshold = tensor float32 1
+[0.5]
+
+score_threshold = tensor float32 1
+[0.]
+
+center_point_box = attribute int 0
+
+_result = tensor int64 4 3
+[[0 0 3]
+ [0 0 0]
+ [1 0 3]
+ [1 0 0]]
+
