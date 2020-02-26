@@ -1,4 +1,4 @@
-.PHONY: all run clean cleanall
+.PHONY: all run clean cleanall example_yolo
 
 CC=gcc
 CFLAGS=-I../include -Wall -g -O0 -fsanitize=address
@@ -18,6 +18,9 @@ clean:
 
 test: $(OBJS) $(OPSET_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+example_yolo:
+	python rt_onnxruntime.py ../examples/yolov3-tiny/yolov3-tiny.onnx -i ../examples/yolov3-tiny/test_data_set_0/input_0.pb -i ../examples/yolov3-tiny/test_data_set_0/input_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_0.pb -t ../examples/yolov3-tiny/test_data_set_0/output_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_2.pb -d -l 1 -e 0.001
 
 src/parse.c: src/parse.re
 	../bin/re2c -T $^ -o $@
