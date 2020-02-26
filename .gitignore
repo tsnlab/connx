@@ -3,8 +3,5 @@ include/onnx/onnx.proto3.pb-c.h
 src/onnx.proto3.pb-c.c
 src/opset.c
 obj
-test/src/parse.c
-test/env
-test/test
 connx
 *.swp
