@@ -69,7 +69,8 @@ typedef struct _connx_Tensor {
 
 	uint32_t 			dimension;
 	uint32_t*			lengths;
-	uint8_t				base[0];
+
+	uint8_t				base[0] __attribute__((aligned(16)));		// Align 16 bytes for vector operation
 } connx_Tensor;
 
 typedef struct _connx_Sequence {
@@ -79,7 +80,7 @@ typedef struct _connx_Sequence {
 	connx_DataType		elemType;
 	uint32_t			length;
 
-	uint8_t				base[0];
+	uint8_t				base[0] __attribute__((aligned(16)));		// Align 16 bytes for vector operation
 } connx_Sequence;
 
 typedef struct _connx_Map {

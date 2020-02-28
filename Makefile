@@ -1,16 +1,17 @@
 .PHONY: all test clean cleanall example_mnist example_yolo
 
 RELEASE ?= 0
-CC:=gcc
+CC := gcc
+override CFLAGS += -Iinclude -Wall -std=c99
 ifeq ($(RELEASE), 1)
-	CFLAGS:=-Iinclude -Wall -std=c99 -O3
+	override CFLAGS += -O3
 else
-	CFLAGS:=-Iinclude -Wall -std=c99 -O0 -g -fsanitize=address
+	override CFLAGS += -O0 -g -fsanitize=address
 endif
 
-LIBS:=-lprotobuf-c -lm
-OPSET_OBJS:=$(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
-OBJS:=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
+LIBS := -lprotobuf-c -lm
+OPSET_OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
+OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 
 all: connx
 
