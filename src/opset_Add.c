@@ -1,4 +1,3 @@
-#include <immintrin.h>
 #include <stdlib.h>
 #include <connx/connx.h>
 
@@ -145,26 +144,7 @@ static bool Add_normal(connx_DataType type, uint32_t total, void* C, void* A, vo
 				float* b = (float*)B;
 				float* c = (float*)C;
 
-				uint32_t i = 0;
-#ifdef __AVX512F__
-				for(; i + 15 < total; i += 16) {
-					*(__m512*)(c + i) = _mm512_add_ps(*(__m512*)(a + i), *(__m512*)(b + i));
-				}
-#endif /* __AVX512F__ */
-
-#ifdef __AVX__
-				for(; i + 7 < total; i += 8) {
-					*(__m256*)(c + i) = _mm256_add_ps(*(__m256*)(a + i), *(__m256*)(b + i));
-				}
-#endif /* __AVX__ */
-
-#ifdef __SSE__
-				for(; i + 3 < total; i += 4) {
-					*(__m128*)(c + i) = _mm_add_ps(*(__m128*)(a + i), *(__m128*)(b + i));
-				}
-#endif /* __SSE__ */
-
-				for(; i < total; i++) {
+				for(uint32_t i = 0; i < total; i++) {
 					c[i] = a[i] + b[i];
 				}
 			}
