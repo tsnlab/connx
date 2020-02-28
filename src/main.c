@@ -56,11 +56,12 @@ static void print_copyright() {
 
 static void print_help() {
 	printf("Usage:\n");
-	printf("\tconnx [onnx file] -i [input data] [-t [target data]] [-l [loop count]] [-d]\n\n");
+	printf("\tconnx [onnx file] -i [input data] [-t [target data]] [-l [loop count]] [-e [tolerance number]] [-d]\n\n");
 	printf("Options:\n");
 	printf("\t-i	Input data file (protocol buffer format)\n");
 	printf("\t-t	Target data file (protocol buffer format)\n");
 	printf("\t-l	Loop count (default is 1)\n");
+    printf("\t-e    Tolerance number (default is 0.00001)");
 	printf("\t-d	Dump variables\n");
 	printf("\t-h	Display this help message\n");
 	printf("\t-v	Display this application version\n");
@@ -79,22 +80,60 @@ int main(int argc, char** argv) {
 	}
 
 	char* fileOnnx = argv[1];
-	char* fileInput = NULL;
-	char* fileTarget = NULL;
+	uint32_t inputCount = 0;
+	char* fileInputs[16] = { NULL, };
+	connx_Tensor* inputs[16] = { 0, };
+	uint32_t targetCount = 0;
+	char* fileTargets[16] = { NULL, };
+	connx_Tensor* targets[16] = { 0, };
 	uint32_t loopCount = 1;
 	bool isDebug = false;
+	float tolerance = 0.00001;
 
+#define CLEAR()			\
+	for(uint32_t i = 0; i < inputCount; i++) {	\
+		if(fileInputs[i] != NULL) {				\
+			connx_free(fileInputs[i]);			\
+		}										\
+		if(inputs[i] != NULL) {					\
+			connx_Tensor_delete(inputs[i]);		\
+		}										\
+	}											\
+												\
+	for(uint32_t i = 0; i < targetCount; i++) {	\
+		if(fileTargets[i] != NULL) {			\
+			connx_free(fileTargets[i]);			\
+		}										\
+		if(targets[i] != NULL) {				\
+			connx_Tensor_delete(targets[i]);	\
+		}										\
+	}											\
+												\
+	if(model != NULL) {							\
+		connx_Model_delete(model);				\
+	}
+	
+	int len;
 	int option;
-	while((option = getopt(argc, argv, "i:t:l:dhvc")) != -1) {
+	while((option = getopt(argc, argv, "i:t:l:e:dhvc")) != -1) {
 		switch(option) {
 			case 'i':
-				fileInput = optarg;
+				len = strlen(optarg) + 1;
+				fileInputs[inputCount] = connx_alloc(len);
+				memcpy(fileInputs[inputCount], optarg, len);
+				inputCount++;
 				break;
 			case 't':
-				fileTarget = optarg;
+				len = strlen(optarg) + 1;
+				fileTargets[targetCount] = connx_alloc(len);
+				memcpy(fileTargets[targetCount], optarg, len);
+				targetCount++;
 				break;
 			case 'l':
 				loopCount = (uint32_t)atoi(optarg);
+				break;
+			case 'e':
+				tolerance = atof(optarg);
 				break;
 			case 'd':
 				isDebug = true;
@@ -119,35 +158,109 @@ int main(int argc, char** argv) {
 
 	print_notice();
 
-	if(fileInput == NULL) {
-		fprintf(stderr, "You must specify input data.\n");
-		print_help();
+	connx_init();
+
+	connx_Model* model = connx_Model_create_from_file(fileOnnx);
+	if(model == NULL) {
+		fprintf(stderr, "Cannot read model file: %s\n", fileOnnx);
+		CLEAR();
 		return 1;
 	}
 
-	connx_init();
-	connx_Tensor* input = connx_Tensor_create_from_file(fileInput);
-	if(isDebug) {
-		printf("* input data\n");
-		connx_Tensor_dump(input);
+	// load inputs
+	for(uint32_t i = 0; i < inputCount; i++) {
+		inputs[i] = connx_Tensor_create_from_file(fileInputs[i]);
+		if(inputs[i] == NULL) {
+			fprintf(stderr, "Cannot read input file: %s\n", fileInputs[i]);
+			CLEAR();
+			return 1;
+		}
+
+		if(inputs[i]->name == NULL && model->graph->n_input > i) {
+			inputs[i]->name = model->graph->input[i]->name;
+		}
 	}
 
-	connx_Model* model = connx_Model_create_from_file(fileOnnx);
 	if(isDebug) {
-		printf("* model\n");
+		printf("* inputs\n");
+
+		for(uint32_t j = 0; j < inputCount; j++) {
+			connx_Tensor* tensor = inputs[j];
+
+			printf("\t%s: (", tensor->name);
+			for(uint32_t i = 0; i < tensor->dimension; i++) {
+				printf("%u", tensor->lengths[i]);
+				if(i + 1 < tensor->dimension) {
+					printf(", ");
+				}
+			}
+			printf(")\n");
+		}
+	}
+
+	// load targets
+	for(uint32_t i = 0; i < targetCount; i++) {
+		targets[i] = connx_Tensor_create_from_file(fileTargets[i]);
+		if(targets[i] == NULL) {
+			fprintf(stderr, "Cannot read target file: %s\n", fileTargets[i]);
+			CLEAR();
+			return 1;
+		}
+
+		if(targets[i]->name == NULL && model->graph->n_output > i) {
+			targets[i]->name = model->graph->output[i]->name;
+		}
+	}
+
+	if(isDebug) {
+		printf("* targets\n");
+
+		for(uint32_t j = 0; j < targetCount; j++) {
+			connx_Tensor* tensor = targets[j];
+
+			printf("\t%s: (", tensor->name);
+			for(uint32_t i = 0; i < tensor->dimension; i++) {
+				printf("%u", tensor->lengths[i]);
+				if(i + 1 < tensor->dimension) {
+					printf(", ");
+				}
+			}
+			printf(")\n");
+		}
+	}
+
+	if(isDebug) {
+		printf("* producer_name : %s\n", model->producer_name);
+		printf("* producer_version : %s\n", model->producer_version);
+		printf("* graph.name: %s\n", model->graph->name);
+		printf("* graph.input\n");
+		for(uint32_t i = 0; i < model->graph->n_input; i++) {
+			printf("\t%s\n", model->graph->input[i]->name);
+		}
+		printf("* graph.output\n");
+		for(uint32_t i = 0; i < model->graph->n_output; i++) {
+			printf("\t%s\n", model->graph->output[i]->name);
+		}
+
 		connx_Model_dump(model);
 	}
 
+	/*
 	if(isDebug) {
 		printf("* operators\n");
 		connx_Operator_dump();
 	}
+	*/
 
 	connx_Runtime* runtime = connx_Runtime_create(model);
-	connx_Value* result;
+	if(runtime == NULL) {
+		CLEAR();
+		return 1;
+	}
+
 	uint64_t time_start = get_us();
 	for(uint32_t i = 0; i < loopCount; i++) {
-		result = connx_Runtime_run(runtime, (connx_Value*)input);
+		connx_Runtime_run(runtime, inputCount, (connx_Value**)inputs);
 	}
 	uint64_t time_end = get_us();
 
@@ -156,30 +269,33 @@ int main(int argc, char** argv) {
 	pretty_number(buf);
 	printf("Time: %s us\n", buf);
 
-	if(result != NULL && result->type == connx_DataType_TENSOR) {
-		connx_Tensor* tensor = (connx_Tensor*)result;
-		connx_Tensor_dump(tensor);
+	for(uint32_t i = 0; i < targetCount; i++) {
+		connx_Tensor* target = targets[i];
+		connx_Value* output = connx_Runtime_getVariable(runtime, target->name);
 
-		if(fileTarget != NULL) {
-			connx_Tensor* target = connx_Tensor_create_from_file(fileTarget);
+		if(output == NULL) {
+			connx_exception("Target %s not found.\n", target->name);
+		} else if(output->type != connx_DataType_TENSOR) {
+			char buf[32];
+			connx_DataType_toString(output->type, 32, buf);
+			connx_exception("Target %s type not matching: %s.\n", target->name, buf);
+		} else {
+			connx_Tensor* tensor = (connx_Tensor*)output;
+
 			if(connx_Tensor_equals(tensor, target)) {
 				printf("Target matched\n");
-			} else if(connx_Tensor_isNearlyEquals(tensor, target, 0.00001)) {
-				printf("Target nearly matched: epsilon is 0.00001\n");
-			} else if(connx_Tensor_isNearlyEquals(tensor, target, 0.001)) {
-				printf("Target nearly matched: epsilon is 0.001\n");
+			} else if(connx_Tensor_isNearlyEquals(tensor, target, tolerance)) {
+				printf("Target nearly matched: epsilon is %f\n", tolerance);
 			} else {
 				printf("Target not matched\n");
 				target->name = "target";
-				connx_Tensor_dump(target);
+				connx_Tensor_dump_compare(tensor, target, tolerance);
 			}
-			connx_Tensor_delete(target);
 		}
 	}
 
-	connx_Tensor_delete(input);
 	connx_Runtime_delete(runtime);
-	connx_Model_delete(model);
+	CLEAR();
 
 	return 0;
 }

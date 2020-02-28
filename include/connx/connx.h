@@ -195,7 +195,7 @@ connx_Runtime* connx_Runtime_create(connx_Model* model);
 void connx_Runtime_delete(connx_Runtime* runtime);
 bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value);
 connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name);
-connx_Value* connx_Runtime_run(connx_Runtime* runtime, connx_Value* input);
+connx_Value* connx_Runtime_run(connx_Runtime* runtime, uint32_t inputCount, connx_Value** inputs);
 
 // Utility
 uint16_t connx_float32_to_float16(float in);

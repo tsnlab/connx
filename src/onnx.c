@@ -26,21 +26,27 @@ connx_Model* connx_Model_create_from_file(const char* path) {
 
 	fseek(file, 0L, SEEK_END);
 	long len = ftell(file);
-
-	uint8_t buf[len];
 	fseek(file, 0L, SEEK_SET);
+
+	uint8_t* buf = connx_alloc(len);
+	if(buf == NULL) {
+		connx_exception("Out of memory: cannot allocate %ld bytes", len);
+		return NULL;
+	}
 
 	size_t len2 = fread(buf, 1, len, file);
 	fclose(file);
 
 	if((long)len2 != len) {
+		connx_free(buf);
 		connx_exception("Cannot fully read ONNX file, expected: %d != read: %d", len, len2);
 		return NULL;
 	}
 
 	connx_Model* onnx = onnx__model_proto__unpack(&_default_allocator, len, buf);
+	connx_free(buf);
 	if(onnx == NULL) {
-		connx_exception("'%s' is not an onnx file.", path);
+		connx_exception("Illegal ONNX format: %s", path);
 		return NULL;
 	}
 
@@ -344,6 +350,8 @@ void onnx_Graph_dump(connx_Graph* graph) {
 }
 
 void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
+#define MAX_DATA_COUNT 32
+
 	tab(); fprintf(stdout, "Tensor: %s\n", tensor->name);
 
 	depth++;
@@ -362,14 +370,22 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 
 	fprintf(stdout, " ] : ");
 
+	size_t len = 0;
 	switch(tensor->data_type) {
 		case ONNX__TENSOR_PROTO__DATA_TYPE__UNDEFINED:
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__FLOAT:
 		case ONNX__TENSOR_PROTO__DATA_TYPE__COMPLEX64:
-			for(size_t i = 0; i < tensor->n_float_data; i++) {
+			len = tensor->n_float_data > MAX_DATA_COUNT ? MAX_DATA_COUNT : tensor->n_float_data;
+
+			for(size_t i = 0; i < len; i++) {
 				fprintf(stdout, "%f ", tensor->float_data[i]);
 			}
+
+			if(len < tensor->n_float_data) {
+				fprintf(stdout, "... (%lu more)", tensor->n_float_data - len);
+			}
+
 			fprintf(stdout, "\n");
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT8:
@@ -379,39 +395,74 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 		case ONNX__TENSOR_PROTO__DATA_TYPE__INT32:
 		case ONNX__TENSOR_PROTO__DATA_TYPE__FLOAT16:
 		case ONNX__TENSOR_PROTO__DATA_TYPE__BOOL:
-			for(size_t i = 0; i < tensor->n_int32_data; i++) {
+			len = tensor->n_int32_data > MAX_DATA_COUNT ? MAX_DATA_COUNT : tensor->n_int32_data;
+
+			for(size_t i = 0; i < len; i++) {
 				fprintf(stdout, "%d ", tensor->int32_data[i]);
 			}
+
+			if(len < tensor->n_int32_data) {
+				fprintf(stdout, "... (%lu more)", tensor->n_int32_data - len);
+			}
+
 			fprintf(stdout, "\n");
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__STRING:
-			for(size_t i = 0; i < tensor->n_string_data; i++) {
+			len = tensor->n_string_data > MAX_DATA_COUNT ? MAX_DATA_COUNT : tensor->n_string_data;
+
+			for(size_t i = 0; i < len; i++) {
 				char buf[tensor->string_data[i].len + 1];
 				memcpy(buf, tensor->string_data[i].data, tensor->string_data[i].len);
 				buf[tensor->string_data[i].len] = 0;
 
 				fprintf(stdout, "%s (%lu)", tensor->string_data[i].data, tensor->string_data[i].len);
 			}
+
+			if(len < tensor->n_string_data) {
+				fprintf(stdout, "... (%lu more)", tensor->n_string_data - len);
+			}
+
 			fprintf(stdout, "\n");
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__INT64:
-			for(size_t i = 0; i < tensor->n_int64_data; i++) {
+			len = tensor->n_int64_data > MAX_DATA_COUNT ? MAX_DATA_COUNT : tensor->n_int64_data;
+
+			for(size_t i = 0; i < len; i++) {
 				fprintf(stdout, "%ld ", tensor->int64_data[i]);
 			}
+
+			if(len < tensor->n_int64_data) {
+				fprintf(stdout, "... (%lu more)", tensor->n_int64_data - len);
+			}
+
 			fprintf(stdout, "\n");
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__DOUBLE:
 		case ONNX__TENSOR_PROTO__DATA_TYPE__COMPLEX128:
-			for(size_t i = 0; i < tensor->n_double_data; i++) {
+			len = tensor->n_double_data > MAX_DATA_COUNT ? MAX_DATA_COUNT : tensor->n_double_data;
+
+			for(size_t i = 0; i < len; i++) {
 				fprintf(stdout, "%f ", tensor->double_data[i]);
 			}
+
+			if(len < tensor->n_double_data) {
+				fprintf(stdout, "... (%lu more)", tensor->n_double_data - len);
+			}
+
 			fprintf(stdout, "\n");
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT32:
 		case ONNX__TENSOR_PROTO__DATA_TYPE__UINT64:
-			for(size_t i = 0; i < tensor->n_uint64_data; i++) {
+			len = tensor->n_uint64_data > MAX_DATA_COUNT ? MAX_DATA_COUNT : tensor->n_uint64_data;
+
+			for(size_t i = 0; i < len; i++) {
 				fprintf(stdout, "%lu ", tensor->uint64_data[i]);
 			}
+
+			if(len < tensor->n_uint64_data) {
+				fprintf(stdout, "... (%lu more)", tensor->n_uint64_data - len);
+			}
+
 			fprintf(stdout, "\n");
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__BFLOAT16:
@@ -425,9 +476,15 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 
 	tab(); fprintf(stdout, "raw_data: %ld", tensor->raw_data.len);
 	tab();
-	for(size_t i = 0; i < tensor->raw_data.len; i++) {
+	len = tensor->raw_data.len > 64 ? 64 : tensor->raw_data.len;
+	for(size_t i = 0; i < len; i++) {
 		fprintf(stdout, "%u ", tensor->raw_data.data[i]);
 	}
+
+	if(len < tensor->raw_data.len) {
+		fprintf(stdout, "... (%lu more)", tensor->raw_data.len - len);
+	}
+
 	fprintf(stdout, "\n");
 
 	// TODO: externel data

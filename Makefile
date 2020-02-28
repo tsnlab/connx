@@ -1,4 +1,4 @@
-.PHONY: all run test clean cleanall
+.PHONY: all test clean cleanall example_mnist example_yolo
 
 RELEASE ?= 0
 CC:=gcc
@@ -14,8 +14,11 @@ OBJS:=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.pro
 
 all: connx
 
-run: all
-	./connx examples/mnist/model.onnx -i examples/mnist/test_data_set_0/input_0.pb -t examples/mnist/test_data_set_0/output_0.pb -l 1000
+example_mnist: all
+	./connx examples/mnist/model.onnx -i examples/mnist/test_data_set_0/input_0.pb -t examples/mnist/test_data_set_0/output_0.pb -d -e 0.001 -l 1000
+
+example_yolo: all
+	./connx examples/yolov3-tiny/yolov3-tiny.onnx -i examples/yolov3-tiny/test_data_set_0/input_0.pb -i examples/yolov3-tiny/test_data_set_0/input_1.pb -t examples/yolov3-tiny/test_data_set_0/output_0.pb -t examples/yolov3-tiny/test_data_set_0/output_1.pb -t examples/yolov3-tiny/test_data_set_0/output_2.pb -d -e 0.001 -l 100
 
 clean:
 	make -C test clean

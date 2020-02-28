@@ -1673,6 +1673,11 @@ static connx_ValueInfo* _Graph_getValueInfo(connx_Graph* graph, const char* name
 
 connx_Runtime* connx_Runtime_create(connx_Model* model) {
 	connx_Runtime* runtime = connx_alloc(sizeof(connx_Runtime));
+	if(runtime == NULL) {
+		connx_exception("Out of memory");
+		return NULL;
+	}
+
 	runtime->model = model;
 
 	// dependency
@@ -1702,6 +1707,7 @@ connx_Runtime* connx_Runtime_create(connx_Model* model) {
 					runtime->operators[nodeIdx] = connx_Operator_get(node->op_type);
 					if(runtime->operators[nodeIdx] == NULL) {
 						connx_exception("Cannot find operator: %s", node->op_type);
+						connx_Runtime_delete(runtime);
 						return false;
 					}
 					nodeIdx++;
@@ -1846,6 +1852,7 @@ next_output:
 		// output
 		if(node->n_output != op->outputCount) {
 			connx_exception("Output count mismatch: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
+			connx_Runtime_delete(runtime);
 			return NULL;
 		}
 
@@ -1854,6 +1861,7 @@ next_output:
 			connx_Value* value = connx_Runtime_getVariable(runtime, node->output[j]);
 			if(value == NULL) {
 				connx_exception("Cannot find variable: %s", node->output[j]);
+				connx_Runtime_delete(runtime);
 				return NULL;
 			}
 
@@ -1864,11 +1872,13 @@ next_output:
 		if(op->isVarArgs) {
 			if(node->n_input < op->inputCount) {
 				connx_exception("Input count too small: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
+				connx_Runtime_delete(runtime);
 				return NULL;
 			}
 		} else {
 			if(node->n_input != op->inputCount) {
 				connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
+				connx_Runtime_delete(runtime);
 				return NULL;
 			}
 		}
@@ -1878,6 +1888,7 @@ next_output:
 			connx_Value* value = connx_Runtime_getVariable(runtime, node->input[j]);
 			if(value == NULL) {
 				connx_exception("Cannot find variable: %s", node->input[j]);
+				connx_Runtime_delete(runtime);
 				return NULL;
 			}
 
@@ -1951,6 +1962,7 @@ next_output:
 		// resolve
 		if(!op->resolve(stack)) {
 			connx_exception("Validation failed node: %s", node->name);
+			connx_Runtime_delete(runtime);
 			return NULL;
 		}
 	}
@@ -2045,7 +2057,7 @@ connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name)
 	return NULL;
 }
 
-connx_Value* connx_Runtime_run(connx_Runtime* runtime, connx_Value* input) {
+connx_Value* connx_Runtime_run(connx_Runtime* runtime, uint32_t inputCount, connx_Value** inputs) {
 	if(runtime->isDirty) {
 		for(uint32_t i = 0; i < runtime->variableCount; i++) {
 			if(runtime->initializers[i] != NULL) {
@@ -2060,24 +2072,19 @@ connx_Value* connx_Runtime_run(connx_Runtime* runtime, connx_Value* input) {
 		runtime->isDirty = true;
 	}
 
-	if(input != NULL) {
-		if(runtime->inputCount == 1) {
-			input->name = runtime->inputs[0]->name;
-			if(!connx_Runtime_setVariable(runtime, input)) {
-				return NULL;
-			}
-		} else if(input->name != NULL) {
-			for(uint32_t i = 0; i < runtime->inputCount; i++) {
-				if(strcmp(runtime->inputs[i]->name, input->name) == 0) {
-					if(!connx_Runtime_setVariable(runtime, input)) {
-						return NULL;
-					}
+	for(uint32_t i = 0; i < inputCount; i++) {
+		for(uint32_t j = 0; j < runtime->inputCount; j++) {
+			if(strcmp(runtime->inputs[j]->name, inputs[i]->name) == 0) {
+				if(!connx_Runtime_setVariable(runtime, inputs[i])) {
+					return NULL;
 				}
+				goto found;
 			}
-		} else {
-			connx_exception("Cannot set input");
-			return NULL;
 		}
+		connx_exception("There is no input variable for: %s", inputs[i]->name);
+		return NULL;
+found:
+		;
 	}
 
 	uintptr_t* stack = runtime->stack;

@@ -19,8 +19,11 @@ clean:
 test: $(OBJS) $(OPSET_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
+example_mnist:
+	venv/bin/python rt_onnxruntime.py ../examples/mnist/model.onnx -i ../examples/mnist/test_data_set_0/input_0.pb -t ../examples/mnist/test_data_set_0/output_0.pb -d -e 0.01 -l 1000
+
 example_yolo:
-	python rt_onnxruntime.py ../examples/yolov3-tiny/yolov3-tiny.onnx -i ../examples/yolov3-tiny/test_data_set_0/input_0.pb -i ../examples/yolov3-tiny/test_data_set_0/input_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_0.pb -t ../examples/yolov3-tiny/test_data_set_0/output_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_2.pb -d -l 1 -e 0.001
+	venv/bin/python rt_onnxruntime.py ../examples/yolov3-tiny/yolov3-tiny.onnx -i ../examples/yolov3-tiny/test_data_set_0/input_0.pb -i ../examples/yolov3-tiny/test_data_set_0/input_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_0.pb -t ../examples/yolov3-tiny/test_data_set_0/output_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_2.pb -d -e 0.001 -l 100
 
 src/parse.c: src/parse.re
 	../bin/re2c -T $^ -o $@

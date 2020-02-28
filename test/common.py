@@ -79,10 +79,18 @@ def parse_args():
     for opt, arg in opts:
         if(opt == "-i"):
             tensor = onnx.load_tensor(arg)
-            data['inputs'][tensor.name] = numpy_helper.to_array(tensor)
+            name = tensor.name
+            idx = len(data['inputs'])
+            if(name == "" and len(data['model'].graph.input) > idx):
+                name = data['model'].graph.input[idx].name
+            data['inputs'][name] = numpy_helper.to_array(tensor)
         elif(opt == "-t"):
             tensor = onnx.load_tensor(arg)
-            data['targets'][tensor.name] = numpy_helper.to_array(tensor)
+            name = tensor.name
+            idx = len(data['targets'])
+            if(name == "" and len(data['model'].graph.output) > idx):
+                name = data['model'].graph.output[idx].name
+            data['targets'][name] = numpy_helper.to_array(tensor)
         elif(opt == "-l"):
             data['loop'] = int(arg)
         elif(opt == "-e"):
