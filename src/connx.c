@@ -37,6 +37,16 @@ void* connx_alloc(size_t size) {
 	return ptr;
 }
 
+void* connx_realloc(void* ptr, size_t size) {
+	ptr = realloc(ptr, size);
+	if(ptr == NULL) {
+		fprintf(stderr, "Not enough memory");
+		abort();
+	}
+
+	return ptr;
+}
+
 void connx_free(void* ptr) {
 	free(ptr);
 }
@@ -1635,40 +1645,50 @@ static connx_Tensor* _Graph_getInitializer(connx_Graph* graph, const char* name)
 	return NULL;
 }
 
-static bool _ValueInfo_enqueue(connx_ValueInfo** values, uint32_t* valueTail, connx_ValueInfo* value) {
-	for(uint32_t i = 0; i < *valueTail; i++) {
-		if(values[i] == value)
-			return false;
-	}
+struct ds_Ring {
+	uint32_t	head;
+	uint32_t	tail;
+	uint32_t	size;
+	uint32_t	count;
+	uint8_t		base[0];
+};
 
-	values[(*valueTail)++] = value;
+struct ds_Ring* ds_Ring_create(uint32_t size, uint32_t count, void*(*malloc)(size_t)) {
+	struct ds_Ring* ring = malloc(sizeof(struct ds_Ring) + (size * count));
+	if(ring == NULL)
+		return NULL;
+
+	ring->head = 0;
+	ring->tail = 0;
+	ring->size = size;
+	ring->count = count;
+
+	return ring;
+}
+
+void ds_Ring_delete(struct ds_Ring* ring, void(*free)(void*)) {
+	free(ring);
+}
+
+bool ds_Ring_enqueue(struct ds_Ring* ring, void* ptr) {
+	uint32_t next = (ring->tail + 1) % ring->count;
+	if(next == ring->head)
+		return false;
+
+	((uintptr_t*)ring->base)[ring->tail] = (uintptr_t)ptr;
+	ring->tail = next;
 
 	return true;
 }
 
-static connx_ValueInfo* _ValueInfo_dequeue(connx_ValueInfo** values, uint32_t* valueHead, uint32_t* valueTail) {
-	if(*valueHead < *valueTail)
-		return values[(*valueHead)++];
-	else
-		return NULL;
-}
+bool ds_Ring_dequeue(struct ds_Ring* ring, void* ptr) {
+	if(ring->head == ring->tail)
+		return false;
 
-static connx_ValueInfo* _Graph_getInput(connx_Graph* graph, const char* name) {
-	for(uint32_t i = 0; i < graph->n_input; i++) {
-		if(strcmp(graph->input[i]->name, name) == 0)
-			return graph->input[i];
-	}
+	*(uintptr_t*)ptr = ((uintptr_t*)ring->base)[ring->head];
+	ring->head = (ring->head + 1) % ring->count;
 
-	return NULL;
-}
-
-static connx_ValueInfo* _Graph_getValueInfo(connx_Graph* graph, const char* name) {
-	for(uint32_t i = 0; i < graph->n_value_info; i++) {
-		if(strcmp(graph->value_info[i]->name, name) == 0)
-			return graph->value_info[i];
-	}
-
-	return NULL;
+	return true;
 }
 
 connx_Runtime* connx_Runtime_create(connx_Model* model) {
@@ -1687,52 +1707,53 @@ connx_Runtime* connx_Runtime_create(connx_Model* model) {
 	runtime->dependencies = connx_alloc(sizeof(connx_Node*) * runtime->dependencyCount);
 	runtime->operators = connx_alloc(sizeof(connx_Operator*) * runtime->dependencyCount);
 
-	uint32_t valueHead = 0;
-	uint32_t valueTail = 0;
-	uint32_t valueCount = graph->n_input + graph->n_output + graph->n_value_info;
-	connx_ValueInfo* values[valueCount];
+	struct ds_Ring* ring = ds_Ring_create(sizeof(char*), 128, connx_alloc);
+
 	for(uint32_t i = 0; i < graph->n_output; i++) {
-		_ValueInfo_enqueue(values, &valueTail, graph->output[i]);
+		ds_Ring_enqueue(ring, graph->output[i]->name);
 	}
 
 	uint32_t nodeIdx = 0;
-	connx_ValueInfo* value = _ValueInfo_dequeue(values, &valueHead, &valueTail);
-	while(value != NULL) {
+	char* name = NULL;
+	while(ds_Ring_dequeue(ring, &name)) {
 		for(uint32_t i = 0; i < graph->n_node; i++) {
 			connx_Node* node = graph->node[i];
 
 			for(size_t j = 0; j < node->n_output; j++) {
-				if(strcmp(value->name, node->output[j]) == 0) {
+				if(strcmp(name, node->output[j]) == 0) {
+					for(size_t k = 0; k < nodeIdx; k++) {
+						if(runtime->dependencies[k] == node) {
+							goto next;
+						}
+					}
+
 					runtime->dependencies[nodeIdx] = node;
 					runtime->operators[nodeIdx] = connx_Operator_get(node->op_type);
 					if(runtime->operators[nodeIdx] == NULL) {
 						connx_exception("Cannot find operator: %s", node->op_type);
 						connx_Runtime_delete(runtime);
+						ds_Ring_delete(ring, connx_free);
 						return false;
 					}
 					nodeIdx++;
 
 					for(size_t k = 0; k < node->n_input; k++) {
 						char* name = node->input[k];
-						connx_ValueInfo* input = _Graph_getInput(graph, name);
-						if(input != NULL) {
-							_ValueInfo_enqueue(values, &valueTail, input);
-							continue;
-						}
-
-						input = _Graph_getValueInfo(graph, name);
-						if(input != NULL) {
-							_ValueInfo_enqueue(values, &valueTail, input);
-							continue;
+						if(!ds_Ring_enqueue(ring, name)) {
+							connx_exception("Too many dependency variables: %u", ring->count);
+							connx_Runtime_delete(runtime);
+							ds_Ring_delete(ring, connx_free);
 						}
 					}
 				}
+next:
+				;
 			}
 		}
-
-		value = _ValueInfo_dequeue(values, &valueHead, &valueTail);
 	}
 	runtime->dependencyCount = nodeIdx;
+
+	ds_Ring_delete(ring, connx_free);
 
 	// inputs
 	uint32_t inputIdx = 0;
@@ -1856,13 +1877,13 @@ next_output:
 			return NULL;
 		}
 
+		uint32_t notFoundVariables[op->outputCount];
+		uint32_t notFoundVariableCount = 0;
+
 		for(uint32_t j = 0; j < op->outputCount; j++) {
-			// TODO: check castable
 			connx_Value* value = connx_Runtime_getVariable(runtime, node->output[j]);
 			if(value == NULL) {
-				connx_exception("Cannot find variable: %s", node->output[j]);
-				connx_Runtime_delete(runtime);
-				return NULL;
+				notFoundVariables[notFoundVariableCount++] = j;
 			}
 
 			runtime->stack[stackIdx++] = (uintptr_t)value;
@@ -1884,14 +1905,12 @@ next_output:
 		}
 
 		for(uint32_t j = 0; j < op->inputCount; j++) {
-			// TODO: check castable
 			connx_Value* value = connx_Runtime_getVariable(runtime, node->input[j]);
 			if(value == NULL) {
-				connx_exception("Cannot find variable: %s", node->input[j]);
+				connx_exception("Cannot find input variable: %s for operation %s", node->input[j], op->name);
 				connx_Runtime_delete(runtime);
 				return NULL;
 			}
-
 			runtime->stack[stackIdx++] = (uintptr_t)value;
 		}
 
@@ -1965,6 +1984,23 @@ next_output:
 			connx_Runtime_delete(runtime);
 			return NULL;
 		}
+
+		if(notFoundVariableCount > 0) {
+			uint32_t idx = runtime->variableCount;
+			runtime->variableCount += notFoundVariableCount;
+
+			runtime->variables = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
+			runtime->initializers = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
+			for(uint32_t j = 0; j < notFoundVariableCount; j++) {
+				connx_Value* value = (connx_Value*)stack[1 + notFoundVariables[j]];
+				value->name = runtime->outputs[notFoundVariables[j]]->name;
+
+				printf("set missed variable: %s\n", value->name);
+
+				runtime->initializers[idx] = value;
+				runtime->variables[idx++] = connx_Value_clone(value);
+			}
+		}
 	}
 
 	return runtime;
@@ -1974,11 +2010,17 @@ void connx_Runtime_delete(connx_Runtime* runtime) {
 	uint32_t stackIdx = 0;
 	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
 		connx_Node* node = runtime->dependencies[i - 1];
+		if(node == NULL)
+			break;
+
 		connx_Operator* op = runtime->operators[i - 1];
+		if(op == NULL)
+			break;
 
 		stackIdx++;	// count
 		stackIdx += node->n_output;
 		stackIdx += node->n_input;
+
 		for(uint32_t j = 0; j < op->attributeCount; j++) {
 			connx_Attribute_delete((void*)runtime->stack[stackIdx++]);
 		}
@@ -1986,15 +2028,17 @@ void connx_Runtime_delete(connx_Runtime* runtime) {
 
 	connx_free(runtime->stack);
 	for(uint32_t i = 0; i < runtime->variableCount; i++) {
-		if(runtime->initializers[i] != NULL) {
-			connx_Value_delete(runtime->initializers[i]);
-		}
+		if(runtime->initializers[i] == NULL)
+			continue;
+
+		connx_Value_delete(runtime->initializers[i]);
 	}
 	connx_free(runtime->initializers);
 	for(uint32_t i = 0; i < runtime->variableCount; i++) {
-		if(runtime->variables[i] != NULL) {
-			connx_Value_delete(runtime->variables[i]);
-		}
+		if(runtime->variables[i] == NULL)
+			continue;
+
+		connx_Value_delete(runtime->variables[i]);
 	}
 	connx_free(runtime->variables);
 	connx_free(runtime->outputs);

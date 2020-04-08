@@ -1,6 +1,16 @@
 #include <string.h>
 #include <connx/connx.h>
 
+static bool hasAxis(int64_t idx, int64_t* axes, uint32_t length, uint32_t dimension) {
+	for(uint32_t i = 0; i < length; i++) {
+		if((axes[i] < 0 && (axes[i] + dimension) == idx) || axes[i] == idx) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static bool Unsqueeze_resolve(uintptr_t* stack) {
 	connx_Tensor* expanded = (void*)stack[1];
 	connx_Tensor* data = (void*)stack[2];
@@ -8,6 +18,24 @@ static bool Unsqueeze_resolve(uintptr_t* stack) {
 
 	uint32_t axes_length = connx_Attribute_length(attr_axes);
 	int64_t* axes = connx_Attribute_base(attr_axes);
+
+	// Create expanded if null
+	if(expanded == NULL) {
+		uint32_t len = data->dimension + axes_length;
+		uint32_t lengths[len];
+
+		for(uint32_t i = 0, data_idx = 0, axes_idx = 0; i < len; i++) {
+			if(hasAxis(i, axes, axes_length, data->dimension)) {
+				lengths[i] = 1;
+				axes_idx++;
+			} else {
+				lengths[i] = data->lengths[data_idx++];
+			}
+		}
+
+		expanded = connx_Tensor_create(data->elemType, len, lengths);
+		stack[1] = (uintptr_t)expanded;
+	}
 
 	if(expanded->dimension != data->dimension + axes_length) {
 		connx_exception("expanded's dimension is wrong: %u, expected: %u", expanded->dimension, data->dimension + axes_length);
