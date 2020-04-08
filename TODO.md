@@ -28,6 +28,7 @@
 [X] Tile
 [X] ReduceMin
 [X] NonMaxSupression
+[ ] Resize
 
 # Full YOLO
 
@@ -43,12 +44,9 @@
 [ ] Atan
 [ ] Atanh
 [ ] AveragePool
-[ ] BatchNormalization
 [ ] BitShift
-[ ] Cast
 [ ] Clip
 [ ] Compress
-[ ] Concat
 [ ] ConcatFromSequence
 [ ] Constant
 [ ] ConstantOfShape
@@ -64,7 +62,6 @@
 [ ] Elu
 [ ] Equal
 [ ] Erf
-[ ] Exp
 [ ] Expand
 [ ] EyeLike
 [ ] Flatten
@@ -80,7 +77,6 @@
 [ ] Greater
 [ ] HardSigmoid
 [ ] Hardmax
-[ ] Identity
 [ ] If
 [ ] InstanceNormalization
 [ ] IsInf
@@ -90,7 +86,6 @@
 [ ] Less
 [ ] Log
 [ ] LogSoftmax
-[ ] Loop
 [ ] LpNormalization
 [ ] LpPool
 [ ] MatMulInteger
@@ -102,7 +97,6 @@
 [ ] Mod
 [ ] Multinomial
 [ ] Neg
-[ ] NonMaxSuppression
 [ ] NonZero
 [ ] Not
 [ ] OneHot
@@ -125,14 +119,11 @@
 [ ] ReduceLogSumExp
 [ ] ReduceMax
 [ ] ReduceMean
-[ ] ReduceMin
 [ ] ReduceProd
 [ ] ReduceSum
 [ ] ReduceSumSquare
-[ ] Resize
 [ ] ReverseSequence
 [ ] RoiAlign
-[ ] Round
 [ ] Scan
 [ ] Scatter
 [ ] ScatterElements
@@ -144,14 +135,11 @@
 [ ] SequenceErase
 [ ] SequenceInsert
 [ ] SequenceLength
-[ ] Shape
 [ ] Shrink
-[ ] Sigmoid
 [ ] Sign
 [ ] Sin
 [ ] Sinh
 [ ] Size
-[ ] Slice
 [ ] Softmax
 [ ] Softplus
 [ ] Softsign
@@ -159,18 +147,14 @@
 [ ] Split
 [ ] SplitToSequence
 [ ] Sqrt
-[ ] Squeeze
 [ ] StringNormalizer
 [ ] Sum
 [ ] Tan
 [ ] Tanh
 [ ] TfIdfVectorizer
 [ ] ThresholdedRelu
-[ ] Tile
 [ ] TopK
-[ ] Transpose
 [ ] Unique
-[ ] Unsqueeze
 [ ] Upsample
 [ ] Where
 [ ] Xor

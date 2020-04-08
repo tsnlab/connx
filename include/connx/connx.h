@@ -12,6 +12,7 @@ const char* connx_exception_message();
 
 // memory management
 void* connx_alloc(size_t size) __attribute__((weak));
+void* connx_realloc(void* ptr, size_t size) __attribute__((weak));
 void connx_free(void* ptr) __attribute__((weak));
 
 // data type
