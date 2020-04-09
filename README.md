@@ -22,7 +22,15 @@ sudo apt install libprotobuf-c-dev protobuf-c-compiler
 make			# for debug
 make RELEASE=1	# for release
 
+# Run examples
+make example_mnist	# for MNIST example
+make example_yolo	# for YOLO example
+
 # Test
+To test CONNX operators, autoreconf and libtool utility is needded to compile re2c
+
+sudo apt install autoconf libtool
+
 make test
 
 # License

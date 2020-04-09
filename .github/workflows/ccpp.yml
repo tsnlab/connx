@@ -9,7 +9,7 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
-    - name: Install ubuntu packages
+    - name: Install ubuntu packages for CONNX
       run: sudo apt install protobuf-c-compiler libprotobuf-c-dev
     - name: Initialize submodule
       run: git submodule init
@@ -17,7 +17,11 @@ jobs:
       run: git submodule update
     - name: make
       run: make
+    - name: Install ubuntu packages for CONNX test
+      run: sudo apt install autoconf libtool
+    - name: make test
+      run: make test
     - name: make example_mnist
       run: make example_mnist
-    - name: make example_yolo
-      run: make example_yolo
+#   - name: make example_yolo
+#     run: make example_yolo
