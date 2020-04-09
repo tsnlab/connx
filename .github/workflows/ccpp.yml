@@ -17,7 +17,7 @@ jobs:
       run: git submodule update
     - name: make
       run: make
-    - name: make run
-      run: make run
-    - name: make test
-      run: make run
+    - name: make example_mnist
+      run: make example_mnist
+    - name: make example_yolo
+      run: make example_yolo

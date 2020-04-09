@@ -14,9 +14,9 @@ CONNX is based on C language
 sudo apt install libc6-dev
 
 ## Protocol buffer
-CONNX also depends on libprotobuf-c to parse ONNX's format
+CONNX also depends on libprotobuf-c and protobuf-c-compiler to parse ONNX's format
 
-sudo apt install libprotobuf-c-dev
+sudo apt install libprotobuf-c-dev protobuf-c-compiler
 
 # Compile
 make			# for debug
