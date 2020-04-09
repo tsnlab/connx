@@ -32,7 +32,7 @@ obj/%.d : src/%.c
 	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
 
 ../obj/%.d : ../src/%.c
-	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
+	mkdir -p ../obj; $(CC) $(CFLAGS) -M $< > $@
 
 -include $(patsubst obj/%.o, obj/%.d, $(OBJS))  
 -include $(patsubst ../obj/%.o, ../obj/%.d, $(OPSET_OBJS))  
