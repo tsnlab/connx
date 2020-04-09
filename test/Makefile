@@ -32,6 +32,7 @@ obj/%.d : src/%.c
 	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
 
 -include $(patsubst obj/%.o, obj/%.d, $(OBJS))  
+-include $(patsubst ../obj/%.o, ../obj/%.d, $(OPSET_OBJS))  
 
 obj/parse.o: src/parse.c
 	mkdir -p obj; $(CC) $(CFLAGS) -Wno-unused-variable -c -o $@ $^
