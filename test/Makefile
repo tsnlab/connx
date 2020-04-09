@@ -4,7 +4,7 @@ CC=gcc
 CFLAGS=-I../include -Wall -g -O0 -fsanitize=address
 
 LIBS=-lm
-OPSET_OBJS=$(patsubst ../src/%.c, ../obj/%.o, $(wildcard ../src/opset*.c)) ../obj/connx.o
+OPSET_OBJS=$(patsubst ../src/%.c, obj/%.o, $(wildcard ../src/opset*.c)) obj/connx.o
 OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/parse.o
 
 all: test
@@ -31,14 +31,17 @@ src/parse.c: src/parse.re
 obj/%.d : src/%.c
 	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
 
-../obj/%.d : ../src/%.c
-	mkdir -p ../obj; $(CC) $(CFLAGS) -M $< > $@
+obj/%.d : ../src/%.c
+	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
 
 -include $(patsubst obj/%.o, obj/%.d, $(OBJS))  
--include $(patsubst ../obj/%.o, ../obj/%.d, $(OPSET_OBJS))  
+-include $(patsubst obj/%.o, obj/%.d, $(OPSET_OBJS))  
 
 obj/parse.o: src/parse.c
 	mkdir -p obj; $(CC) $(CFLAGS) -Wno-unused-variable -c -o $@ $^
 
 obj/%.o: src/%.c
+	mkdir -p obj; $(CC) $(CFLAGS) -c -o $@ $^
+
+obj/%.o: ../src/%.c
 	mkdir -p obj; $(CC) $(CFLAGS) -c -o $@ $^
