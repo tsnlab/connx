@@ -2,10 +2,12 @@
 Python3 and Python package manager, pip, must be installed beofre.
 
 ## Install virtual environment
+sudo apt install python3 python3-pip python3-venv
 python3 -m pip install --user virtualenv
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
+pip install ipython
 
 ## Install libraries
 pip install onnx
@@ -24,14 +26,18 @@ To be done
 To be done
 
 # Import onnx library to make test cases
+%load_ext autoreload
+%autoreload 2
+
 import sys
 import numpy as np
 
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(suppress=True)
 
-sys.path.insert(1, '../onnx/onnx/backend/test/case/node')
-from pool_op_common import *
+sys.path.insert(1, '../onnx/onnx/backend/test/')
+import case.node.resize as resize
+#from pool_op_common import *
 
 # Reference
 1. https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/

@@ -1,0 +1,34 @@
+Resize(downsample_scales_cubic_A_n0p5_exclude_outside)
+
+Y = tensor float32 1 1 3 3
+
+X = tensor float32 1 1 4 4
+[[[[ 1.  2.  3.  4.]
+   [ 5.  6.  7.  8.]
+   [ 9. 10. 11. 12.]
+   [13. 14. 15. 16.]]]]
+
+
+roi = tensor float32 0
+
+scales = tensor float32 4
+[1.  1.  0.8 0.8]
+
+sizes = null
+
+coordinate_transformation_mode = attribute string half_pixel
+
+cubic_coeff_a = attribute float -0.5
+
+exclude_outside = attribute int 1
+
+extrapolation_value = attribute float 0.0
+
+mode = attribute string cubic
+
+nearest_mode = attribute string round_prefer_floor
+
+_result = tensor float32 1 1 3 3
+[[[[ 1.36812675  2.6695014   4.0133367 ]
+   [ 6.57362535  7.875       9.2188353 ]
+   [11.94896657 13.25034122 14.59417652]]]]

@@ -45,6 +45,7 @@ typedef enum _connx_DataType {
 	connx_DataType_TENSOR	= (1 << 14),
 	connx_DataType_TENSOR_INTEGER32_FLOAT= connx_DataType_TENSOR | connx_DataType_INTEGER32 | connx_DataType_FLOAT,
 	connx_DataType_TENSOR_FLOAT= connx_DataType_TENSOR | connx_DataType_FLOAT,
+	connx_DataType_TENSOR_FLOAT32= connx_DataType_TENSOR | connx_DataType_FLOAT32,
 	connx_DataType_TENSOR_NUMBER= connx_DataType_TENSOR | connx_DataType_NUMBER,
 	connx_DataType_TENSOR_INT32= connx_DataType_TENSOR | connx_DataType_INT32,
 	connx_DataType_TENSOR_INT64= connx_DataType_TENSOR | connx_DataType_INT64,
