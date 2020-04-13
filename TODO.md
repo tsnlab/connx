@@ -6,7 +6,7 @@
 [X] MaxPool
 [X] Relu
 
-# Tiny YXLO
+# Tiny YOLO
 [X] Sub
 [X] Mul
 [X] Div
@@ -28,7 +28,7 @@
 [X] Tile
 [X] ReduceMin
 [X] NonMaxSupression
-[ ] Resize
+[X] Resize
 
 # Full YOLO
 
