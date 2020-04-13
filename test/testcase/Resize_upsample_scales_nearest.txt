@@ -1,0 +1,32 @@
+Resize(upsample_scales_nearest)
+
+Y = tensor float32 1 1 4 6
+
+X = tensor float32 1 1 2 2
+[[[[1. 2.]
+   [3. 4.]]]]
+
+roi = tensor float32 0
+
+scales = tensor float32 4
+[1.  1.  2.0 3.0]
+
+sizes = null
+
+coordinate_transformation_mode = attribute string half_pixel
+
+cubic_coeff_a = attribute float -0.75
+
+exclude_outside = attribute int 0
+
+extrapolation_value = attribute float 0.0
+
+mode = attribute string nearest
+
+nearest_mode = attribute string round_prefer_floor
+
+_result = tensor float32 1 1 4 6
+[[[[1. 1. 1. 2. 2. 2.]
+   [1. 1. 1. 2. 2. 2.]
+   [3. 3. 3. 4. 4. 4.]
+   [3. 3. 3. 4. 4. 4.]]]]

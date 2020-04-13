@@ -79,6 +79,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 		for(uint32_t i = 0; i < Y->dimension; i++) {
 			if(sizes_base[i] != Y->lengths[i]) {
 				connx_exception("scaled output mismatches: Y[%u]'s length is %u, expected: %ld", i, Y->lengths[i], sizes_base[i]);
+				return false;
 			}
 		}
 	}
@@ -202,7 +203,7 @@ static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, 
 			abort();
 	}
 
-	int32_t origin_idx_int = origin_idx >= 0 ? (int32_t)origin_idx : -(int32_t)(-origin_idx + 0.5);
+	int32_t origin_idx_int = origin_idx >= 0 ? (int32_t)origin_idx : (int32_t)origin_idx - 1;
 	float ratio = 0;
 	if(origin_idx == origin_idx_int)
 		ratio = 1;
