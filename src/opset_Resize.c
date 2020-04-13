@@ -94,7 +94,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 			return false;
 		}
 
-		if(roi->type != connx_DataType_FLOAT32) {
+		if(roi->elemType != connx_DataType_FLOAT32) {
 			connx_Tensor* new_roi = connx_Tensor_create(connx_DataType_FLOAT32, roi->dimension, roi->lengths);
 			stack[3] = (uintptr_t)(void*)new_roi;
 
@@ -117,6 +117,17 @@ static bool Resize_resolve(uintptr_t* stack) {
 
 			connx_Tensor_delete(roi);
 			roi = new_roi;
+		}
+
+		// relocate (start1 ~ startN, end1 ~ endN) to (start1, end1 ~ startN, endN)
+		float* roi_base = (float*)roi->base;
+		float roi2[roi->lengths[0]];
+		memcpy(roi2, roi_base, sizeof(float) * roi->lengths[0]);
+
+		uint32_t len = roi->lengths[0] / 2;
+		for(uint32_t i = 0; i < len; i++) {
+			roi_base[i * 2] = roi2[i];
+			roi_base[i * 2 + 1] = roi2[i + len];
 		}
 	} else {
 		connx_exception("Illegal coordinate_transformation_mode: '%s'", coordinate_transformation_mode);
@@ -340,7 +351,7 @@ static float interpolate_nd_float32(uint32_t* idxs, float* data, uint32_t* lengt
 
 		float interpolated[lengths[0]];
 		for(uint32_t i = 0; i < lengths[0]; i++) {
-			interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, lengths + 1, scales + 1,  dim - 1, roi, coordinate_transformation_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
+			interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, lengths + 1, scales + 1,  dim - 1, roi + 2, coordinate_transformation_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
 		}
 
 		return interpolate_1d_float32(idxs[0], interpolated, lengths[0], scales[0], roi, coordinate_transformation_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
@@ -394,7 +405,7 @@ static bool Resize_exec(uintptr_t* stack) {
 		printf("\n");
 #endif
 
-		*Y_base++ = interpolate_nd_float32(idxs, X_base, X->lengths, scales_base, X->dimension, roi_base, coordinate_transformation_mode, *cubic_coeff_a, *exclude_outside, !!*extrapolation_value, mode, nearest_mode);
+		*Y_base++ = interpolate_nd_float32(idxs, X_base, X->lengths, scales_base, X->dimension, roi_base, coordinate_transformation_mode, *cubic_coeff_a, !!*exclude_outside, *extrapolation_value, mode, nearest_mode);
 
 		// next
 		for(int32_t dim = dimension - 1; dim >= 0; dim--) {
