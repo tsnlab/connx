@@ -505,6 +505,13 @@ static bool exec_testcase(connx_Operator* op) {
 				fprintf(stderr, "Not supported type: %s\n", type);
 				abort();
 			}
+		} else if(strcmp(kind, "vararg") == 0 || strcmp(kind, "varar") == 0) {
+			char* num = NULL;
+			parse_int(line, &num);
+
+			stack[stackIdx++] = (uintptr_t)strtol(num, NULL, 10);
+
+			line = readline();
 		} else if(strcmp(kind, "nul") == 0 || strcmp(kind, "null") == 0) {
 			stack[stackIdx++] = 0;
 		} else {
@@ -515,7 +522,7 @@ static bool exec_testcase(connx_Operator* op) {
 
 	stack[0] = stackIdx - 2;
 
-	if(op->isVarArgs) {
+	if(op->isInputVarArgs || op->isOutputVarArgs) {
 		if(stack[0] < op->outputCount + op->inputCount + op->attributeCount) {
 			printf(RED "\tSTACK COUNT TOO SMALL: expected: more than %u but %lu\n" END, op->outputCount + op->inputCount + op->attributeCount, stack[0]);
 			return false;
@@ -550,9 +557,30 @@ static bool exec_testcase(connx_Operator* op) {
 	}
 
 	// clean up
-	// delete outputs and inputs
 	uint32_t stackIdx2 = 1;
-	for(uint32_t i = 0; i < stack[0] - op->attributeCount; i++, stackIdx2++) {
+
+	// delete outputs
+	uintptr_t output_count = op->outputCount;
+
+	if(op->isOutputVarArgs) {
+		output_count = stack[stackIdx2++];
+	}
+
+	for(uint32_t i = 0; i < output_count; i++, stackIdx2++) {
+		if(stack[stackIdx2] != 0) {
+			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
+			connx_Tensor_delete(tensor);
+		}
+	}
+
+	// delete inputs
+	uintptr_t input_count = op->inputCount;
+
+	if(op->isInputVarArgs) {
+		input_count = stack[stackIdx2++];
+	}
+
+	for(uint32_t i = 0; i < input_count; i++, stackIdx2++) {
 		if(stack[stackIdx2] != 0) {
 			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
 			connx_Tensor_delete(tensor);

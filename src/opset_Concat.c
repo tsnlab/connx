@@ -6,11 +6,12 @@ static bool Concat_resolve(uintptr_t* stack) {
 	uintptr_t count = stack[0];
 
 	connx_Tensor* concat_result = (void*)stack[1];
-	uint32_t input_count = count - 2;
+
+	uintptr_t input_count = stack[2];
 
 	connx_Tensor* inputs[input_count];
 	for(uint32_t i = 0; i < input_count; i++)
-		inputs[i] = (void*)stack[2 + i];
+		inputs[i] = (void*)stack[3 + i];
 
 	int64_t* axis = (void*)stack[count];
 
@@ -65,11 +66,12 @@ static bool Concat_exec(uintptr_t* stack) {
 	uintptr_t count = stack[0];
 
 	connx_Tensor* concat_result = (void*)stack[1];
-	uint32_t input_count = count - 2;
+
+	uintptr_t input_count = stack[2];
 
 	connx_Tensor* inputs[input_count];
 	for(uint32_t i = 0; i < input_count; i++)
-		inputs[i] = (void*)stack[2 + i];
+		inputs[i] = (void*)stack[3 + i];
 
 	int64_t* axis = (void*)stack[count];
 

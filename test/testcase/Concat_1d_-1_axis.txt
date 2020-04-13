@@ -2,6 +2,8 @@ Concat(1d -1 axis)
 
 concat_result = tensor float32 4
 
+input_count = vararg 2
+
 input0 = tensor float32 2
 [1. 2.]
 

@@ -1855,6 +1855,12 @@ next_output:
 		connx_Operator* op = runtime->operators[i - 1];
 
 		stackCount += 1 + node->n_output + node->n_input + op->attributeCount;
+
+		if(op->isInputVarArgs)
+			stackCount++;
+
+		if(op->isOutputVarArgs)
+			stackCount++;
 	}
 
 	runtime->stackCount = stackCount;
@@ -1871,10 +1877,20 @@ next_output:
 		runtime->stack[stackIdx++] = count;
 
 		// output
-		if(node->n_output != op->outputCount) {
-			connx_exception("Output count mismatch: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
-			connx_Runtime_delete(runtime);
-			return NULL;
+		if(op->isOutputVarArgs) {
+			if(node->n_output < op->outputCount) {
+				connx_exception("Output count too small: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
+				connx_Runtime_delete(runtime);
+				return NULL;
+			}
+
+			stack[stackIdx++] = (uintptr_t)op->outputCount;
+		} else {
+			if(node->n_output != op->outputCount) {
+				connx_exception("Output count mismatch: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
+				connx_Runtime_delete(runtime);
+				return NULL;
+			}
 		}
 
 		uint32_t notFoundVariables[op->outputCount];
@@ -1890,12 +1906,14 @@ next_output:
 		}
 
 		// input
-		if(op->isVarArgs) {
+		if(op->isInputVarArgs) {
 			if(node->n_input < op->inputCount) {
 				connx_exception("Input count too small: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
 				connx_Runtime_delete(runtime);
 				return NULL;
 			}
+
+			stack[stackIdx++] = (uintptr_t)op->inputCount;
 		} else {
 			if(node->n_input != op->inputCount) {
 				connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
@@ -2019,7 +2037,11 @@ void connx_Runtime_delete(connx_Runtime* runtime) {
 
 		stackIdx++;	// count
 		stackIdx += node->n_output;
+		if(op->isOutputVarArgs)
+			stackIdx++;
 		stackIdx += node->n_input;
+		if(op->isInputVarArgs)
+			stackIdx++;
 
 		for(uint32_t j = 0; j < op->attributeCount; j++) {
 			connx_Attribute_delete((void*)runtime->stack[stackIdx++]);
@@ -2169,11 +2191,16 @@ void connx_Operator_add(const char* name,
 	op->name = connx_alloc(len);
 	memcpy(op->name, name, len);
 
+	if(!!(outputCount & CONNX_VARARGS)) {
+		op->isOutputVarArgs = true;
+		outputCount ^= CONNX_VARARGS;
+	}
+
 	op->outputCount = outputCount;
 	op->outputs = connx_alloc(sizeof(connx_DataType) * outputCount);
 
 	if(!!(inputCount & CONNX_VARARGS)) {
-		op->isVarArgs = true;
+		op->isInputVarArgs = true;
 		inputCount ^= CONNX_VARARGS;
 	}
 

@@ -51,6 +51,8 @@ typedef enum _connx_DataType {
 	connx_DataType_TENSOR_INT64= connx_DataType_TENSOR | connx_DataType_INT64,
 	connx_DataType_SEQUENCE	= (1 << 15),
 	connx_DataType_MAP		= (1 << 16),
+	connx_DataType_GRAPH	= (1 << 17),
+	connx_DataType_ANY		= 0xffff
 } connx_DataType;
 
 int connx_DataType_toString(connx_DataType type, int len, char* buf);
@@ -128,10 +130,11 @@ void connx_Value_delete(connx_Value* value);
 typedef struct _connx_Operator {
 	char*				name;
 
+	bool				isOutputVarArgs;
 	uint32_t			outputCount;
 	connx_DataType*		outputs;
 
-	bool				isVarArgs;
+	bool				isInputVarArgs;
 	uint32_t			inputCount;
 	connx_DataType*		inputs;
 

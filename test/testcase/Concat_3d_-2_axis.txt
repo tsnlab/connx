@@ -2,6 +2,8 @@ Concat(3d -2 axis)
 
 concat_result = tensor float32 2 4 2
 
+input_count = vararg 2
+
 input0 = tensor float32 2 2 2
 [[[1. 2.]
   [3. 4.]]
