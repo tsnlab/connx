@@ -191,18 +191,19 @@ static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, 
 			abort();
 	}
 
+	int32_t origin_idx_int = origin_idx >= 0 ? (int32_t)origin_idx : -(int32_t)(-origin_idx + 0.5);
 	float ratio = 0;
-	if(origin_idx == (uint32_t)origin_idx)
+	if(origin_idx == origin_idx_int)
 		ratio = 1;
 	else
-		ratio = origin_idx - (uint32_t)origin_idx;
+		ratio = origin_idx - origin_idx_int;
 
 	// get coeffects
 	float coeffects[4];
 	uint32_t coeffects_length = 0;
 	switch(mode[0]) {
 		case 'n':	// nearest
-			if(ratio - (int32_t)ratio == 0) {
+			if(ratio == (int32_t)ratio) {
 				coeffects[0] = 0;
 				coeffects[1] = 1;
 				coeffects_length = 2;
@@ -233,6 +234,7 @@ static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, 
 							default:
 								abort();
 						}
+						break;
 					case 'f':	// floor
 						coeffects[0] = 1;
 						coeffects[1] = 0;
@@ -265,14 +267,14 @@ static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, 
 	}
 
 #if DEBUG
-	printf("x=%f ", origin_idx);
+	printf("x=%f (int)x=%d ", origin_idx, origin_idx_int);
 #endif
 	// calculate base
 	int32_t idx_base;
-	if(origin_idx == (int32_t)origin_idx) {
-		idx_base = (int32_t)origin_idx - coeffects_length / 2;
+	if(origin_idx == origin_idx_int) {
+		idx_base = origin_idx_int - coeffects_length / 2;
 	} else {
-		idx_base = (int32_t)origin_idx - coeffects_length / 2 + 1;
+		idx_base = origin_idx_int - coeffects_length / 2 + 1;
 	}
 
 	// exclude_outside
