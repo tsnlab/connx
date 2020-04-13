@@ -176,7 +176,7 @@ static bool exec_testcase(connx_Operator* op) {
 	stackIdx = 1;
 	line = readline();
 	// Read metadata
-	while(line != NULL && (line[0] == '\0' || line[0] == '@')) {
+	while(line != NULL && (line[0] == '\0' || line[0] == '@' || line[0] == '#')) {
 		if(line[0] == '@') {
 			if(strncmp(line, "@epsilon ", 9) == 0) {
 				epsilon = strtof(line + 9, NULL);
