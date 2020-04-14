@@ -34,6 +34,10 @@ sudo apt install autoconf libtool
 make test
 
 # Dump onnx file
+ONNX dump utility requires protobuf-compiler
+
+sudo apt install protobuf-compiler
+
 bin/dump [onnx file]
 
 # License
