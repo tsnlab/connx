@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdlib.h>
 #include <float.h>
 #include <connx/connx.h>
@@ -40,7 +41,7 @@ static bool MaxPool_resolve(uintptr_t* stack) {
 	if(auto_pad[0] == 'S') {
 		int64_t array[kernel_shape_length * 2];
 		for(uint32_t i = 0; i < kernel_shape_length; i++) {
-			int64_t pad = (Y->lengths[i] - 1) * strides[i] + ((kernel_shape[i] - 1) * dilations[i] + 1) - X->lengths[i];
+			int64_t pad = (X->lengths[i] - 1) * strides[i] + ((kernel_shape[i] - 1) * dilations[i] + 1) - X->lengths[i];
 			if(pad % 2 == 1) {
 				array[i] = array[i + kernel_shape_length] = pad / 2;
 				if(auto_pad[5] == 'U') {	// SAME_UPPER
@@ -82,6 +83,28 @@ static bool MaxPool_resolve(uintptr_t* stack) {
 		attr_strides = (void*)stack[9];
 		strides = connx_Attribute_base(attr_strides);
 		strides_length = connx_Attribute_length(attr_strides);
+	}
+
+	// Create Y if NULL
+	if(Y == NULL) {
+		uint32_t lengths[X->dimension];
+		memcpy(lengths, X->lengths, sizeof(uint32_t) * (X->dimension - kernel_shape_length));
+
+		for(uint32_t i = 0; i < kernel_shape_length; i++) {
+			uint32_t v1 = (X->lengths[X->dimension - kernel_shape_length + i] + pads[i] + pads[i + kernel_shape_length] - ((kernel_shape[i] - 1) * dilations[i] + 1));
+			uint32_t length = (uint32_t)(v1 / strides[i] + 1);
+			if(*ceil_mode != 0) {
+				if(v1 % strides[i] != 0) {
+					length++;
+					pads[i + kernel_shape_length]++;
+				}
+			}
+
+			lengths[X->dimension - kernel_shape_length + i] = length;
+		}
+
+		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
+		stack[1] = (uintptr_t)Y;
 	}
 
 	if(X->dimension != Y->dimension) {

@@ -6,6 +6,12 @@ static bool LeakyRelu_resolve(uintptr_t* stack) {
 	connx_Tensor* X = (void*)stack[2];
 	__attribute__((unused)) void* attr_alpha = (void*)stack[3];
 
+	// Create Y if NULL
+	if(Y == NULL) {
+		Y = connx_Tensor_create2(X->elemType, X->dimension, X->lengths);
+		stack[1] = (uintptr_t)Y;
+	}
+
 	if(!connx_Tensor_isShapeEquals(X, Y)) {
 		char buf1[32];
 		char buf2[32];

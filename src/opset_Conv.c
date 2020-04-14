@@ -1,3 +1,4 @@
+#include <string.h>
 #include <connx/connx.h>
 
 static bool Conv_resolve(uintptr_t* stack) {
@@ -20,6 +21,16 @@ static bool Conv_resolve(uintptr_t* stack) {
 	uint32_t pads_length = connx_Attribute_length(attr_pads);
 	int64_t* strides = connx_Attribute_base(attr_strides);
 	uint32_t strides_length = connx_Attribute_length(attr_strides);
+
+	// Create Y if NULL
+	if(Y == NULL) {
+		uint32_t lengths[X->dimension];
+		memcpy(lengths, X->lengths, sizeof(uint32_t) * X->dimension);
+		lengths[1] = W->lengths[0] * *group;
+
+		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
+		stack[1] = (uintptr_t)Y;
+	}
 
 	if(auto_pad[0] == 'S') {	// SAME_UPPER, SAME_LOWER
 		int64_t array[kernel_shape_length * 2];

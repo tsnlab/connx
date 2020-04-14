@@ -79,6 +79,12 @@ int connx_DataType_toString(connx_DataType type, int len, char* buf) {
 		pos += snprintf(buf + pos, len - pos, "map");
 	}
 
+	if((type & connx_DataType_GRAPH) > 0) {
+		if(pos > 0)
+			pos += snprintf(buf + pos, len - pos, " | ");
+		pos += snprintf(buf + pos, len - pos, "graph");
+	}
+
 	if((type & connx_DataType_UINT8) > 0) {
 		if(pos > 0)
 			pos += snprintf(buf + pos, len - pos, " | ");
@@ -200,6 +206,8 @@ uint32_t connx_DataType_size(connx_DataType type) {
 			return sizeof(connx_Sequence);
 		case connx_DataType_MAP:
 			return sizeof(connx_Map);
+		case connx_DataType_GRAPH:
+			return sizeof(connx_Graph);
 		default:
 			abort();
 			return 0;
@@ -400,14 +408,14 @@ connx_Tensor* connx_Tensor_create_from_onnx(Onnx__TensorProto* onnx) {
 			break;
 		case ONNX__TENSOR_PROTO__DATA_TYPE__BOOL:
 			{
-				uint32_t* array = (uint32_t*)tensor->base;
+				bool* array = (bool*)tensor->base;
 				uint32_t idx = 0;
 
 				for(size_t i = 0; i < onnx->n_int32_data && idx < total; i++) {
 					array[idx++] = onnx->int32_data[i];
 				}
 
-				for(size_t i = 0; i < onnx->raw_data.len && idx < total; i += 1) {
+				for(size_t i = 0; i < onnx->raw_data.len && idx < total; i++) {
 					array[idx++] = onnx->raw_data.data[i];
 				}
 			}
@@ -1638,11 +1646,39 @@ void* connx_Attribute_base(void* attr) {
 
 static connx_Tensor* _Graph_getInitializer(connx_Graph* graph, const char* name) {
 	for(uint32_t i = 0; i < graph->n_initializer; i++) {
-		if(strcmp(graph->initializer[i]->name, name) == 0)
+		if(strcmp(graph->initializer[i]->name, name) == 0) {
 			return connx_Tensor_create_from_onnx(graph->initializer[i]);
+		}
 	}
 
 	return NULL;
+}
+
+/**
+ * Find variable in input, output or value_info
+ *
+ * @return 1 if the value is in input
+ *         2 if the value is in output
+ *         3 if the value is in value_info
+ *         0 if the value is not in input, output or value_info
+ */
+static int _Graph_hasValue(connx_Graph* graph, const char* name) {
+	for(uint32_t i = 0; i < graph->n_input; i++) {
+		if(strcmp(graph->input[i]->name, name) == 0)
+			return 1;
+	}
+
+	for(uint32_t i = 0; i < graph->n_output; i++) {
+		if(strcmp(graph->output[i]->name, name) == 0)
+			return 2;
+	}
+
+	for(uint32_t i = 0; i < graph->n_value_info; i++) {
+		if(strcmp(graph->value_info[i]->name, name) == 0)
+			return 3;
+	}
+
+	return 0;
 }
 
 struct ds_Ring {
@@ -1755,27 +1791,6 @@ next:
 
 	ds_Ring_delete(ring, connx_free);
 
-	// inputs
-	uint32_t inputIdx = 0;
-	connx_ValueInfo* inputs[graph->n_input];
-	for(uint32_t i = 0; i < graph->n_input; i++) {
-		connx_ValueInfo* input = graph->input[i];
-
-		for(uint32_t j = 0; j < graph->n_initializer; j++) {
-			if(strcmp(graph->initializer[j]->name, input->name) == 0) {
-				goto next_input;
-			}
-		}
-
-		inputs[inputIdx++] = input;
-next_input:
-		;
-	}
-
-	runtime->inputCount = inputIdx;
-	runtime->inputs = connx_alloc(sizeof(connx_ValueInfo*) * inputIdx);
-	memcpy(runtime->inputs, inputs, sizeof(connx_ValueInfo*) * inputIdx);
-
 	// outputs
 	uint32_t outputIdx = 0;
 	connx_ValueInfo* outputs[graph->n_output];
@@ -1800,8 +1815,37 @@ next_output:
 	runtime->outputs = connx_alloc(sizeof(connx_ValueInfo*) * outputIdx);
 	memcpy(runtime->outputs, outputs, sizeof(connx_ValueInfo*) * outputIdx);
 
+	// inputs
+	uint32_t inputIdx = 0;
+	connx_ValueInfo* inputs[graph->n_input];
+	for(uint32_t i = 0; i < graph->n_input; i++) {
+		connx_ValueInfo* input = graph->input[i];
+
+		for(uint32_t j = 0; j < graph->n_initializer; j++) {
+			if(strcmp(graph->initializer[j]->name, input->name) == 0) {
+				goto next_input;
+			}
+		}
+
+		inputs[inputIdx++] = input;
+next_input:
+		;
+	}
+
+	runtime->inputCount = inputIdx;
+	runtime->inputs = connx_alloc(sizeof(connx_ValueInfo*) * inputIdx);
+	memcpy(runtime->inputs, inputs, sizeof(connx_ValueInfo*) * inputIdx);
+
+	// orphant initializers(exists in initializer but not in value_info)
+	uint32_t orphant_count = 0;
+	for(uint32_t i = 0; i < graph->n_initializer; i++) {
+		if(_Graph_hasValue(graph, graph->initializer[i]->name) == 0) {
+			orphant_count++;
+		}
+	}
+
 	// variables
-	runtime->variableCount = graph->n_input + graph->n_output + graph->n_value_info;
+	runtime->variableCount = graph->n_input + graph->n_output + graph->n_value_info + orphant_count;
 	runtime->variables = connx_alloc(sizeof(connx_Value*) * runtime->variableCount);
 	runtime->initializers = connx_alloc(sizeof(connx_Value*) * runtime->variableCount);
 
@@ -1845,6 +1889,18 @@ next_output:
 			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type);
 			value->name = valueInfo->name;
 			runtime->variables[variableIdx++] = value;
+		}
+	}
+
+	if(orphant_count > 0) {
+		for(uint32_t i = 0; i < graph->n_initializer; i++) {
+			if(_Graph_hasValue(graph, graph->initializer[i]->name) == 0) {
+				connx_Tensor* tensor = connx_Tensor_create_from_onnx(graph->initializer[i]);
+				tensor->name = graph->initializer[i]->name;
+
+				runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
+				runtime->variables[variableIdx++] = (connx_Value*)tensor;
+			}
 		}
 	}
 
@@ -1893,16 +1949,17 @@ next_output:
 			}
 		}
 
+		// Find missing variables
 		uint32_t notFoundVariables[op->outputCount];
 		uint32_t notFoundVariableCount = 0;
 
 		for(uint32_t j = 0; j < op->outputCount; j++) {
 			connx_Value* value = connx_Runtime_getVariable(runtime, node->output[j]);
+			runtime->stack[stackIdx++] = (uintptr_t)value;
+
 			if(value == NULL) {
 				notFoundVariables[notFoundVariableCount++] = j;
 			}
-
-			runtime->stack[stackIdx++] = (uintptr_t)value;
 		}
 
 		// input
@@ -1925,7 +1982,7 @@ next_output:
 		for(uint32_t j = 0; j < op->inputCount; j++) {
 			connx_Value* value = connx_Runtime_getVariable(runtime, node->input[j]);
 			if(value == NULL) {
-				connx_exception("Cannot find input variable: %s for operation %s", node->input[j], op->name);
+				connx_exception("Cannot find input variable: %s for operator %s(%s)", node->input[j], node->name, node->op_type);
 				connx_Runtime_delete(runtime);
 				return NULL;
 			}
@@ -1996,24 +2053,26 @@ next_output:
 			}
 		}
 
-		// resolve
+		// resolve and make not found variables
+		printf("resolving: %s %s\n", op->name, node->name);
 		if(!op->resolve(stack)) {
-			connx_exception("Validation failed node: %s", node->name);
+			connx_exception("Validation failed node: %s(%s)", node->name, op->name);
 			connx_Runtime_delete(runtime);
 			return NULL;
 		}
 
+		// fill not found variables
 		if(notFoundVariableCount > 0) {
 			uint32_t idx = runtime->variableCount;
 			runtime->variableCount += notFoundVariableCount;
 
+			// TODO: Change variables and initializers to hash map
 			runtime->variables = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
-			runtime->initializers = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
+			runtime->initializers = connx_realloc(runtime->initializers, sizeof(connx_Value*) * runtime->variableCount);
 			for(uint32_t j = 0; j < notFoundVariableCount; j++) {
 				connx_Value* value = (connx_Value*)stack[1 + notFoundVariables[j]];
-				value->name = runtime->outputs[notFoundVariables[j]]->name;
-
-				printf("set missed variable: %s\n", value->name);
+				value->name = node->output[notFoundVariables[j]];
+				printf("Add missing variable: %s %u %s\n", node->name, notFoundVariables[j], value->name);
 
 				runtime->initializers[idx] = value;
 				runtime->variables[idx++] = connx_Value_clone(value);
@@ -2262,6 +2321,12 @@ void connx_Operator_add(const char* name,
 					uint32_t count = va_arg(list, uint32_t);
 					float* array = va_arg(list, float*);
 					op->attributeValues[i] = connx_Attribute_create_floats(count, array);
+				}
+				break;
+			case connx_DataType_GRAPH:
+				{
+					void* graph = va_arg(list, void*);
+					op->attributeValues[i] = (void*)graph;
 				}
 				break;
 			default:

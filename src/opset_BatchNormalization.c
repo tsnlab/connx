@@ -9,6 +9,12 @@ static bool BatchNormalization_resolve(uintptr_t* stack) {
 	connx_Tensor* mean = (void*)stack[5];
 	connx_Tensor* var = (void*)stack[6];
 
+	// Create Y if NULL
+	if(Y == NULL) {
+		Y = connx_Tensor_create2(X->elemType, X->dimension, X->lengths);
+		stack[1] = (uintptr_t)Y;
+	}
+
 	if(!connx_Tensor_isShapeEquals(X, Y)) {
 		connx_exception("X and Y's shape is differ");
 		return false;
