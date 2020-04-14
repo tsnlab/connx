@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+	echo "Usage: dump [onnx file]"
+fi
+
+BASEDIR=$(realpath $(dirname $0)/../onnx/onnx)
+protoc --decode onnx.ModelProto --proto_path=$BASEDIR $BASEDIR/onnx.proto3 < $1

@@ -33,6 +33,9 @@ sudo apt install autoconf libtool
 
 make test
 
+# Dump onnx file
+bin/dump [onnx file]
+
 # License
  * CONNX is licensed under dual license GPLv3 or MIT
  * ONNX is licensed under MIT
