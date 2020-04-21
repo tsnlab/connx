@@ -5,6 +5,7 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <math.h>
+#include <pthread.h>
 #include <connx/connx.h>
 
 #define EXCEPTION_MESSAGE_SIZE 128
@@ -16,10 +17,13 @@ void connx_exception(char* format, ...) {
 	va_list list;
 
 	va_start(list, format);
-	vsprintf(_connx_exception_message, format, list);
+	int len = vsnprintf(_connx_exception_message, EXCEPTION_MESSAGE_SIZE, format, list);
 	va_end(list);
 
-	fprintf(stderr, "%s\n", _connx_exception_message);
+	if(len < EXCEPTION_MESSAGE_SIZE)
+		fprintf(stderr, "%s\n", _connx_exception_message);
+	else
+		fprintf(stderr, "%s...\n", _connx_exception_message);
 }
 
 const char* connx_exception_message() {
@@ -1654,6 +1658,42 @@ static connx_Tensor* _Graph_getInitializer(connx_Graph* graph, const char* name)
 	return NULL;
 }
 
+static bool _Graph_hasInput(connx_Graph* graph, const char* name) {
+	for(uint32_t i = 0; i < graph->n_input; i++) {
+		if(strcmp(graph->input[i]->name, name) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+static bool _Graph_hasOutput(connx_Graph* graph, const char* name) {
+	for(uint32_t i = 0; i < graph->n_output; i++) {
+		if(strcmp(graph->output[i]->name, name) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+static bool _Graph_hasValueInfo(connx_Graph* graph, const char* name) {
+	for(uint32_t i = 0; i < graph->n_value_info; i++) {
+		if(strcmp(graph->value_info[i]->name, name) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+static bool _Graph_hasInitializer(connx_Graph* graph, const char* name) {
+	for(uint32_t i = 0; i < graph->n_initializer; i++) {
+		if(strcmp(graph->initializer[i]->name, name) == 0)
+			return true;
+	}
+
+	return false;
+}
+
 /**
  * Find variable in input, output or value_info
  *
@@ -1663,25 +1703,20 @@ static connx_Tensor* _Graph_getInitializer(connx_Graph* graph, const char* name)
  *         0 if the value is not in input, output or value_info
  */
 static int _Graph_hasValue(connx_Graph* graph, const char* name) {
-	for(uint32_t i = 0; i < graph->n_input; i++) {
-		if(strcmp(graph->input[i]->name, name) == 0)
-			return 1;
-	}
-
-	for(uint32_t i = 0; i < graph->n_output; i++) {
-		if(strcmp(graph->output[i]->name, name) == 0)
-			return 2;
-	}
-
-	for(uint32_t i = 0; i < graph->n_value_info; i++) {
-		if(strcmp(graph->value_info[i]->name, name) == 0)
-			return 3;
-	}
-
-	return 0;
+	if(_Graph_hasInput(graph, name))
+		return 1;
+	else if(_Graph_hasOutput(graph, name))
+		return 2;
+	else if(_Graph_hasValueInfo(graph, name))
+		return 3;
+	else
+		return 0;
 }
 
 struct ds_Ring {
+	void*(*alloc)(size_t);
+	void(*free)(void*);
+
 	uint32_t	head;
 	uint32_t	tail;
 	uint32_t	size;
@@ -1689,10 +1724,13 @@ struct ds_Ring {
 	uint8_t		base[0];
 };
 
-struct ds_Ring* ds_Ring_create(uint32_t size, uint32_t count, void*(*malloc)(size_t)) {
-	struct ds_Ring* ring = malloc(sizeof(struct ds_Ring) + (size * count));
+struct ds_Ring* ds_Ring_create(uint32_t size, uint32_t count, void*(*alloc)(size_t), void(*free)(void*)) {
+	struct ds_Ring* ring = calloc(sizeof(struct ds_Ring), (size * count));
 	if(ring == NULL)
 		return NULL;
+
+	ring->alloc = alloc;
+	ring->free = free;
 
 	ring->head = 0;
 	ring->tail = 0;
@@ -1702,7 +1740,7 @@ struct ds_Ring* ds_Ring_create(uint32_t size, uint32_t count, void*(*malloc)(siz
 	return ring;
 }
 
-void ds_Ring_delete(struct ds_Ring* ring, void(*free)(void*)) {
+void ds_Ring_delete(struct ds_Ring* ring) {
 	free(ring);
 }
 
@@ -1727,6 +1765,648 @@ bool ds_Ring_dequeue(struct ds_Ring* ring, void* ptr) {
 	return true;
 }
 
+struct _ds_ListNode {
+	struct _ds_ListNode*	prev;
+	struct _ds_ListNode*	next;
+	uint8_t					base[0];
+};
+
+struct ds_List {
+	void*(*alloc)(size_t);
+	void(*free)(void*);
+
+	bool(*equals)(void*, void*);
+
+	uint32_t				size;
+	uint32_t				count;
+
+	struct _ds_ListNode*	head;
+	struct _ds_ListNode*	tail;
+};
+
+static bool _ds_List_equals_string(void* v1, void* v2) {
+	return strcmp(v1, v2) == 0;
+}
+
+static bool _ds_List_equals_ptr(void* v1, void* v2) {
+	return v1 == v2;
+}
+
+struct ds_List* ds_List_create(uint32_t size, bool(*equals)(void*, void*), void*(*alloc)(size_t), void(*free)(void*)) {
+	struct ds_List* list = calloc(sizeof(struct ds_List), 1);
+	if(list == NULL)
+		return NULL;
+
+	list->alloc = alloc;
+	list->free = free;
+
+	if(equals == NULL)
+		list->equals = _ds_List_equals_ptr;
+	else
+		list->equals = equals;
+
+	list->head = NULL;
+	list->tail = NULL;
+	list->size = size;
+	list->count = 0;
+
+	return list;
+}
+
+void ds_List_delete(struct ds_List* list) {
+	struct _ds_ListNode* node = list->head;
+	while(node != NULL) {
+		struct _ds_ListNode* next = node->next;
+		list->free(node);
+
+		node = next;
+	}
+
+	free(list);
+}
+
+bool ds_List_add(struct ds_List* list, void* ptr) {
+	struct _ds_ListNode* node = list->alloc(sizeof(struct _ds_ListNode) + list->size);
+	if(node == NULL)
+		return false;
+
+	*(uintptr_t*)node->base = (uintptr_t)ptr;
+
+	if(list->tail == NULL) {
+		list->head = list->tail = node;
+	} else {
+		list->tail->next = node;
+		node->prev = list->tail;
+		list->tail = node;
+	}
+
+	list->count++;
+
+	return true;
+}
+
+void* ds_List_get(struct ds_List* list, uint32_t idx) {
+	uint32_t i = 0;
+	struct _ds_ListNode* node = list->head;
+	while(node != NULL) {
+		if(i++ == idx) {
+			return (void*)*(uintptr_t*)node->base;
+		}
+
+		node = node->next;
+	}
+
+	return NULL;
+}
+
+static void _ds_List_remove(struct ds_List* list, struct _ds_ListNode* node) {
+	if(node->prev != NULL)
+		node->prev->next = node->next;
+
+	if(node->next != NULL)
+		node->next->prev = node->prev;
+
+	if(list->head == node)
+		list->head = node->next;
+
+	if(list->tail == node)
+		list->tail = node->prev;
+
+	list->free(node);
+
+	list->count--;
+}
+
+bool ds_List_remove(struct ds_List* list, void* ptr) {
+	struct _ds_ListNode* node = list->head;
+	while(node != NULL) {
+		if(list->equals((void*)*(uintptr_t*)node->base, ptr)) {
+			_ds_List_remove(list, node);
+
+			return true;
+		}
+
+		node = node->next;
+	}
+
+	return false;
+}
+
+bool ds_List_removeAt(struct ds_List* list, uint32_t idx, void* ptr) {
+	struct _ds_ListNode* node = list->head;
+	while(idx-- != 0) {
+		if(node == NULL)
+			return false;
+
+		node = node->next;
+	}
+
+	if(ptr != NULL)
+		*(uintptr_t*)ptr = *(uintptr_t*)node->base;
+
+	_ds_List_remove(list, node);
+
+	return true;
+}
+
+bool ds_List_contains(struct ds_List* list, void* ptr) {
+	struct _ds_ListNode* node = list->head;
+	while(node != NULL) {
+		if(list->equals((void*)*(uintptr_t*)node->base, ptr))
+			return true;
+
+		node = node->next;
+	}
+
+	return false;
+}
+
+uint32_t ds_List_clear(struct ds_List* list) {
+	uint32_t count = list->count;
+
+	struct _ds_ListNode* node = list->head;
+	while(node != NULL) {
+		struct _ds_ListNode* next = node->next;
+		list->free(node);
+		node = next;
+	}
+
+	list->head = list->tail = NULL;
+	list->count = 0;
+
+	return count;
+}
+
+struct ds_ListIterator {
+	struct ds_List*			list;
+	struct _ds_ListNode*	node;
+	struct _ds_ListNode*	prev;
+};
+
+struct ds_ListIterator ds_ListIterator_create(struct ds_List* list) {
+	struct ds_ListIterator iter;
+	iter.list = list;
+	iter.node = list->head;
+	iter.prev = NULL;
+
+	return iter;
+}
+
+bool ds_ListIterator_hasNext(struct ds_ListIterator* iter) {
+	return iter->node != NULL;
+}
+
+void* ds_ListIterator_next(struct ds_ListIterator* iter) {
+	void* ptr = (void*)*(uintptr_t*)iter->node->base;
+	iter->prev = iter->node;
+	iter->node = iter->node->next;
+
+	return ptr;
+}
+
+bool ds_ListIterator_remove(struct ds_ListIterator* iter) {
+	if(iter->prev != NULL) {
+		struct _ds_ListNode* prev = iter->prev;
+		iter->prev = prev->prev;
+
+		_ds_List_remove(iter->list, prev);
+		return true;
+	} else {
+		return false;
+	}
+}
+
+static uint32_t _Graph_findNodesByOutputs(connx_Graph* graph, connx_Node** nodes, struct ds_List* names) {
+	uint32_t idx = 0;
+	for(uint32_t i = 0; i < graph->n_node; i++) {
+		// Try to match node
+		connx_Node* node = graph->node[i];
+		char** outputs = node->output;
+
+		// check match and remove from names
+		bool isMatch = false;
+
+		for(struct ds_ListIterator iterNames = ds_ListIterator_create(names); ds_ListIterator_hasNext(&iterNames); ) {
+			char* name = ds_ListIterator_next(&iterNames);
+
+			for(uint32_t j = 0; j < node->n_output; j++) {
+				if(strcmp(outputs[j], name) == 0) {
+					ds_ListIterator_remove(&iterNames);
+					isMatch = true;
+				}
+			}
+		}
+
+		if(isMatch) {
+			nodes[idx++] = node;
+		}
+	}
+
+	return idx;
+}
+
+connx_Path* connx_Path_create() {
+	connx_Path* path = connx_alloc(sizeof(connx_Path));
+	return path;
+}
+
+void connx_Path_delete(connx_Path* path) {
+	if(path->outputPaths != NULL)
+		connx_free(path->outputPaths);
+
+	if(path->inputPaths != NULL)
+		connx_free(path->inputPaths);
+
+	if(path->outputNames != NULL)
+		connx_free(path->outputNames);
+
+	if(path->inputNames != NULL)
+		connx_free(path->inputNames);
+
+	if(path->nodes != NULL)
+		connx_free(path->nodes);
+
+	if(path->operators != NULL)
+		connx_free(path->operators);
+
+	connx_free(path);
+}
+
+bool connx_Path_hasOutputName(connx_Path* path, char* name) {
+	for(uint32_t i = 0; i < path->outputNameCount; i++) {
+		if(strcmp(path->outputNames[i], name) == 0) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void connx_Path_addOutputName(connx_Path* path, char* name) {
+	path->outputNameCount++;
+	if(path->outputNames != NULL) {
+		path->outputNames = connx_realloc(path->outputNames, sizeof(char*) * path->outputNameCount);
+	} else {
+		path->outputNames = connx_alloc(sizeof(char*) * path->outputNameCount);
+	}
+
+	path->outputNames[path->outputNameCount - 1] = name;
+}
+
+void connx_Path_addNode(connx_Path* path, connx_Node* node) {
+	if(path->outputNames == NULL) {
+		path->outputNameCount = node->n_output;
+		if(path->outputNames != NULL) {
+			path->outputNames = connx_realloc(path->outputNames, sizeof(char*) * path->outputNameCount);
+		} else {
+			path->outputNames = connx_alloc(sizeof(char*) * path->outputNameCount);
+		}
+		memcpy(path->outputNames, node->output, sizeof(char*) * path->outputNameCount);
+	}
+
+	path->inputNameCount = node->n_input;
+	if(path->inputNames != NULL) {
+		path->inputNames = connx_realloc(path->inputNames, sizeof(char*) * path->inputNameCount);
+	} else {
+		path->inputNames = connx_alloc(sizeof(char*) * path->inputNameCount);
+	}
+	memcpy(path->inputNames, node->input, sizeof(char*) * path->inputNameCount);
+
+	path->count++;
+	if(path->nodes != NULL) {
+		path->nodes = connx_realloc(path->nodes, sizeof(connx_Node*) * path->count);
+	} else {
+		path->nodes = connx_alloc(sizeof(connx_Node*) * path->count);
+	}
+	path->nodes[path->count - 1] = node;
+}
+
+void connx_Path_addPath(connx_Path* path, connx_Path* inputPath) {
+	path->inputPathCount++;
+	if(path->inputPaths != NULL) {
+		path->inputPaths = connx_realloc(path->inputPaths, sizeof(connx_Path*) * path->inputPathCount);
+	} else {
+		path->inputPaths = connx_alloc(sizeof(connx_Path*) * path->inputPathCount);
+	}
+	path->inputPaths[path->inputPathCount - 1] = inputPath;
+
+	inputPath->outputPathCount++;
+	if(inputPath->outputPaths != NULL) {
+		inputPath->outputPaths = connx_realloc(inputPath->outputPaths, sizeof(connx_Path*) * inputPath->outputPathCount);
+	} else {
+		inputPath->outputPaths = connx_alloc(sizeof(connx_Path*) * inputPath->outputPathCount);
+	}
+	inputPath->outputPaths[inputPath->outputPathCount - 1] = path;
+}
+
+#ifdef __linux__
+struct PThread {
+	pthread_t	pthread;
+	void*		context;
+};
+#endif /* __linux__ */
+
+connx_Thread* connx_Thread_create(struct _connx_Runtime* runtime, connx_Path** paths, uint32_t count) {
+	connx_Thread* thread = connx_alloc(sizeof(connx_Thread) + sizeof(struct PThread));
+
+	thread->runtime = runtime;
+	thread->paths = connx_alloc(sizeof(connx_Path*) * count);
+	thread->pathCount = count;
+	memcpy(thread->paths, paths, sizeof(connx_Path*) * count);
+
+	return thread;
+}
+
+static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Operator* op, uintptr_t* stack) {
+	// set stack count
+	uintptr_t count = 1 + node->n_output + node->n_input + op->attributeCount;
+	if(op->isOutputVarArgs)
+		count++;
+	if(op->isInputVarArgs)
+		count++;
+
+	uint32_t stackIdx = 0;
+	stack[stackIdx++] = count;
+
+	// check output count
+	if(op->isOutputVarArgs) {
+		if(node->n_output < op->outputCount) {
+			connx_exception("Output count too small: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
+			return 0;
+		}
+
+		stack[stackIdx++] = (uintptr_t)op->outputCount;
+	} else {
+		if(node->n_output != op->outputCount) {
+			connx_exception("Output count mismatch: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
+			return 0;
+		}
+	}
+
+	// missing variables
+	uint32_t missing[op->outputCount];
+	uint32_t missingCount = 0;
+
+	// set output
+	for(uint32_t i = 0; i < op->outputCount; i++) {
+		connx_Value* value = connx_Runtime_getVariable(runtime, node->output[i]);
+		stack[stackIdx++] = (uintptr_t)value;
+
+		if(value == NULL) {
+			missing[missingCount++] = i;
+		}
+	}
+
+	// check input count
+	if(op->isInputVarArgs) {
+		if(node->n_input < op->inputCount) {
+			connx_exception("Input count too small: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
+			return 0;
+		}
+
+		stack[stackIdx++] = (uintptr_t)op->inputCount;
+	} else {
+		if(node->n_input != op->inputCount) {
+			connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
+			return 0;
+		}
+	}
+
+	// set input
+	for(uint32_t i = 0; i < op->inputCount; i++) {
+		connx_Value* value = connx_Runtime_getVariable(runtime, node->input[i]);
+		if(value == NULL) {
+			connx_exception("Cannot find input variable: %s for operator %s(%s)", node->input[i], node->name, node->op_type);
+			return 0;
+		}
+
+		stack[stackIdx++] = (uintptr_t)value;
+	}
+
+	// attribute
+	for(uint32_t i = 0; i < op->attributeCount; i++) {
+		// find attribute
+		connx_Attribute* attr = NULL;
+		for(uint32_t j = 0; j < node->n_attribute; j++) {
+			connx_Attribute* a = node->attribute[j];
+			if(strcmp(a->name, op->attributeNames[i]) == 0) {
+				attr = a;
+				break;
+			}
+		}
+
+		if(attr != NULL) {
+			// set attribute
+			switch(attr->type) {
+				case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__FLOAT:
+					stack[stackIdx++] = connx_Attribute_create_float(attr->f);
+					break;
+				case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__INT:
+					stack[stackIdx++] = connx_Attribute_create_int(attr->i);
+					break;
+				case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__STRING:
+					stack[stackIdx++] = connx_Attribute_create_string_from_onnx(&attr->s);
+					break;
+				case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__FLOATS:
+					stack[stackIdx++] = connx_Attribute_create_floats(attr->n_floats, attr->floats);
+					break;
+				case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__INTS:
+					stack[stackIdx++] = connx_Attribute_create_ints(attr->n_ints, attr->ints);
+					break;
+				case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__STRINGS:
+					stack[stackIdx++] = connx_Attribute_create_strings_from_onnx(attr->n_strings, &attr->strings);
+					break;
+				default:
+					// TODO: implement it
+					abort();
+			}
+		} else {
+			// set default attribute
+			switch(op->attributes[i]) {
+				case connx_DataType_FLOAT32:
+					stack[stackIdx++] = connx_Attribute_clone_float(op->attributeValues[i]);
+					break;
+				case connx_DataType_INT64:
+					stack[stackIdx++] = connx_Attribute_clone_int(op->attributeValues[i]);
+					break;
+				case connx_DataType_STRING:
+					stack[stackIdx++] = connx_Attribute_clone_string(op->attributeValues[i]);
+					break;
+				case connx_DataType_FLOAT32_ARRAY:
+					stack[stackIdx++] = connx_Attribute_clone_floats(op->attributeValues[i]);
+					break;
+				case connx_DataType_INT64_ARRAY:
+					stack[stackIdx++] = connx_Attribute_clone_ints(op->attributeValues[i]);
+					break;
+				case connx_DataType_STRING_ARRAY:
+					stack[stackIdx++] = connx_Attribute_clone_strings(op->attributeValues[i]);
+					break;
+				default:
+					// TODO: implement it
+					abort();
+			}
+		}
+	}
+
+	// resolve
+	if(!op->resolve(stack)) {
+		connx_exception("Validation failed node: %s(%s)", node->name, op->name);
+		return 0;
+	}
+
+	// create missing variables
+	if(missingCount > 0) {
+		uint32_t oldVariableCount = runtime->variableCount;
+		runtime->variableCount += missingCount;
+
+		// TODO: change to hashmap
+		runtime->variables = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
+		runtime->initializers = connx_realloc(runtime->initializers, sizeof(connx_Value*) * runtime->variableCount);
+
+		for(uint32_t i = 0; i < missingCount; i++) {
+			connx_Value* value = (connx_Value*)stack[1 + missing[i]];
+			value->name = node->output[missing[i]];
+
+			runtime->initializers[oldVariableCount + i] = value;
+			runtime->variables[oldVariableCount + i] = connx_Value_clone(value);
+		}
+	}
+
+	assert(count == stackIdx);
+
+	return stackIdx;
+}
+
+bool connx_Thread_init(connx_Thread* thread) {
+	// get stack count
+	uint32_t stackCount = 0;
+	for(uint32_t i = 0; i < thread->pathCount; i++) {
+		connx_Path* path = thread->paths[i];
+
+		for(uint32_t j = 0; j < path->count; j++) {
+			connx_Operator* op = path->operators[j];
+
+			stackCount += 1 + op->outputCount + op->inputCount + op->attributeCount;
+
+			if(op->isOutputVarArgs)
+				stackCount++;
+
+			if(op->isInputVarArgs)
+				stackCount++;
+		}
+	}
+
+	// make stack
+	thread->stackCount = stackCount;
+	thread->stack = connx_alloc(sizeof(uintptr_t) * thread->stackCount);
+
+	// init stack
+	uint32_t stackIdx = 0;
+	uintptr_t* stack = thread->stack;
+	for(uint32_t i = 0; i < thread->pathCount; i++) {
+		connx_Path* path = thread->paths[i];
+
+		for(uint32_t j = 0; j < path->count; j++) {
+			connx_Node* node = path->nodes[j];
+			connx_Operator* op = path->operators[j];
+
+			uint32_t count = Stack_init(thread->runtime, node, op, stack + stackIdx);
+			if(count == 0)
+				return false;
+
+			stackIdx += count;
+			assert(stackIdx <= stackCount);
+		}
+	}
+
+	return true;
+}
+
+void connx_Thread_delete(connx_Thread* thread) {
+#ifdef __linux__
+	// Do nothing
+#endif /* __linux__ */
+
+	uint32_t stackIdx = 0;
+	uintptr_t* stack = thread->stack;
+	for(uint32_t i = 0; i < thread->pathCount; i++) {
+		connx_Path* path = thread->paths[i];
+
+		for(uint32_t j = 0; j < path->count; j++) {
+			connx_Operator* op = path->operators[j];
+
+			stackIdx++;	// count
+
+			if(op->isOutputVarArgs)
+				stackIdx++;	// output count
+
+			stackIdx += op->outputCount;	// outputs
+
+			if(op->isInputVarArgs)
+				stackIdx++;	// output count
+
+			stackIdx += op->inputCount;	// inputs
+
+			for(uint32_t j = 0; j < op->attributeCount; j++)
+				connx_Attribute_delete((void*)stack[stackIdx++]);
+		}
+
+		connx_free(stack);
+		connx_free(thread->paths);
+	}
+
+	connx_free(thread);
+}
+
+bool connx_Thread_start(connx_Thread* thread) {
+#ifdef __linux__
+	struct PThread* priv = (void*)thread->priv;
+	int ret = pthread_create(&priv->pthread, NULL, (void*)connx_Thread_run, thread);
+
+	switch(ret) {
+		case 0:
+			return true;
+		default:
+			connx_exception("Cannot start POSIX thread: %d", ret);
+			return false;
+	}
+#endif /* __linux__ */
+}
+
+void* connx_Thread_run(connx_Thread* thread) {
+	uint32_t stackIdx = 0;
+	uintptr_t* stack = thread->stack;
+	for(uint32_t i = 0; i < thread->pathCount; i++) {
+		connx_Path* path = thread->paths[i];
+		connx_Operator** ops = path->operators;
+
+		for(uint32_t j = 0; j < path->count; j++) {
+			uintptr_t count = stack[stackIdx];
+			if(!ops[j]->exec(stack + stackIdx))
+				return NULL;
+
+			stackIdx += count;
+		}
+	}
+
+	return NULL;
+}
+
+bool connx_Thread_join(connx_Thread* thread) {
+#ifdef __linux__
+	struct PThread* priv = (void*)thread->priv;
+	int ret = pthread_join(priv->pthread, NULL);
+
+	switch(ret) {
+		case 0:
+			return true;
+		default:
+			connx_exception("Cannot join POSIX thread: %d", ret);
+			return false;
+	}
+#endif /* __linux__ */
+}
+
 connx_Runtime* connx_Runtime_create(connx_Model* model) {
 	connx_Runtime* runtime = connx_alloc(sizeof(connx_Runtime));
 	if(runtime == NULL) {
@@ -1736,60 +2416,8 @@ connx_Runtime* connx_Runtime_create(connx_Model* model) {
 
 	runtime->model = model;
 
-	// dependency
+	// Dependency calculation and scheduling
 	connx_Graph* graph = model->graph;
-
-	runtime->dependencyCount = graph->n_node;
-	runtime->dependencies = connx_alloc(sizeof(connx_Node*) * runtime->dependencyCount);
-	runtime->operators = connx_alloc(sizeof(connx_Operator*) * runtime->dependencyCount);
-
-	struct ds_Ring* ring = ds_Ring_create(sizeof(char*), 128, connx_alloc);
-
-	for(uint32_t i = 0; i < graph->n_output; i++) {
-		ds_Ring_enqueue(ring, graph->output[i]->name);
-	}
-
-	uint32_t nodeIdx = 0;
-	char* name = NULL;
-	while(ds_Ring_dequeue(ring, &name)) {
-		for(uint32_t i = 0; i < graph->n_node; i++) {
-			connx_Node* node = graph->node[i];
-
-			for(size_t j = 0; j < node->n_output; j++) {
-				if(strcmp(name, node->output[j]) == 0) {
-					for(size_t k = 0; k < nodeIdx; k++) {
-						if(runtime->dependencies[k] == node) {
-							goto next;
-						}
-					}
-
-					runtime->dependencies[nodeIdx] = node;
-					runtime->operators[nodeIdx] = connx_Operator_get(node->op_type);
-					if(runtime->operators[nodeIdx] == NULL) {
-						connx_exception("Cannot find operator: %s", node->op_type);
-						connx_Runtime_delete(runtime);
-						ds_Ring_delete(ring, connx_free);
-						return false;
-					}
-					nodeIdx++;
-
-					for(size_t k = 0; k < node->n_input; k++) {
-						char* name = node->input[k];
-						if(!ds_Ring_enqueue(ring, name)) {
-							connx_exception("Too many dependency variables: %u", ring->count);
-							connx_Runtime_delete(runtime);
-							ds_Ring_delete(ring, connx_free);
-						}
-					}
-				}
-next:
-				;
-			}
-		}
-	}
-	runtime->dependencyCount = nodeIdx;
-
-	ds_Ring_delete(ring, connx_free);
 
 	// outputs
 	uint32_t outputIdx = 0;
@@ -1904,229 +2532,332 @@ next_input:
 		}
 	}
 
-	// stack
-	uint32_t stackCount = 0;
-	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
-		connx_Node* node = runtime->dependencies[i - 1];
-		connx_Operator* op = runtime->operators[i - 1];
-
-		stackCount += 1 + node->n_output + node->n_input + op->attributeCount;
-
-		if(op->isInputVarArgs)
-			stackCount++;
-
-		if(op->isOutputVarArgs)
-			stackCount++;
+	// Schedule and make paths
+	if(!connx_Runtime_schedule(runtime)) {
+		return false;
 	}
 
-	runtime->stackCount = stackCount;
-	runtime->stack = connx_alloc(sizeof(uintptr_t) * stackCount);
-	uint32_t stackIdx = 0;
-	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
-		connx_Node* node = runtime->dependencies[i - 1];
-		connx_Operator* op = runtime->operators[i - 1];
-
-		uintptr_t count = 1 + node->n_output + node->n_input + op->attributeCount;
-
-		// count
-		uintptr_t* stack = runtime->stack + stackIdx;
-		runtime->stack[stackIdx++] = count;
-
-		// output
-		if(op->isOutputVarArgs) {
-			if(node->n_output < op->outputCount) {
-				connx_exception("Output count too small: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
-				connx_Runtime_delete(runtime);
-				return NULL;
-			}
-
-			stack[stackIdx++] = (uintptr_t)op->outputCount;
-		} else {
-			if(node->n_output != op->outputCount) {
-				connx_exception("Output count mismatch: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
-				connx_Runtime_delete(runtime);
-				return NULL;
-			}
-		}
-
-		// Find missing variables
-		uint32_t notFoundVariables[op->outputCount];
-		uint32_t notFoundVariableCount = 0;
-
-		for(uint32_t j = 0; j < op->outputCount; j++) {
-			connx_Value* value = connx_Runtime_getVariable(runtime, node->output[j]);
-			runtime->stack[stackIdx++] = (uintptr_t)value;
-
-			if(value == NULL) {
-				notFoundVariables[notFoundVariableCount++] = j;
-			}
-		}
-
-		// input
-		if(op->isInputVarArgs) {
-			if(node->n_input < op->inputCount) {
-				connx_exception("Input count too small: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
-				connx_Runtime_delete(runtime);
-				return NULL;
-			}
-
-			stack[stackIdx++] = (uintptr_t)op->inputCount;
-		} else {
-			if(node->n_input != op->inputCount) {
-				connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
-				connx_Runtime_delete(runtime);
-				return NULL;
-			}
-		}
-
-		for(uint32_t j = 0; j < op->inputCount; j++) {
-			connx_Value* value = connx_Runtime_getVariable(runtime, node->input[j]);
-			if(value == NULL) {
-				connx_exception("Cannot find input variable: %s for operator %s(%s)", node->input[j], node->name, node->op_type);
-				connx_Runtime_delete(runtime);
-				return NULL;
-			}
-			runtime->stack[stackIdx++] = (uintptr_t)value;
-		}
-
-		// attribute
-		for(uint32_t j = 0; j < op->attributeCount; j++) {
-			connx_Attribute* attr = NULL;
-			for(uint32_t k = 0; k < node->n_attribute; k++) {
-				connx_Attribute* a = node->attribute[k];
-				if(strcmp(a->name, op->attributeNames[j]) == 0) {
-					attr = a;
-					break;
-				}
-			}
-
-			if(attr != NULL) {
-				switch(attr->type) {
-					case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__FLOAT:
-						runtime->stack[stackIdx++] = connx_Attribute_create_float(attr->f);
-						break;
-					case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__INT:
-						runtime->stack[stackIdx++] = connx_Attribute_create_int(attr->i);
-						break;
-					case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__STRING:
-						{
-							runtime->stack[stackIdx++] = connx_Attribute_create_string_from_onnx(&attr->s);
-						}
-						break;
-					case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__FLOATS:
-						runtime->stack[stackIdx++] = connx_Attribute_create_floats(attr->n_floats, attr->floats);
-						break;
-					case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__INTS:
-						runtime->stack[stackIdx++] = connx_Attribute_create_ints(attr->n_ints, attr->ints);
-						break;
-					case ONNX__ATTRIBUTE_PROTO__ATTRIBUTE_TYPE__STRINGS:
-						runtime->stack[stackIdx++] = connx_Attribute_create_strings_from_onnx(attr->n_strings, &attr->strings);
-						break;
-					default:
-						// TODO: implement it
-						abort();
-				}
-			} else {
-				switch(op->attributes[j]) {
-					case connx_DataType_FLOAT32:
-						runtime->stack[stackIdx++] = connx_Attribute_clone_float(op->attributeValues[j]);
-						break;
-					case connx_DataType_INT64:
-						runtime->stack[stackIdx++] = connx_Attribute_clone_int(op->attributeValues[j]);
-						break;
-					case connx_DataType_STRING:
-						runtime->stack[stackIdx++] = connx_Attribute_clone_string(op->attributeValues[j]);
-						break;
-					case connx_DataType_FLOAT32_ARRAY:
-						runtime->stack[stackIdx++] = connx_Attribute_clone_floats(op->attributeValues[j]);
-						break;
-					case connx_DataType_INT64_ARRAY:
-						runtime->stack[stackIdx++] = connx_Attribute_clone_ints(op->attributeValues[j]);
-						break;
-					case connx_DataType_STRING_ARRAY:
-						runtime->stack[stackIdx++] = connx_Attribute_clone_strings(op->attributeValues[j]);
-						break;
-					default:
-						// TODO: implement it
-						abort();
-				}
-			}
-		}
-
-		// resolve and make not found variables
-		printf("resolving: %s %s\n", op->name, node->name);
-		if(!op->resolve(stack)) {
-			connx_exception("Validation failed node: %s(%s)", node->name, op->name);
-			connx_Runtime_delete(runtime);
-			return NULL;
-		}
-
-		// fill not found variables
-		if(notFoundVariableCount > 0) {
-			uint32_t idx = runtime->variableCount;
-			runtime->variableCount += notFoundVariableCount;
-
-			// TODO: Change variables and initializers to hash map
-			runtime->variables = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
-			runtime->initializers = connx_realloc(runtime->initializers, sizeof(connx_Value*) * runtime->variableCount);
-			for(uint32_t j = 0; j < notFoundVariableCount; j++) {
-				connx_Value* value = (connx_Value*)stack[1 + notFoundVariables[j]];
-				value->name = node->output[notFoundVariables[j]];
-				printf("Add missing variable: %s %u %s\n", node->name, notFoundVariables[j], value->name);
-
-				runtime->initializers[idx] = value;
-				runtime->variables[idx++] = connx_Value_clone(value);
-			}
-		}
+	// threads
+	runtime->threadCount = runtime->pathCount - 1;	// except inputPath
+	runtime->threads = connx_alloc(sizeof(connx_Thread*) * runtime->pathCount);
+	for(uint32_t i = 0; i < runtime->threadCount; i++) {
+		connx_Path* paths[] = { runtime->paths[i + 1] };
+		runtime->threads[i] = connx_Thread_create(runtime, paths, 1);
+		connx_Thread_init(runtime->threads[i]);
 	}
 
 	return runtime;
 }
 
 void connx_Runtime_delete(connx_Runtime* runtime) {
-	uint32_t stackIdx = 0;
-	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
-		connx_Node* node = runtime->dependencies[i - 1];
-		if(node == NULL)
-			break;
-
-		connx_Operator* op = runtime->operators[i - 1];
-		if(op == NULL)
-			break;
-
-		stackIdx++;	// count
-		stackIdx += node->n_output;
-		if(op->isOutputVarArgs)
-			stackIdx++;
-		stackIdx += node->n_input;
-		if(op->isInputVarArgs)
-			stackIdx++;
-
-		for(uint32_t j = 0; j < op->attributeCount; j++) {
-			connx_Attribute_delete((void*)runtime->stack[stackIdx++]);
-		}
+	for(uint32_t i = 0; i < runtime->threadCount; i++) {
+		connx_Thread_delete(runtime->threads[i]);
 	}
 
-	connx_free(runtime->stack);
+	connx_free(runtime->threads);
+
+	for(uint32_t i = 0; i < runtime->pathCount; i++) {
+		connx_Path_delete(runtime->paths[i]);
+	}
+
+	connx_free(runtime->paths);
+
 	for(uint32_t i = 0; i < runtime->variableCount; i++) {
 		if(runtime->initializers[i] == NULL)
 			continue;
 
 		connx_Value_delete(runtime->initializers[i]);
 	}
+
 	connx_free(runtime->initializers);
+
 	for(uint32_t i = 0; i < runtime->variableCount; i++) {
 		if(runtime->variables[i] == NULL)
 			continue;
 
 		connx_Value_delete(runtime->variables[i]);
 	}
+
 	connx_free(runtime->variables);
+
 	connx_free(runtime->outputs);
 	connx_free(runtime->inputs);
-	connx_free(runtime->operators);
-	connx_free(runtime->dependencies);
 	connx_free(runtime);
+}
+
+static uint32_t _Paths_find(struct ds_List* list, connx_Path** paths, struct ds_List* names) {
+	uint32_t idx = 0;
+
+	for(struct ds_ListIterator iterPath = ds_ListIterator_create(list); ds_ListIterator_hasNext(&iterPath); ) {
+		connx_Path* path = ds_ListIterator_next(&iterPath);
+		char** outputNames = path->outputNames;
+
+		// check match and remove from names
+		bool isMatch = false;
+
+		for(struct ds_ListIterator iterNames = ds_ListIterator_create(names); ds_ListIterator_hasNext(&iterNames); ) {
+			char* name = ds_ListIterator_next(&iterNames);
+
+			for(uint32_t j = 0; j < path->outputNameCount; j++) {
+				if(strcmp(outputNames[j], name) == 0) {
+					ds_ListIterator_remove(&iterNames);
+					isMatch = true;
+				}
+			}
+		}
+
+		if(isMatch) {
+			paths[idx++] = path;
+		}
+	}
+
+	return idx;
+}
+
+/**
+ * Algorithm description
+ *
+ * Graph.inputPath is virtual input path
+ * Graph.outputPath is virtual output path
+ * unresolved is a queue
+ * resolved is a queue
+ * push(unresolved, outputPath)
+ * push(resolved, inputPath)
+ * while(len(unresolved) > 0)
+ *     path = peek(unresolved)
+ *     if(path.inputNameCount == 0)
+ *         pop(unresolved)
+ *         continue
+ *
+ *     nodes, paths = findMatching(path)
+ *
+ *     if(not found)
+ *         exception
+ *     
+ *     if(len(nodes) == 1 and len(paths) == 0)
+ *         extend path
+ *     else 
+ *         for node in nodes
+ *             push(unresolved, newPath(node))
+ *
+ *         add new paths and old paths to path
+ *         pop(unresolved)
+ *         push(resolved, path)
+ */
+bool connx_Runtime_schedule(connx_Runtime* runtime) {
+	connx_Graph* graph = runtime->model->graph;
+
+	bool ret = true;
+
+	struct ds_List* unresolved = ds_List_create(sizeof(connx_Path*), NULL, connx_alloc, connx_free);
+	struct ds_List* resolved = ds_List_create(sizeof(connx_Path*), NULL, connx_alloc, connx_free);
+	struct ds_List* names = ds_List_create(sizeof(char*), _ds_List_equals_string, connx_alloc, connx_free);
+
+	// Make InputPath
+	connx_Path* inputPath = connx_Path_create();	// contents will be filled lazily
+
+	// Make OutputPath
+	connx_Path* outputPath = connx_Path_create();
+	outputPath->inputNameCount = graph->n_output;
+	outputPath->inputNames = connx_alloc(sizeof(char*) * outputPath->inputNameCount);
+	for(uint32_t i = 0; i < outputPath->inputNameCount; i++)
+		outputPath->inputNames[i] = graph->output[i]->name;
+	ds_List_add(unresolved, outputPath);
+
+	// Resolve unresolved paths
+	while(unresolved->count > 0) {
+		connx_Path* path = ds_List_get(unresolved, 0);
+		if(path->inputNameCount == 0) {
+			ds_List_removeAt(unresolved, 0, NULL);
+			continue;
+		}
+
+		uint32_t count = path->inputNameCount;
+		connx_Node* nodes[count];
+		for(uint32_t i = 0; i < count; i++)
+			ds_List_add(names, path->inputNames[i]);
+
+		// Find dependent nodes
+		uint32_t node_count = _Graph_findNodesByOutputs(graph, nodes, names);
+
+		// Find dependent paths
+		connx_Path* paths[count - node_count];
+		uint32_t unresolved_path_count = _Paths_find(unresolved, paths, names);
+		uint32_t resolved_path_count = _Paths_find(resolved, paths + unresolved_path_count, names);
+
+		// Remove dependency by value_info and initializer
+		for(uint32_t i = 0; i < graph->n_value_info; i++) {
+			char* name = graph->value_info[i]->name;
+			ds_List_remove(names, name);
+		}
+
+		for(uint32_t i = 0; i < graph->n_initializer; i++) {
+			char* name = graph->initializer[i]->name;
+			ds_List_remove(names, name);
+		}
+
+		// Check inputs
+		bool isInputPathMatch = false;
+		for(struct ds_ListIterator iter = ds_ListIterator_create(names); ds_ListIterator_hasNext(&iter); ) {
+			char* name = ds_ListIterator_next(&iter);
+			for(uint32_t i = 0; i < graph->n_input; i++) {
+				if(strcmp(name, graph->input[i]->name) == 0) {
+					if(!connx_Path_hasOutputName(inputPath, name))
+						connx_Path_addOutputName(inputPath, name);
+
+					ds_ListIterator_remove(&iter);
+
+					isInputPathMatch = true;
+				}
+			}
+		}
+
+		if(isInputPathMatch) {
+			paths[resolved_path_count++] = inputPath;
+		}
+
+		// Check remain dependency
+		uint32_t remain = names->count;
+		if(remain > 0) {
+			switch(remain) {
+				case 1:
+					connx_exception("Cannot find dependency %s", ds_List_get(names, 0));
+					break;
+				case 2:
+					connx_exception("Cannot find dependency %s, %s", ds_List_get(names, 0), ds_List_get(names, 1));
+					break;
+				case 3:
+					connx_exception("Cannot find dependency %s, %s, %s", ds_List_get(names, 0), ds_List_get(names, 1), ds_List_get(names, 2));
+					break;
+				default:
+					connx_exception("Cannot find dependency %s, %s, %s and %u more", ds_List_get(names, 0), ds_List_get(names, 1), ds_List_get(names, 2), remain - 3);
+			}
+
+			ret = false;
+			goto done;
+		}
+
+		if(node_count == 1 && unresolved_path_count == 0 && resolved_path_count == 0) {
+			connx_Path_addNode(path, nodes[0]);
+		} else {
+			for(uint32_t i = 0; i < node_count; i++) {
+				connx_Path* path2 = connx_Path_create();
+				connx_Path_addNode(path2, nodes[i]);
+				ds_List_add(unresolved, path2);
+
+				connx_Path_addPath(path, path2);
+			}
+
+			for(uint32_t i = 0; i < unresolved_path_count; i++) {
+				connx_Path_addPath(path, paths[i]);
+			}
+
+			for(uint32_t i = 0; i < resolved_path_count; i++) {
+				connx_Path_addPath(path, paths[unresolved_path_count + i]);
+			}
+
+			ds_List_removeAt(unresolved, 0, NULL);
+			ds_List_add(resolved, path);
+		}
+	}
+
+	// set runtime
+	runtime->inputPath = inputPath;
+	runtime->outputPath = outputPath;
+	runtime->pathCount = resolved->count + 1;	// + inputPath
+	runtime->paths = connx_alloc(sizeof(connx_Path*) * runtime->pathCount);
+
+	// reorder path from back to front (reuse unresolved as a queue)
+	assert(unresolved->count == 0);
+	ds_List_add(unresolved, runtime->outputPath);
+	int32_t idx = resolved->count;
+	while(unresolved->count > 0) {
+		assert(idx >= 0);
+
+		connx_Path* path;
+		ds_List_removeAt(unresolved, 0, &path);
+		runtime->paths[idx--] = path;
+
+		// reorder nodes in path
+		for(uint32_t i = 0; i < path->count / 2; i++) {
+			connx_Node* node = path->nodes[i];
+			path->nodes[i] = path->nodes[path->count - i - 1];
+			path->nodes[path->count - i - 1] = node;
+		}
+
+		// add input path to unresolved
+		for(uint32_t i = 0; i < path->inputPathCount; i++) {
+			connx_Path* inputPath = path->inputPaths[i];
+			bool isDup = false;
+			for(uint32_t j = idx + 1; j < resolved->count; j++) {
+				if(runtime->paths[j] == inputPath) {
+					isDup = true;
+					break;
+				}
+			}
+
+			if(!isDup)
+				ds_List_add(unresolved, inputPath);
+		}
+	}
+
+	assert(idx == -1);
+
+	// resolve operator
+	for(uint32_t i = 0; i < runtime->pathCount; i++) {
+		connx_Path* path = runtime->paths[i];
+		path->operators = connx_alloc(sizeof(connx_Operator*) * path->count);
+
+		for(uint32_t j = 0; j < path->count; j++) {
+			path->operators[j] = connx_Operator_get(path->nodes[j]->op_type);
+			if(path->operators[j] == NULL) {
+				connx_exception("Cannot find operator: %s", path->nodes[j]->op_type);
+				goto done;
+			}
+		}
+	}
+
+done:
+	// clean up
+	ds_List_delete(names);
+	ds_List_delete(resolved);
+	ds_List_delete(unresolved);
+
+	/*
+	printf("pathCount = %u\n", runtime->pathCount);
+	for(uint32_t i = 0; i < runtime->pathCount; i++) {
+		connx_Path* path = runtime->paths[i];
+
+		printf("path[%u] inputs=", i);
+		for(uint32_t j = 0; j < path->inputNameCount; j++) {
+			printf("%s ", path->inputNames[j]);
+		}
+
+		printf("outputs=");
+		for(uint32_t j = 0; j < path->outputNameCount; j++) {
+			printf("%s ", path->outputNames[j]);
+		}
+		printf("\n");
+
+		for(uint32_t j = 0; j < path->count; j++) {
+			connx_Node* node = path->nodes[j];
+			printf("\tNode[%u]=%s inputs=", j, node->name);
+
+			for(uint32_t k = 0; k < node->n_input; k++) {
+				printf("%s ", node->input[k]);
+			}
+
+			printf("outputs=");
+			for(uint32_t k = 0; k < node->n_output; k++) {
+				printf("%s ", node->output[k]);
+			}
+
+			printf("op=%s:%s\n", node->name, node->op_type);
+		}
+	}
+	*/
+
+	return ret;
 }
 
 bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value) {
@@ -2183,20 +2914,16 @@ connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name)
 }
 
 connx_Value* connx_Runtime_run(connx_Runtime* runtime, uint32_t inputCount, connx_Value** inputs) {
-	if(runtime->isDirty) {
-		for(uint32_t i = 0; i < runtime->variableCount; i++) {
-			if(runtime->initializers[i] != NULL) {
-				connx_Value_copy(runtime->initializers[i], runtime->variables[i]);
-			} else {
-				connx_Value_clean(runtime->variables[i]);
-			}
+	// initailize variables
+	for(uint32_t i = 0; i < runtime->variableCount; i++) {
+		if(runtime->initializers[i] != NULL) {
+			connx_Value_copy(runtime->initializers[i], runtime->variables[i]);
+		} else {
+			connx_Value_clean(runtime->variables[i]);
 		}
-
-		runtime->isDirty = false;
-	} else {
-		runtime->isDirty = true;
 	}
 
+	// set inputs
 	for(uint32_t i = 0; i < inputCount; i++) {
 		for(uint32_t j = 0; j < runtime->inputCount; j++) {
 			if(strcmp(runtime->inputs[j]->name, inputs[i]->name) == 0) {
@@ -2206,30 +2933,15 @@ connx_Value* connx_Runtime_run(connx_Runtime* runtime, uint32_t inputCount, conn
 				goto found;
 			}
 		}
+
 		connx_exception("There is no input variable for: %s", inputs[i]->name);
 		return NULL;
 found:
 		;
 	}
 
-	uintptr_t* stack = runtime->stack;
-	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
-		connx_Operator* op = runtime->operators[i - 1];
-
-		if(!op->exec(stack)) {
-			return NULL;
-		}
-
-		/*
-		printf("* dump: %s(%s)\n", runtime->dependencies[i - 1]->name, op->name);
-		uint32_t len = op->outputCount + op->inputCount;
-		for(uint32_t i = 0; i < len; i++) {
-			connx_Tensor_dump((void*)stack[i + 1]);
-		}
-		*/
-
-		uintptr_t count = stack[0];
-		stack += count;
+	for(uint32_t i = 0; i < runtime->threadCount; i++) {	// except input thread
+		connx_Thread_run(runtime->threads[i]);
 	}
 
 	if(runtime->outputCount == 1) {
@@ -2238,7 +2950,61 @@ found:
 		return NULL;
 	}
 
-	return NULL;
+//	if(runtime->isDirty) {
+//		for(uint32_t i = 0; i < runtime->variableCount; i++) {
+//			if(runtime->initializers[i] != NULL) {
+//				connx_Value_copy(runtime->initializers[i], runtime->variables[i]);
+//			} else {
+//				connx_Value_clean(runtime->variables[i]);
+//			}
+//		}
+//
+//		runtime->isDirty = false;
+//	} else {
+//		runtime->isDirty = true;
+//	}
+//
+//	for(uint32_t i = 0; i < inputCount; i++) {
+//		for(uint32_t j = 0; j < runtime->inputCount; j++) {
+//			if(strcmp(runtime->inputs[j]->name, inputs[i]->name) == 0) {
+//				if(!connx_Runtime_setVariable(runtime, inputs[i])) {
+//					return NULL;
+//				}
+//				goto found;
+//			}
+//		}
+//		connx_exception("There is no input variable for: %s", inputs[i]->name);
+//		return NULL;
+//found:
+//		;
+//	}
+//
+//	uintptr_t* stack = runtime->stack;
+//	for(uint32_t i = runtime->dependencyCount; i > 0; i--) {
+//		connx_Operator* op = runtime->operators[i - 1];
+//
+//		if(!op->exec(stack)) {
+//			return NULL;
+//		}
+//
+//		/*
+//		printf("* dump: %s(%s)\n", runtime->dependencies[i - 1]->name, op->name);
+//		uint32_t len = op->outputCount + op->inputCount;
+//		for(uint32_t i = 0; i < len; i++) {
+//			connx_Tensor_dump((void*)stack[i + 1]);
+//		}
+//		*/
+//
+//		uintptr_t count = stack[0];
+//		stack += count;
+//	}
+//
+//	if(runtime->outputCount == 1) {
+//		return connx_Runtime_getVariable(runtime, runtime->outputs[0]->name);
+//	} else {
+//		return NULL;
+//	}
+//
 }
 
 void connx_Operator_add(const char* name, 

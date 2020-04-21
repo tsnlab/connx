@@ -1,5 +1,5 @@
-#ifndef __CONNX_H__
-#define __CONNX_H__
+#ifndef __CONNX_CONNX_H__
+#define __CONNX_CONNX_H__
 
 #include <connx/onnx.h>
 
@@ -175,12 +175,61 @@ uint32_t connx_Attribute_length(void* attr);
 void* connx_Attribute_base(void* attr);
 
 // Runtime
+typedef struct _connx_Path {
+	struct _connx_Path**	outputPaths;
+	uint32_t				outputPathCount;
+
+	struct _connx_Path**	inputPaths;
+	uint32_t				inputPathCount;
+
+	char**					outputNames;
+	uint32_t				outputNameCount;
+
+	char**					inputNames;
+	uint32_t				inputNameCount;
+
+	connx_Node**			nodes;
+	connx_Operator**		operators;
+	uint32_t				count;
+} connx_Path;
+
+connx_Path* connx_Path_create();
+void connx_Path_delete(connx_Path* path);
+
+bool connx_Path_hasOutputName(connx_Path* path, char* name);
+void connx_Path_addOutputName(connx_Path* path, char* name);
+void connx_Path_addNode(connx_Path* path, connx_Node* node);
+void connx_Path_addPath(connx_Path* path, connx_Path* inputPath);
+
+typedef struct _connx_Thread {
+	struct _connx_Runtime*		runtime;
+
+	connx_Path**				paths;
+	uint32_t					pathCount;
+
+	uintptr_t*					stack;
+	uint32_t					stackCount;
+
+	uint8_t						priv[0];
+} connx_Thread;
+
+connx_Thread* connx_Thread_create(struct _connx_Runtime* runtime, connx_Path** paths, uint32_t count);
+void connx_Thread_delete(connx_Thread* thread);
+bool connx_Thread_init(connx_Thread* thread);
+bool connx_Thread_start(connx_Thread* thread);
+void* connx_Thread_run(connx_Thread* thread);
+bool connx_Thread_join(connx_Thread* thread);
+
 typedef struct _connx_Runtime {
 	connx_Model*		model;
 
-	uint32_t			dependencyCount;
-	connx_Node**		dependencies;
-	connx_Operator**	operators;
+	connx_Path*			inputPath;
+	connx_Path*			outputPath;
+	connx_Path**		paths;
+	uint32_t			pathCount;
+
+	connx_Thread**		threads;
+	uint32_t			threadCount;
 
 	uint32_t			variableCount;
 	connx_Value**		variables;
@@ -191,14 +240,11 @@ typedef struct _connx_Runtime {
 
 	uint32_t			outputCount;
 	connx_ValueInfo**	outputs;
-
-	uint32_t			stackCount;
-	uintptr_t*			stack;
-	bool				isDirty;
 } connx_Runtime;
 
 connx_Runtime* connx_Runtime_create(connx_Model* model);
 void connx_Runtime_delete(connx_Runtime* runtime);
+bool connx_Runtime_schedule(connx_Runtime* runtime);
 bool connx_Runtime_setVariable(connx_Runtime* runtime, connx_Value* value);
 connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name);
 connx_Value* connx_Runtime_run(connx_Runtime* runtime, uint32_t inputCount, connx_Value** inputs);
@@ -207,4 +253,4 @@ connx_Value* connx_Runtime_run(connx_Runtime* runtime, uint32_t inputCount, conn
 uint16_t connx_float32_to_float16(float in);
 float connx_float16_to_float32(uint16_t in);
 
-#endif /* __CONNX_H__ */
+#endif /* __CONNX_CONNX_H__ */
