@@ -201,6 +201,8 @@ void connx_Path_addOutputName(connx_Path* path, char* name);
 void connx_Path_addNode(connx_Path* path, connx_Node* node);
 void connx_Path_addPath(connx_Path* path, connx_Path* inputPath);
 
+void connx_Path_dump(connx_Path* path);
+
 typedef struct _connx_Thread {
 	struct _connx_Runtime*		runtime;
 

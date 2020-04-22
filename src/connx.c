@@ -12,6 +12,13 @@
 
 static char _connx_exception_message[EXCEPTION_MESSAGE_SIZE];
 
+static int depth = 0;
+
+static void tab() {
+	for(int i = 0; i < depth; i++)
+		fprintf(stdout, "\t");
+}
+
 // exception
 void connx_exception(char* format, ...) {
 	va_list list;
@@ -2099,6 +2106,75 @@ void connx_Path_addPath(connx_Path* path, connx_Path* inputPath) {
 	inputPath->outputPaths[inputPath->outputPathCount - 1] = path;
 }
 
+void connx_Path_dump(connx_Path* path) {
+	if(path->count > 0) {
+		fprintf(stdout, "Path %s:%s ~ %s:%s (%u)\n", 
+				path->nodes[0]->name,
+				path->nodes[0]->op_type,
+				path->nodes[path->count - 1]->name,
+				path->nodes[path->count - 1]->op_type,
+				path->count);
+	} else {
+		fprintf(stdout, "Path %s:%s ~ %s:%s (%u)\n", 
+				NULL, NULL, NULL, NULL, path->count);
+	}
+
+	depth++;
+
+	for(uint32_t i = 0; i < path->outputNameCount; i++) {
+		tab(); fprintf(stdout, "output[%u] = %s\n", i, path->outputNames[i]);
+	}
+	fprintf(stdout, "\n");
+
+	for(uint32_t i = 0; i < path->inputNameCount; i++) {
+		tab(); fprintf(stdout, "input[%u] = %s\n", i, path->inputNames[i]);
+	}
+	fprintf(stdout, "\n");
+
+	for(uint32_t i = 0; i < path->outputPathCount; i++) {
+		connx_Path* subPath = path->outputPaths[i];
+
+		if(subPath->count > 0) {
+			tab(); fprintf(stdout, "OutputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
+					subPath->nodes[0]->name,
+					subPath->nodes[0]->op_type,
+					subPath->nodes[subPath->count - 1]->name,
+					subPath->nodes[subPath->count - 1]->op_type,
+					subPath->count);
+		} else {
+			tab(); fprintf(stdout, "OutputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
+					NULL, NULL, NULL, NULL, subPath->count);
+		}
+	}
+	fprintf(stdout, "\n");
+
+	for(uint32_t i = 0; i < path->inputPathCount; i++) {
+		connx_Path* subPath = path->inputPaths[i];
+
+		if(subPath->count > 0) {
+			tab(); fprintf(stdout, "InputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
+					subPath->nodes[0]->name, 
+					subPath->nodes[0]->op_type,
+					subPath->nodes[subPath->count - 1]->name,
+					subPath->nodes[subPath->count - 1]->op_type,
+					subPath->count);
+		} else {
+			tab(); fprintf(stdout, "InputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
+					NULL, NULL, NULL, NULL, subPath->count);
+		}
+	}
+	fprintf(stdout, "\n");
+
+	for(uint32_t i = 0; i < path->count; i++) {
+		connx_Node* node = path->nodes[i];
+
+		tab(); fprintf(stdout, "node[%u] = %s:%s\n", i, node->name, node->op_type);
+	}
+
+	depth--;
+
+}
+
 #ifdef __linux__
 struct PThread {
 	pthread_t	pthread;
@@ -2673,17 +2749,17 @@ bool connx_Runtime_schedule(connx_Runtime* runtime) {
 		}
 
 		uint32_t count = path->inputNameCount;
-		connx_Node* nodes[count];
 		for(uint32_t i = 0; i < count; i++)
 			ds_List_add(names, path->inputNames[i]);
 
-		// Find dependent nodes
-		uint32_t node_count = _Graph_findNodesByOutputs(graph, nodes, names);
-
 		// Find dependent paths
-		connx_Path* paths[count - node_count];
+		connx_Path* paths[count];
 		uint32_t unresolved_path_count = _Paths_find(unresolved, paths, names);
 		uint32_t resolved_path_count = _Paths_find(resolved, paths + unresolved_path_count, names);
+
+		// Find dependent nodes
+		connx_Node* nodes[count];
+		uint32_t node_count = _Graph_findNodesByOutputs(graph, nodes, names);
 
 		// Remove dependency by value_info and initializer
 		for(uint32_t i = 0; i < graph->n_value_info; i++) {
@@ -2770,7 +2846,7 @@ bool connx_Runtime_schedule(connx_Runtime* runtime) {
 	// reorder path from back to front (reuse unresolved as a queue)
 	assert(unresolved->count == 0);
 	ds_List_add(unresolved, runtime->outputPath);
-	int32_t idx = resolved->count;
+	int32_t idx = runtime->pathCount - 1;
 	while(unresolved->count > 0) {
 		assert(idx >= 0);
 
@@ -2789,8 +2865,16 @@ bool connx_Runtime_schedule(connx_Runtime* runtime) {
 		for(uint32_t i = 0; i < path->inputPathCount; i++) {
 			connx_Path* inputPath = path->inputPaths[i];
 			bool isDup = false;
-			for(uint32_t j = idx + 1; j < resolved->count; j++) {
+			for(uint32_t j = idx + 1; j < runtime->pathCount; j++) {
 				if(runtime->paths[j] == inputPath) {
+					isDup = true;
+					break;
+				}
+			}
+
+			for(struct ds_ListIterator iter = ds_ListIterator_create(unresolved); ds_ListIterator_hasNext(&iter); ) {
+				connx_Path* p = ds_ListIterator_next(&iter);
+				if(p == inputPath) {
 					isDup = true;
 					break;
 				}
@@ -3117,13 +3201,6 @@ connx_Operator* connx_Operator_get(const char* name) {
 	}
 
 	return NULL;
-}
-
-static int depth = 0;
-
-static void tab() {
-	for(int i = 0; i < depth; i++)
-		fprintf(stdout, "\t");
 }
 
 void connx_Operator_dump() {
