@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include <connx/connx.h>
 
-#define EXCEPTION_MESSAGE_SIZE 128
+#define EXCEPTION_MESSAGE_SIZE 256
 
 static char _connx_exception_message[EXCEPTION_MESSAGE_SIZE];
 
@@ -305,12 +305,18 @@ connx_Tensor* connx_Tensor_create2(connx_DataType type, uint32_t dimension, uint
 }
 
 connx_Tensor* connx_Tensor_create_from_onnx(Onnx__TensorProto* onnx) {
-	uint32_t dimension = onnx->n_dims;
+	uint32_t dimension = onnx->n_dims == 0 ? 1 : onnx->n_dims;
 	uint32_t lengths[dimension];
 	uint32_t total = 1;
-	for(size_t i = 0; i < onnx->n_dims; i++) {
-		lengths[i] = onnx->dims[i];
-		total *= lengths[i];
+
+	// If there no dims attribute, consider dim and lengths[0] is 1 (scala)
+	if(onnx->n_dims == 0) {
+		lengths[0] = 1;
+	} else {
+		for(size_t i = 0; i < onnx->n_dims; i++) {
+			lengths[i] = onnx->dims[i];
+			total *= lengths[i];
+		}
 	}
 
 	connx_DataType datatype = connx_DataType_from_onnx(onnx->data_type);
@@ -2115,8 +2121,7 @@ void connx_Path_dump(connx_Path* path) {
 				path->nodes[path->count - 1]->op_type,
 				path->count);
 	} else {
-		fprintf(stdout, "Path %s:%s ~ %s:%s (%u)\n", 
-				NULL, NULL, NULL, NULL, path->count);
+		fprintf(stdout, "Path (null):(null) ~ (null):(null) (%u)\n", path->count);
 	}
 
 	depth++;
@@ -2142,8 +2147,7 @@ void connx_Path_dump(connx_Path* path) {
 					subPath->nodes[subPath->count - 1]->op_type,
 					subPath->count);
 		} else {
-			tab(); fprintf(stdout, "OutputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
-					NULL, NULL, NULL, NULL, subPath->count);
+			tab(); fprintf(stdout, "OutputPath[%u] (null):(null) ~ (null):(null) (%u)\n", i, subPath->count);
 		}
 	}
 	fprintf(stdout, "\n");
@@ -2159,8 +2163,7 @@ void connx_Path_dump(connx_Path* path) {
 					subPath->nodes[subPath->count - 1]->op_type,
 					subPath->count);
 		} else {
-			tab(); fprintf(stdout, "InputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
-					NULL, NULL, NULL, NULL, subPath->count);
+			tab(); fprintf(stdout, "InputPath[%u] (null):(null) ~ (null):(null) (%u)\n", i, subPath->count);
 		}
 	}
 	fprintf(stdout, "\n");
@@ -2325,10 +2328,12 @@ static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Opera
 	}
 
 	// resolve
+	// printf("Validate %s(%s) %u\n", node->name, op->name, missingCount);
 	if(!op->resolve(stack)) {
 		connx_exception("Validation failed node: %s(%s)", node->name, op->name);
 		return 0;
 	}
+	// printf("Validate done %s(%s)\n", node->name, op->name);
 
 	// create missing variables
 	if(missingCount > 0) {
@@ -2619,7 +2624,11 @@ next_input:
 	for(uint32_t i = 0; i < runtime->threadCount; i++) {
 		connx_Path* paths[] = { runtime->paths[i + 1] };
 		runtime->threads[i] = connx_Thread_create(runtime, paths, 1);
-		connx_Thread_init(runtime->threads[i]);
+		//printf("Thread_init: %s\n", runtime->threads[i]->paths[0]->nodes[0]->name);
+		if(!connx_Thread_init(runtime->threads[i])) {
+			connx_Runtime_delete(runtime);
+			return NULL;
+		}
 	}
 
 	return runtime;
@@ -2627,16 +2636,24 @@ next_input:
 
 void connx_Runtime_delete(connx_Runtime* runtime) {
 	for(uint32_t i = 0; i < runtime->threadCount; i++) {
-		connx_Thread_delete(runtime->threads[i]);
+		if(runtime->threads[i] != NULL) {
+			connx_Thread_delete(runtime->threads[i]);
+		}
 	}
 
-	connx_free(runtime->threads);
+	if(runtime->threads != NULL) {
+		connx_free(runtime->threads);
+	}
 
 	for(uint32_t i = 0; i < runtime->pathCount; i++) {
-		connx_Path_delete(runtime->paths[i]);
+		if(runtime->paths[i] != NULL) {
+			connx_Path_delete(runtime->paths[i]);
+		}
 	}
 
-	connx_free(runtime->paths);
+	if(runtime->paths != NULL) {
+		connx_free(runtime->paths);
+	}
 
 	for(uint32_t i = 0; i < runtime->variableCount; i++) {
 		if(runtime->initializers[i] == NULL)
@@ -2736,8 +2753,10 @@ bool connx_Runtime_schedule(connx_Runtime* runtime) {
 	connx_Path* outputPath = connx_Path_create();
 	outputPath->inputNameCount = graph->n_output;
 	outputPath->inputNames = connx_alloc(sizeof(char*) * outputPath->inputNameCount);
-	for(uint32_t i = 0; i < outputPath->inputNameCount; i++)
+	for(uint32_t i = 0; i < outputPath->inputNameCount; i++) {
 		outputPath->inputNames[i] = graph->output[i]->name;
+	}
+
 	ds_List_add(unresolved, outputPath);
 
 	// Resolve unresolved paths
@@ -2852,7 +2871,30 @@ bool connx_Runtime_schedule(connx_Runtime* runtime) {
 
 		connx_Path* path;
 		ds_List_removeAt(unresolved, 0, &path);
+
+		// Check dependency
+		bool isDepend = false;
+		for(struct ds_ListIterator iter = ds_ListIterator_create(resolved); ds_ListIterator_hasNext(&iter); ) {
+			connx_Path* p = ds_ListIterator_next(&iter);
+			for(uint32_t i = 0; i < path->outputNameCount; i++) {
+				for(uint32_t j = 0; j < p->inputNameCount; j++) {
+					if(strcmp(path->outputNames[i], p->inputNames[j]) == 0) {
+						isDepend = true;
+						goto dependent_found;
+					}
+				}
+			}
+		}
+dependent_found:
+
+		if(isDepend) {
+			ds_List_add(unresolved, path);
+			continue;
+		}
+
 		runtime->paths[idx--] = path;
+
+		ds_List_remove(resolved, path);
 
 		// reorder nodes in path
 		for(uint32_t i = 0; i < path->count / 2; i++) {

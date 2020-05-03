@@ -9,6 +9,62 @@ static bool Cast_resolve(uintptr_t* stack) {
 	connx_Tensor* input = (void*)stack[2];
 	int64_t* to = (void*)stack[3];
 
+	// Create output if null
+	if(output == NULL) {
+		connx_DataType type;
+
+		switch(*to) {
+			case 1: // FLOAT = 1
+				type = connx_DataType_FLOAT32;
+				break;	
+			case 2: // UINT8 = 2
+				type = connx_DataType_UINT8;
+				break;	
+			case 3: // INT8 = 3
+				type = connx_DataType_INT8;
+				break;	
+			case 4: // UINT16 = 4
+				type = connx_DataType_UINT16;
+				break;	
+			case 5: // INT16 = 5
+				type = connx_DataType_INT16;
+				break;	
+			case 6: // INT32 = 6
+				type = connx_DataType_INT32;
+				break;	
+			case 7: // INT64 = 7
+				type = connx_DataType_INT64;
+				break;	
+			case 8: // STRING = 8
+				type = connx_DataType_STRING;
+				break;	
+			case 9: // BOOL = 9
+				type = connx_DataType_BOOL;
+				break;	
+			case 10: // FLOAT16 = 10
+				type = connx_DataType_FLOAT16;
+				break;	
+			case 11: // DOUBLE = 11
+				type = connx_DataType_FLOAT64;
+				break;	
+			case 12: // UINT32 = 12
+				type = connx_DataType_UINT32;
+				break;	
+			case 13: // UINT64 = 13
+				type = connx_DataType_UINT64;
+				break;	
+			case 14: // COMPLEX64 = 14
+			case 15: // COMPLEX128 = 15
+			case 16: // BFLOAT16 = 16
+			default:
+				connx_exception("Not supported type: %u\n", *to);
+				return false;
+		}
+
+		output = connx_Tensor_create2(type, input->dimension, input->lengths);
+		stack[1] = (uintptr_t)(void*)output;
+	}
+
 	if(output->dimension != input->dimension) {
 		connx_exception("input and output's dimension is differ");
 		return false;

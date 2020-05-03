@@ -47,6 +47,23 @@ static bool Conv_resolve(uintptr_t* stack) {
 		attr_pads = (void*)stack[8];
 		pads = connx_Attribute_base(attr_pads);
 		pads_length = connx_Attribute_length(attr_pads);
+
+		/*
+		printf("X: ");
+		for(int i = 0; i < X->dimension; i++)
+			printf("%lu ", X->lengths[i]);
+		printf("\n");
+
+		printf("kernel_shape: ");
+		for(int i = 0; i < kernel_shape_length; i++)
+			printf("%lu ", kernel_shape[i]);
+		printf("\n");
+
+		printf("pads: ");
+		for(int i = 0; i < pads_length; i++)
+			printf("%lu ", pads[i]);
+		printf("\n");
+		*/
 	}
 
 	if(dilations_length == 0) {

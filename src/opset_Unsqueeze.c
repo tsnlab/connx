@@ -25,7 +25,7 @@ static bool Unsqueeze_resolve(uintptr_t* stack) {
 		uint32_t lengths[len];
 
 		for(uint32_t i = 0, data_idx = 0, axes_idx = 0; i < len; i++) {
-			if(hasAxis(i, axes, axes_length, data->dimension)) {
+			if(hasAxis(axes_idx, axes, axes_length, data->dimension)) {
 				lengths[i] = 1;
 				axes_idx++;
 			} else {
@@ -33,7 +33,7 @@ static bool Unsqueeze_resolve(uintptr_t* stack) {
 			}
 		}
 
-		expanded = connx_Tensor_create(data->elemType, len, lengths);
+		expanded = connx_Tensor_create2(data->elemType, len, lengths);
 		stack[1] = (uintptr_t)expanded;
 	}
 
