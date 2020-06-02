@@ -2,6 +2,7 @@
 
 if [ $# -ne 1 ]; then
 	echo "Usage: dump [onnx file]"
+	exit
 fi
 
 BASEDIR=$(realpath $(dirname $0)/../onnx/onnx)
