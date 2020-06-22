@@ -10,16 +10,6 @@ static bool Slice_resolve(uintptr_t* stack) {
 	connx_Tensor* axes = (void*)stack[5];
 	connx_Tensor* steps = (void*)stack[6];
 
-	if(data->dimension != output->dimension) {
-		connx_exception("data's dimension and output's dimension is differ");
-		return false;
-	}
-
-	if(data->elemType != output->elemType) {
-		connx_exception("data's type is differ from output's: %u, expected: %u", data->elemType, output->elemType);
-		return false;
-	}
-
 	// check starts dimension
 	if(starts->dimension != 1) {
 		connx_exception("starts' dimension is not 1 but %u", starts->dimension);
@@ -40,7 +30,7 @@ static bool Slice_resolve(uintptr_t* stack) {
 
 	// check axes dimension
 	uint32_t axes_length = 0;
-	int32_t axes_array[output->dimension];
+	int32_t axes_array[data->dimension];
 
 	if(axes != NULL) {
 		if(axes->dimension != 1) {
@@ -78,7 +68,7 @@ static bool Slice_resolve(uintptr_t* stack) {
 		// convert negative axes to positive
 		for(uint32_t i = 0; i < axes_length; i++) {
 			if(axes_array[i] < 0) {
-				axes_array[i] += output->dimension;
+				axes_array[i] += data->dimension;
 			}
 		}
 	} else {
@@ -93,25 +83,22 @@ static bool Slice_resolve(uintptr_t* stack) {
 	connx_Tensor* old_ends = ends;
 	connx_Tensor* old_steps = steps;
 
-	uint32_t lengths[1] = { output->dimension };
+	uint32_t lengths[1] = { data->dimension };
 
 	starts = connx_Tensor_create2(connx_DataType_INT32, 1, lengths);
-	stack[3] = (uintptr_t)starts;
 	int32_t* starts_base = (int32_t*)starts->base;
 
 	ends = connx_Tensor_create2(connx_DataType_INT32, 1, lengths);
-	stack[4] = (uintptr_t)ends;
 	int32_t* ends_base = (int32_t*)ends->base;
 
 	steps = connx_Tensor_create2(connx_DataType_INT32, 1, lengths);
-	stack[6] = (uintptr_t)steps;
 	int32_t* steps_base = (int32_t*)steps->base;
 
-	for(int32_t i = 0; i < (int32_t)output->dimension; i++) {
+	for(int32_t i = 0; i < (int32_t)data->dimension; i++) {
 		for(uint32_t j = 0; j < axes_length; j++) {
 			int32_t idx = axes_array[j];
 
-			if(idx == i || (idx < 0 && idx + (int32_t)output->dimension - 1 == i)) {
+			if(idx == i || (idx < 0 && idx + (int32_t)data->dimension - 1 == i)) {
 				if(old_starts->elemType == connx_DataType_INT32) {
 					starts_base[i] = ((int32_t*)old_starts->base)[j];
 				} else {
@@ -143,22 +130,16 @@ done:
 		;
 	}
 
-	if(old_starts != NULL)
-		connx_Tensor_delete(old_starts);
-
-	if(old_ends != NULL)
-		connx_Tensor_delete(old_ends);
-
-	if(old_steps != NULL)
-		connx_Tensor_delete(old_steps);
+	connx_Operator_stack_update(starts, 2, 3);
+	connx_Operator_stack_update(ends, 2, 4);
+	connx_Operator_stack_update(steps, 2, 6);
 
 	if(axes != NULL) {
-		connx_Tensor_delete(axes);
-		stack[5] = 0;
+		connx_Operator_stack_update(NULL, 2, 5);
 	}
 
 	// start/end boundary check
-	for(uint32_t i = 0; i < output->dimension; i++) {
+	for(uint32_t i = 0; i < data->dimension; i++) {
 		// Convert negative index to positive
 		if(starts_base[i] < 0)
 			starts_base[i] += data->lengths[i];
@@ -187,6 +168,33 @@ done:
 			connx_exception("steps[%u] can not be zero", i);
 			return false;
 		}
+	}
+
+	// Create output if NULL
+	if(output == NULL) {
+		uint32_t lengths[data->dimension];
+
+		for(uint32_t i = 0; i < data->dimension; i++) {
+			int32_t len = ends_base[i] - starts_base[i];
+			int32_t rem = len % steps_base[i] == 0 ? 0 : 1;
+			len /= steps_base[i];
+			len += rem;
+
+			lengths[i] = len;
+		}
+
+		output = connx_Tensor_create2(data->elemType, data->dimension, lengths);
+		connx_Operator_stack_update(output, 1, 1);
+	}
+
+	if(data->dimension != output->dimension) {
+		connx_exception("data's dimension and output's dimension is differ");
+		return false;
+	}
+
+	if(data->elemType != output->elemType) {
+		connx_exception("data's type is differ from output's: %u, expected: %u", data->elemType, output->elemType);
+		return false;
 	}
 
 	// Check output's lengths

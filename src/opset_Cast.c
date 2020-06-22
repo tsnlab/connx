@@ -62,7 +62,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 		}
 
 		output = connx_Tensor_create2(type, input->dimension, input->lengths);
-		stack[1] = (uintptr_t)(void*)output;
+		connx_Operator_stack_update(output, 1, 1);
 	}
 
 	if(output->dimension != input->dimension) {

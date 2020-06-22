@@ -86,6 +86,15 @@ static bool read_testcase(const char* path) {
 uint32_t stackIdx;
 uintptr_t stack[16];
 
+bool connx_Operator_stack_update(connx_Tensor* tensor, __attribute__((unused)) int type, uint32_t idx) {
+	if(stack[idx] != 0)
+		connx_Tensor_delete((void*)stack[idx]);
+
+	stack[idx] = (uintptr_t)tensor;
+
+	return true;
+}
+
 char* readline() {
 	if(idx >= len)
 		return NULL;
@@ -520,10 +529,11 @@ static bool exec_testcase(connx_Operator* op) {
 		}
 	}
 
-	stack[0] = stackIdx - 2;
+	stack[0] = stackIdx - 1;
 
+	/*
 	if(op->isInputVarArgs || op->isOutputVarArgs) {
-		if(stack[0] < op->outputCount + op->inputCount + op->attributeCount) {
+		if(stack[0] < 1 + op->outputCount + op->inputCount + op->attributeCount) {
 			printf(RED "\tSTACK COUNT TOO SMALL: expected: more than %u but %lu\n" END, op->outputCount + op->inputCount + op->attributeCount, stack[0]);
 			return false;
 		}
@@ -533,6 +543,7 @@ static bool exec_testcase(connx_Operator* op) {
 			return false;
 		}
 	}
+	*/
 
 	if(!op->resolve(stack)) {
 		printf(RED "\tRESOLVE FAILED: %s\n" END, connx_exception_message());

@@ -5,16 +5,18 @@ static bool Conv_resolve(uintptr_t* stack) {
 	connx_Tensor* Y = (void*)stack[1];
 	connx_Tensor* X = (void*)stack[2];
 	connx_Tensor* W = (void*)stack[3];
-	void* attr_auto_pad = (void*)stack[4];
-	void* attr_dilations = (void*)stack[5];
-	void* attr_group = (void*)stack[6];
-	void* attr_kernel_shape = (void*)stack[7];
-	void* attr_pads = (void*)stack[8];
-	void* attr_strides = (void*)stack[9];
+	connx_Tensor* B = (void*)stack[4];
+	void* attr_auto_pad = (void*)stack[5];
+	void* attr_dilations = (void*)stack[6];
+	void* attr_group = (void*)stack[7];
+	void* attr_kernel_shape = (void*)stack[8];
+	void* attr_pads = (void*)stack[9];
+	void* attr_strides = (void*)stack[10];
 
 	char* auto_pad = attr_auto_pad;
 	uint32_t dilations_length = connx_Attribute_length(attr_dilations);
-	int64_t* group = attr_group;
+	int64_t* dilations = connx_Attribute_base(attr_dilations);
+	__attribute__((unused)) int64_t* group = attr_group;
 	int64_t* kernel_shape = connx_Attribute_base(attr_kernel_shape);
 	uint32_t kernel_shape_length = connx_Attribute_length(attr_kernel_shape);
 	int64_t* pads = connx_Attribute_base(attr_pads);
@@ -22,48 +24,28 @@ static bool Conv_resolve(uintptr_t* stack) {
 	int64_t* strides = connx_Attribute_base(attr_strides);
 	uint32_t strides_length = connx_Attribute_length(attr_strides);
 
-	// Create Y if NULL
-	if(Y == NULL) {
-		uint32_t lengths[X->dimension];
-		memcpy(lengths, X->lengths, sizeof(uint32_t) * X->dimension);
-		lengths[1] = W->lengths[0] * *group;
-
-		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
-		stack[1] = (uintptr_t)Y;
-	}
-
 	if(auto_pad[0] == 'S') {	// SAME_UPPER, SAME_LOWER
 		int64_t array[kernel_shape_length * 2];
 		for(uint32_t i = 0; i < kernel_shape_length; i++) {
-			if(kernel_shape[i] > 2) {
-				array[i] = array[i + kernel_shape_length] = (kernel_shape[i] - 1) / 2;
-			} else {
-				array[i] = array[i + kernel_shape_length] = X->lengths[i];;
+			// Same logic with MaxPool
+			int64_t input_shape = X->lengths[X->dimension - kernel_shape_length + i];
+			int64_t output_shape = input_shape / strides[i] + (input_shape % strides[i] > 0 ? 1 : 0);
+			int64_t pad = (output_shape - 1) * strides[i] + ((kernel_shape[i] - 1) * dilations[i] + 1) - input_shape;
+			array[i] = array[i + kernel_shape_length] = pad / 2;
+			if(pad % 2 == 1) {
+				if(auto_pad[5] == 'U') {	// SAME_UPPER
+					array[i + kernel_shape_length]++;
+				} else {					// SAME_LOWER
+					array[i]++;
+				}
 			}
 		}
 
 		connx_Attribute_delete(attr_pads);
-		stack[8] = connx_Attribute_create_ints(kernel_shape_length * 2, array);
-		attr_pads = (void*)stack[8];
+		stack[9] = connx_Attribute_create_ints(kernel_shape_length * 2, array);
+		attr_pads = (void*)stack[9];
 		pads = connx_Attribute_base(attr_pads);
 		pads_length = connx_Attribute_length(attr_pads);
-
-		/*
-		printf("X: ");
-		for(int i = 0; i < X->dimension; i++)
-			printf("%lu ", X->lengths[i]);
-		printf("\n");
-
-		printf("kernel_shape: ");
-		for(int i = 0; i < kernel_shape_length; i++)
-			printf("%lu ", kernel_shape[i]);
-		printf("\n");
-
-		printf("pads: ");
-		for(int i = 0; i < pads_length; i++)
-			printf("%lu ", pads[i]);
-		printf("\n");
-		*/
 	}
 
 	if(dilations_length == 0) {
@@ -73,8 +55,8 @@ static bool Conv_resolve(uintptr_t* stack) {
 		}
 
 		connx_Attribute_delete(attr_dilations);
-		stack[5] = connx_Attribute_create_ints(kernel_shape_length, array);
-		attr_dilations = (void*)stack[5];
+		stack[6] = connx_Attribute_create_ints(kernel_shape_length, array);
+		attr_dilations = (void*)stack[6];
 		dilations_length = connx_Attribute_length(attr_dilations);
 	}
 
@@ -85,8 +67,8 @@ static bool Conv_resolve(uintptr_t* stack) {
 		}
 
 		connx_Attribute_delete(attr_strides);
-		stack[9] = connx_Attribute_create_ints(kernel_shape_length, array);
-		attr_strides = (void*)stack[9];
+		stack[10] = connx_Attribute_create_ints(kernel_shape_length, array);
+		attr_strides = (void*)stack[10];
 		strides = connx_Attribute_base(attr_strides);
 		strides_length = connx_Attribute_length(attr_strides);
 	}
@@ -97,7 +79,7 @@ static bool Conv_resolve(uintptr_t* stack) {
 	}
 
 	if(X->dimension != kernel_shape_length + 2) {
-		connx_exception("X's dimension: %u is and kernel_shape's dimension: %u is not matching", X->dimension, kernel_shape_length);
+		connx_exception("X's dimension: %u and kernel_shape's dimension: %u is not matching", X->dimension, kernel_shape_length);
 		return false;
 	}
 
@@ -121,12 +103,26 @@ static bool Conv_resolve(uintptr_t* stack) {
 		return false;
 	}
 
+	// Create Y if NULL
+	if(Y == NULL) {
+		uint32_t lengths[X->dimension];
+		memcpy(lengths, X->lengths, sizeof(uint32_t) * X->dimension);
+		lengths[1] = W->lengths[0];
+
+		for(uint32_t i = 0; i < kernel_shape_length; i++) {
+			lengths[i + 2] = (X->lengths[i + 2] - kernel_shape[i] + pads[i] + pads[i + kernel_shape_length]) / strides[i] + 1;
+		}
+
+		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
+		connx_Operator_stack_update(Y, 1, 1);
+	}
+
 	if(Y->lengths[0] != X->lengths[0]) {
 		connx_exception("Y's batch size is not matching: Y: %u but X: %u", Y->lengths[0], X->lengths[0]);
 		return false;
 	}
 
-	if(Y->lengths[1] != W->lengths[0] * *group) {
+	if(Y->lengths[1] != W->lengths[0]) {
 		connx_exception("Y's feature size is not matching: Y: %u but W: %u", Y->lengths[1], W->lengths[1]);
 		return false;
 	}
@@ -140,10 +136,27 @@ static bool Conv_resolve(uintptr_t* stack) {
 		}
 	}
 
+	if(B != NULL) {
+		if(B->elemType != X->elemType) {
+			connx_exception("B's elemType is differ from X's: %u != %u", B->elemType, X->elemType);
+			return false;
+		}
+
+		if(B->dimension != 1) {
+			connx_exception("B's dimension must be 1 but %u", B->dimension);
+			return false;
+		}
+
+		if(B->lengths[0] == X->lengths[0]) {
+			connx_exception("B's length must be equal to batch size: %u != %u", B->lengths[0], X->lengths[0]);
+			return false;
+		}
+	}
+
 	return true;
 }
 
-static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y, uint32_t* X_lengths, float* X, uint32_t* W_lengths, float* W, int64_t* kernels, int64_t* pads, int64_t* strides) {
+static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y, uint32_t* X_lengths, float* X, uint32_t* W_lengths, float* W, int64_t* kernels, int64_t* pads, int64_t* strides, float bias) {
 	for(int64_t y = -pads[0]; y <= (int64_t)X_lengths[0] + pads[0 + 2] - kernels[0]; y += strides[0]) {
 		for(int64_t x = -pads[1]; x <= (int64_t)X_lengths[1] + pads[1 + 2] - kernels[1]; x += strides[1]) {
 			float tmp = 0;
@@ -159,7 +172,7 @@ static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y,
 				}
 			}
 
-			*Y++ += tmp;
+			*Y++ += tmp + bias;
 		}
 	}
 }
@@ -168,14 +181,14 @@ static bool Conv_exec(uintptr_t* stack) {
 	connx_Tensor* Y = (void*)stack[1];
 	connx_Tensor* X = (void*)stack[2];
 	connx_Tensor* W = (void*)stack[3];
-	__attribute__((unused)) char* attr_auto_pad = (void*)stack[4];
-	void* attr_dilations = (void*)stack[5];
-	void* attr_group = (void*)stack[6];
-	void* attr_kernel_shape = (void*)stack[7];
-	void* attr_pads = (void*)stack[8];
-	void* attr_strides = (void*)stack[9];
+	connx_Tensor* B = (void*)stack[4];
+	__attribute__((unused)) char* attr_auto_pad = (void*)stack[5];
+	__attribute__((unused)) void* attr_dilations = (void*)stack[6];
+	void* attr_group = (void*)stack[7];
+	void* attr_kernel_shape = (void*)stack[8];
+	void* attr_pads = (void*)stack[9];
+	void* attr_strides = (void*)stack[10];
 
-	__attribute__((unused)) uint32_t dilations_length = connx_Attribute_length(attr_dilations);
 	int64_t* group = attr_group;
 	int64_t* kernel_shape = connx_Attribute_base(attr_kernel_shape);
 	uint32_t kernel_shape_length = connx_Attribute_length(attr_kernel_shape);
@@ -197,6 +210,9 @@ static bool Conv_exec(uintptr_t* stack) {
 		case connx_DataType_FLOAT32:
 			{
 				float* y_array = (float*)Y->base;
+				float* b_array = NULL;
+				if(B != NULL)
+					b_array = (float*)B->base;
 
 				for(uint32_t batch = 0; batch < X->lengths[0]; batch++) {
 					for(uint32_t feature = 0; feature < W->lengths[0]; feature++) {
@@ -206,7 +222,7 @@ static bool Conv_exec(uintptr_t* stack) {
 							_conv2d_float(Y->lengths + Y->dimension - 2, y_array, 
 									X->lengths + X->dimension - 2, x_array, 
 									W->lengths + W->dimension - 2, w_array, 
-									kernel_shape, pads, strides);
+									kernel_shape, pads, strides, b_array != NULL ? b_array[batch] : 0);
 
 						}
 
@@ -225,10 +241,11 @@ static bool Conv_exec(uintptr_t* stack) {
 }
 
 bool connx_opset_Conv_init() {
-	connx_Operator_add("Conv", 1, 2, 6, Conv_resolve, Conv_exec,
-		connx_DataType_TENSOR_FLOAT,
-		connx_DataType_TENSOR_FLOAT,
-		connx_DataType_TENSOR_FLOAT,
+	connx_Operator_add("Conv", 1, 3, 6, Conv_resolve, Conv_exec,
+		connx_DataType_TENSOR_FLOAT,	// Y
+		connx_DataType_TENSOR_FLOAT,	// X
+		connx_DataType_TENSOR_FLOAT,	// W
+		connx_DataType_TENSOR_FLOAT,	// B (optional)
 		"auto_pad", connx_DataType_STRING, "NOTSET",
 		"dilations", connx_DataType_INT64_ARRAY, 0, NULL, 
 		"group", connx_DataType_INT64, 1,

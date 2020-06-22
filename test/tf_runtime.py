@@ -43,6 +43,7 @@ def print_help():
     print("Options:")
     print("\t-i    Input data file (protocol buffer format)")
     print("\t-t    Target data file (protocol buffer format)")
+    print("\t-o    Output variable")
     print("\t-l    Loop count (default is 1)")
     print("\t-d    Dump variables")
     print("\t-h    Display this help message")
@@ -61,12 +62,14 @@ def main():
     fileOnnx = sys.argv[1]
     fileInput = None
     fileTarget = None
+    outputVariable = None
     loopCount = 1
     isDebug = False
 
     try:
         opts, args = getopt.getopt(sys.argv[2:], "i:t:l:dhvc")
     except getopt.GetoptError as err:
+        print('error', err)
         print_help()
         return 1
 
@@ -75,6 +78,8 @@ def main():
             fileInput = arg
         elif(opt == "-t"):
             fileTarget = arg
+        elif(opt == "-o"):
+            outputVariable = arg
         elif(opt == "-l"):
             loopCount = int(arg)
         elif(opt == "-d"):
@@ -113,6 +118,9 @@ def main():
     if(isDebug):
         print("* model")
         print(model)
+
+    if(outputVariable != None):
+        model.outputs = [ outputVariable ]
 
     time_start = get_us()
     for i in range(0, loopCount):

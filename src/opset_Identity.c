@@ -4,6 +4,12 @@ static bool Identity_resolve(uintptr_t* stack) {
 	connx_Tensor* output = (void*)stack[1];
 	connx_Tensor* input = (void*)stack[2];
 
+	// Create output if NULL
+	if(output == NULL) {
+		output = connx_Tensor_create2(input->elemType, input->dimension, input->lengths);
+		connx_Operator_stack_update(output, 1, 1);
+	}
+
 	if(!connx_Tensor_isShapeEquals(output, input)) {
 		connx_exception("Input and output's shape is not equal\n");
 		return false;

@@ -60,6 +60,8 @@ static void print_help() {
 	printf("Options:\n");
 	printf("\t-i	Input data file (protocol buffer format)\n");
 	printf("\t-t	Target data file (protocol buffer format)\n");
+	printf("\t-p	Dimensional parameter(key=value comma separated format,\n");
+	printf("\t  	key _ is used for no named parameter)\n");
 	printf("\t-l	Loop count (default is 1)\n");
     printf("\t-e    Tolerance number (default is 0.00001)");
 	printf("\t-d	Dump variables\n");
@@ -89,6 +91,9 @@ int main(int argc, char** argv) {
 	uint32_t loopCount = 1;
 	bool isDebug = false;
 	float tolerance = 0.00001;
+	uint32_t parameterCount = 0;
+	char** parameterNames = NULL;
+	int64_t* parameterValues = NULL;
 
 #define CLEAR()			\
 	for(uint32_t i = 0; i < inputCount; i++) {	\
@@ -115,7 +120,7 @@ int main(int argc, char** argv) {
 	
 	int len;
 	int option;
-	while((option = getopt(argc, argv, "i:t:l:e:dhvc")) != -1) {
+	while((option = getopt(argc, argv, "i:t:p:l:e:dhvc")) != -1) {
 		switch(option) {
 			case 'i':
 				len = strlen(optarg) + 1;
@@ -128,6 +133,43 @@ int main(int argc, char** argv) {
 				fileTargets[targetCount] = connx_alloc(len);
 				memcpy(fileTargets[targetCount], optarg, len);
 				targetCount++;
+				break;
+			case 'p':
+				len = strlen(optarg) + 1;
+				parameterCount = 1;
+				for(int i = 0; i < len; i++) {
+					if(optarg[i] == ',') {
+						parameterCount++;
+					}
+				}
+
+				parameterNames = connx_alloc(sizeof(char*) * parameterCount);
+				parameterValues = connx_alloc(sizeof(int64_t) * parameterCount);
+
+				int start = 0;
+				for(uint32_t i = 0; i < parameterCount; i++) {
+					// parse parameter name
+					for(int j = start + 1; j < len; j++) {
+						if(optarg[j] == '=') {
+							int len2 = j - start;
+							parameterNames[i] = connx_alloc(len2 + 1);
+							memcpy(parameterNames[i], optarg + start, len2);
+							parameterNames[i][len2] = '\0';
+							start = j + 1;
+							break;
+						}
+					}
+
+					// parse parameter value
+					for(int j = start + 1; j < len; j++) {
+						if(optarg[j] == ',' || optarg[j] == '\0') {
+							optarg[j] = '\0';
+							parameterValues[i] = atoll(optarg + start);
+							start = j + 1;
+							break;
+						}
+					}
+				}
 				break;
 			case 'l':
 				loopCount = (uint32_t)atoi(optarg);
@@ -256,6 +298,15 @@ int main(int argc, char** argv) {
 	if(runtime == NULL) {
 		CLEAR();
 		return 1;
+	}
+
+	runtime->parameterCount = parameterCount;
+	runtime->parameterNames = parameterNames;
+	runtime->parameterValues = parameterValues;
+
+	if(!connx_Runtime_init(runtime)) {
+		CLEAR();
+		return 2;
 	}
 
 	uint64_t time_start = get_us();

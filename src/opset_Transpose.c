@@ -8,20 +8,9 @@ static bool Transpose_resolve(uintptr_t* stack) {
 	int64_t* perm = connx_Attribute_base(attr_perm);
 	uint32_t perm_length = connx_Attribute_length(attr_perm);
 
-	if(output->elemType != input->elemType) {
-		connx_exception("Input and output's element type is differ: %u vs %u", input->elemType, output->elemType);
-		return false;
-	}
-
-	if(connx_Tensor_total(output) != connx_Tensor_total(input)) {
-		connx_exception("Input and output's total length is differ: %u vs %u", 
-			connx_Tensor_total(input), connx_Tensor_total(output));
-		return false;
-	}
-
 	if(perm_length != 0) {
-		if(output->dimension != perm_length) {
-			connx_exception("Illegal perm length: %u, must be %u", perm_length, output->dimension);
+		if(input->dimension != perm_length) {
+			connx_exception("Illegal perm length: %u, must be %u", perm_length, input->dimension);
 			return false;
 		}
 
@@ -38,17 +27,39 @@ found:
 			continue;
 		}
 	} else {
-		int64_t array[output->dimension];
-		for(uint32_t i = 0; i < output->dimension; i++) {
-			array[i] = output->dimension - i - 1;
+		int64_t array[input->dimension];
+		for(uint32_t i = 0; i < input->dimension; i++) {
+			array[i] = input->dimension - i - 1;
 		}
 
 		connx_Attribute_delete(attr_perm);
-		stack[3] = connx_Attribute_create_ints(output->dimension, array);
+		stack[3] = connx_Attribute_create_ints(input->dimension, array);
 		attr_perm = (void*)stack[3];
 
 		perm = connx_Attribute_base(attr_perm);
 		connx_Attribute_length(attr_perm);
+	}
+
+	// Create output if NULL
+	if(output == NULL) {
+		uint32_t lengths[input->dimension];
+		for(uint32_t i = 0; i < input->dimension; i++) {
+			lengths[i] = input->lengths[perm[i]];
+		}
+
+		output = connx_Tensor_create2(input->elemType, input->dimension, lengths);
+		connx_Operator_stack_update(output, 1, 1);
+	}
+
+	if(output->elemType != input->elemType) {
+		connx_exception("Input and output's element type is differ: %u vs %u", input->elemType, output->elemType);
+		return false;
+	}
+
+	if(connx_Tensor_total(output) != connx_Tensor_total(input)) {
+		connx_exception("Input and output's total length is differ: %u vs %u", 
+			connx_Tensor_total(input), connx_Tensor_total(output));
+		return false;
 	}
 
 	return true;

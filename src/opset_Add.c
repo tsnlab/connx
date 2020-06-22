@@ -37,6 +37,28 @@ static bool Add_resolve(uintptr_t* stack) {
 	connx_Tensor* A = (void*)stack[2];
 	connx_Tensor* B = (void*)stack[3];
 
+	// Create C if null
+	if(C == NULL) {
+		uint32_t min, max;
+		MINMAX(min, max, A->dimension, B->dimension);
+
+		uint32_t C_dimension = max;
+		uint32_t lengths[C_dimension];
+
+		int32_t A_idx = A->dimension - C_dimension;
+		int32_t B_idx = B->dimension - C_dimension;
+		for(uint32_t i = 0; i < C_dimension; i++, A_idx++, B_idx++) {
+			uint32_t A_length = A_idx >= 0 ? A->lengths[A_idx] : 0;
+			uint32_t B_length = B_idx >= 0 ? B->lengths[B_idx] : 0;
+			MINMAX(min, max, A_length, B_length);
+
+			lengths[i] = max;
+		}
+
+		C = connx_Tensor_create2(A->elemType, C_dimension, lengths);
+		connx_Operator_stack_update(C, 1, 1);
+	}
+
 	int32_t A_idx = A->dimension - C->dimension;
 	int32_t B_idx = B->dimension - C->dimension;
 	for(uint32_t i = 0; i < C->dimension; i++, A_idx++, B_idx++) {

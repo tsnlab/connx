@@ -1,4 +1,4 @@
-.PHONY: all test clean cleanall example_mnist example_yolo
+.PHONY: all test clean cleanall mnist yolo2 yolo3 mobilenet2
 
 RELEASE ?= 0
 CC := gcc
@@ -15,11 +15,17 @@ OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.p
 
 all: connx
 
-example_mnist: all
+mnist: all
 	./connx examples/mnist/model.onnx -i examples/mnist/test_data_set_0/input_0.pb -t examples/mnist/test_data_set_0/output_0.pb -d -e 0.001 -l 1000
 
-example_yolo: all
-	./connx examples/yolov3-tiny/yolov3-tiny.onnx -i examples/yolov3-tiny/test_data_set_0/input_0.pb -i examples/yolov3-tiny/test_data_set_0/input_1.pb -t examples/yolov3-tiny/test_data_set_0/output_0.pb -t examples/yolov3-tiny/test_data_set_0/output_1.pb -t examples/yolov3-tiny/test_data_set_0/output_2.pb -d -e 0.001 -l 100
+yolo2: all
+	./connx examples/tiny_yolov2/Model.onnx -i examples/tiny_yolov2/test_data_set_0/input_0.pb -t examples/tiny_yolov2/test_data_set_0/output_0.pb -d -e 0.0001 -l 100
+
+yolo3: all
+	./connx examples/yolov3-tiny/yolov3-tiny.onnx -i examples/yolov3-tiny/test_data_set_0/input_0.pb -i examples/yolov3-tiny/test_data_set_0/input_1.pb -t examples/yolov3-tiny/test_data_set_0/output_0.pb -t examples/yolov3-tiny/test_data_set_0/output_1.pb -t examples/yolov3-tiny/test_data_set_0/output_2.pb -d -e 0.001 -l 100 -p N=1,_=416
+
+mobilenet2: all
+	./connx examples/mobilenet2/mobilenetv2-7.onnx -i examples/mobilenet2/test_data_set_0/input_0.pb -t examples/mobilenet2/test_data_set_0/output_0.pb -d -e 0.001 -l 1
 
 clean:
 	make -C test clean

@@ -1,6 +1,8 @@
+import os
 import numpy
 import onnx
 from onnx import numpy_helper
+from onnx import helper
 import onnxruntime
 
 import common
@@ -10,6 +12,16 @@ def main():
     if(data == None):
         return 0
 
+    if(data['outputs'] != None):
+        model = data['model']
+        for output in data['outputs']:
+            intermediate_layer_value_info = helper.ValueInfoProto()
+            intermediate_layer_value_info.name = output
+            model.graph.output.append(intermediate_layer_value_info)
+
+        onnx.save(model, 'tmp.onnx')
+        data['onnx'] = 'tmp.onnx'
+
     session = onnxruntime.InferenceSession(data['onnx'])
 
     time_start = common.get_us()
@@ -18,25 +30,34 @@ def main():
     time_end = common.get_us()
     print("Time:", "{:,}".format(time_end - time_start), "us")
 
-    targets = data['targets']
-    if(len(targets) > 0):
-        if(len(targets) != len(outputs)):
-            print("output count not matching: ", len(outputs), ', expected: ', len(targets))
-            return 0
+    if(data['outputs'] != None):
+        base = len(outputs) - len(data['outputs'])
+        for i in range(base, len(outputs)):
+            print('*', data['outputs'][i - base], outputs[i].shape)
+            print(outputs[i].shape)
+            print(outputs[i])
 
-        i = 0
-        for key in targets.keys():
-            if(not numpy.allclose(outputs[i], targets[key], atol=data['tolerance'], rtol=0)):
-                print('targets[', key, '] is not matched')
-                print('* outputs[', i, ']')
-                print(outputs[i])
-                print('* targets[', key, ']')
-                print(targets[key])
+        os.remove('tmp.onnx')
+    else:
+        targets = data['targets']
+        if(len(targets) > 0):
+            if(len(targets) != len(outputs)):
+                print("output count not matching: ", len(outputs), ', expected: ', len(targets))
                 return 0
 
-            i = i + 1
+            i = 0
+            for key in targets.keys():
+                if(not numpy.allclose(outputs[i], targets[key], atol=data['tolerance'], rtol=0)):
+                    print('targets[', key, '] is not matched')
+                    print('* outputs[', i, ']')
+                    print(outputs[i])
+                    print('* targets[', key, ']')
+                    print(targets[key])
+                    return 0
 
-        print('All target matched')
+                i = i + 1
+
+            print('All target matched')
 
 if __name__ == '__main__':
     main()

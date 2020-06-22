@@ -5,6 +5,12 @@ static bool Relu_resolve(uintptr_t* stack) {
 	connx_Tensor* Y = (void*)stack[1];
 	connx_Tensor* X = (void*)stack[2];
 
+	// Create Y if null
+	if(Y == NULL) {
+		Y = connx_Tensor_create2(X->elemType, X->dimension, X->lengths);
+		connx_Operator_stack_update(Y, 1, 1);
+	}
+
 	if(!connx_Tensor_isShapeEquals(X, Y)) {
 		char buf1[32];
 		char buf2[32];

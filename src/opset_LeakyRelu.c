@@ -9,7 +9,7 @@ static bool LeakyRelu_resolve(uintptr_t* stack) {
 	// Create Y if NULL
 	if(Y == NULL) {
 		Y = connx_Tensor_create2(X->elemType, X->dimension, X->lengths);
-		stack[1] = (uintptr_t)Y;
+		connx_Operator_stack_update(Y, 1, 1);
 	}
 
 	if(!connx_Tensor_isShapeEquals(X, Y)) {

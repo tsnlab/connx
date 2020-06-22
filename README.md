@@ -38,7 +38,7 @@ ONNX dump utility requires protobuf-compiler
 
 sudo apt install protobuf-compiler
 
-bin/dump [onnx file]
+bin/dump [-t type] (onnx or tensor file)	# type can be model or tensor
 
 # License
  * CONNX is licensed under dual license GPLv3 or MIT

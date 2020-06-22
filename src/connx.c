@@ -525,6 +525,7 @@ connx_Tensor* connx_Tensor_create_from_onnx(Onnx__TensorProto* onnx) {
 
 connx_Tensor* connx_Tensor_clone(connx_Tensor* tensor) {
 	connx_Tensor* tensor2 = connx_Tensor_create2(tensor->elemType, tensor->dimension, tensor->lengths);
+
 	tensor2->name = tensor->name;
 	uint32_t total = connx_Tensor_total(tensor);
 	memcpy(tensor2->base, tensor->base, total * connx_DataType_size(tensor->elemType));
@@ -566,6 +567,23 @@ void connx_Tensor_delete(connx_Tensor* tensor) {
 	connx_free(tensor);
 }
 
+void connx_Tensor_dump_header(connx_Tensor* tensor) {
+	char buf[32];
+	connx_DataType_toString(tensor->elemType, 32, buf);
+	fprintf(stdout, "%s = %s[ ", tensor->name == NULL ? "<noname>" : tensor->name, buf);
+	uint32_t total = 1;
+	for(uint32_t i = 0; i < tensor->dimension; i++) {
+		total *= tensor->lengths[i];
+
+		fprintf(stdout, "%u", tensor->lengths[i]);
+
+		if(i + 1 < tensor->dimension) {
+			fprintf(stdout, ", ");
+		}
+	}
+	fprintf(stdout, " ]\n");
+}
+
 void connx_Tensor_dump(connx_Tensor* tensor) {
 	char buf[32];
 	connx_DataType_toString(tensor->elemType, 32, buf);
@@ -575,6 +593,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 		total *= tensor->lengths[i];
 
 		fprintf(stdout, "%u", tensor->lengths[i]);
+
 		if(i + 1 < tensor->dimension) {
 			fprintf(stdout, ", ");
 		}
@@ -1438,22 +1457,67 @@ connx_Map* connx_Map_create(connx_DataType keyType, connx_DataType valueType, ui
 	return map;
 }
 
-connx_Value* connx_Value_create_from_onnx(connx_Type* type) {
+static bool Runtime_getParameterValue(connx_Runtime* runtime, const char* name, int64_t* value) {
+	for(uint32_t i = 0; i < runtime->parameterCount; i++) {
+		if(strcmp(runtime->parameterNames[i], name) == 0) {
+			*value = runtime->parameterValues[i];
+			return true;
+		}
+	}
+
+	return false;
+}
+
+connx_Value* connx_Value_create_from_onnx(connx_Type* type, connx_Runtime* runtime) {
 	switch(type->value_case) {
 		case ONNX__TYPE_PROTO__VALUE_TENSOR_TYPE:
 			{
 				connx_Type_Tensor* tensor = type->tensor_type;
 				uint32_t lengths[tensor->shape->n_dim];
+
+				bool is_found;
+				char* dim_param;
+
 				for(uint32_t i = 0; i < tensor->shape->n_dim; i++) {
 					switch(tensor->shape->dim[i]->value_case) {
 						case ONNX__TENSOR_SHAPE_PROTO__DIMENSION__VALUE_DIM_VALUE:
 							lengths[i] = tensor->shape->dim[i]->dim_value;
 							break;
 						case ONNX__TENSOR_SHAPE_PROTO__DIMENSION__VALUE_DIM_PARAM:
-							lengths[i] = 0;
+							is_found = false;
+							dim_param = tensor->shape->dim[i]->dim_param;
+
+							for(uint32_t j = 0; j < runtime->parameterCount; j++) {
+								if(strcmp(runtime->parameterNames[j], dim_param) == 0) {
+									lengths[i] = runtime->parameterValues[j];
+									is_found = true;
+									printf("Value %s => %u\n", dim_param, lengths[i]);
+									break;
+								}
+							}
+
+							if(!is_found) {
+								connx_exception("Cannot find dim_param value: %s", tensor->shape->dim[i]->dim_param);
+								return NULL;
+							}
 							break;
 						default:
-							lengths[i] = 0;
+							is_found = false;
+							dim_param = "_";
+
+							for(uint32_t j = 0; j < runtime->parameterCount; j++) {
+								if(strcmp(runtime->parameterNames[j], dim_param) == 0) {
+									lengths[i] = runtime->parameterValues[j];
+									is_found = true;
+									printf("Value %s => %u\n", dim_param, lengths[i]);
+									break;
+								}
+							}
+
+							if(!is_found) {
+								connx_exception("Cannot find dim_param value: %s", tensor->shape->dim[i]->dim_param);
+								return NULL;
+							}
 					}
 				}
 
@@ -2196,70 +2260,65 @@ connx_Thread* connx_Thread_create(struct _connx_Runtime* runtime, connx_Path** p
 	return thread;
 }
 
+static connx_Runtime* _runtime;
+static connx_Node* _node;
+static connx_Operator* _op;
+static uintptr_t* _stack;
+
 static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Operator* op, uintptr_t* stack) {
 	// set stack count
-	uintptr_t count = 1 + node->n_output + node->n_input + op->attributeCount;
-	if(op->isOutputVarArgs)
-		count++;
-	if(op->isInputVarArgs)
-		count++;
+	uintptr_t count = 1;	// stack count
+
+	if(op->isOutputVarArgs) {	// output count
+		count += 1 + node->n_output;
+	} else {
+		count += op->outputCount;
+	}
+
+	if(op->isInputVarArgs) {	// input count
+		count += 1 + node->n_input;
+	} else {
+		count += op->inputCount;
+	}
+
+	count += op->attributeCount;	// attribute count
 
 	uint32_t stackIdx = 0;
 	stack[stackIdx++] = count;
 
 	// check output count
-	if(op->isOutputVarArgs) {
-		if(node->n_output < op->outputCount) {
-			connx_exception("Output count too small: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
-			return 0;
-		}
-
-		stack[stackIdx++] = (uintptr_t)op->outputCount;
-	} else {
-		if(node->n_output != op->outputCount) {
-			connx_exception("Output count mismatch: name: %s, op: %u, node: %u", node->name, op->outputCount, node->n_output);
-			return 0;
-		}
-	}
-
-	// missing variables
-	uint32_t missing[op->outputCount];
-	uint32_t missingCount = 0;
+	if(op->isOutputVarArgs)
+		stack[stackIdx++] = (uintptr_t)node->n_output;
 
 	// set output
-	for(uint32_t i = 0; i < op->outputCount; i++) {
+	for(uint32_t i = 0; i < node->n_output; i++) {
 		connx_Value* value = connx_Runtime_getVariable(runtime, node->output[i]);
 		stack[stackIdx++] = (uintptr_t)value;
+	}
 
-		if(value == NULL) {
-			missing[missingCount++] = i;
-		}
+	// set optional outputs
+	for(uint32_t i = node->n_output; i < op->outputCount; i++) {
+		stack[stackIdx++] = 0;
 	}
 
 	// check input count
-	if(op->isInputVarArgs) {
-		if(node->n_input < op->inputCount) {
-			connx_exception("Input count too small: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
-			return 0;
-		}
+	if(op->isInputVarArgs)
+		stack[stackIdx++] = (uintptr_t)node->n_input;
 
-		stack[stackIdx++] = (uintptr_t)op->inputCount;
-	} else {
-		if(node->n_input != op->inputCount) {
-			connx_exception("Input count mismatch: name: %s, op: %u, node: %u", node->name, op->inputCount, node->n_input);
-			return 0;
-		}
-	}
-
-	// set input
-	for(uint32_t i = 0; i < op->inputCount; i++) {
+	// set inputs
+	for(uint32_t i = 0; i < node->n_input; i++) {
 		connx_Value* value = connx_Runtime_getVariable(runtime, node->input[i]);
 		if(value == NULL) {
-			connx_exception("Cannot find input variable: %s for operator %s(%s)", node->input[i], node->name, node->op_type);
+			connx_exception("Cannot find input variable: %s for operator %s:%s", node->input[i], node->name, node->op_type);
 			return 0;
 		}
 
 		stack[stackIdx++] = (uintptr_t)value;
+	}
+
+	// set optional inputs
+	for(uint32_t i = node->n_input; i < op->inputCount; i++) {
+		stack[stackIdx++] = 0;
 	}
 
 	// attribute
@@ -2328,31 +2387,18 @@ static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Opera
 	}
 
 	// resolve
-	// printf("Validate %s(%s) %u\n", node->name, op->name, missingCount);
+	printf("Resolve %s:%s\n", node->name, op->name);
+	_runtime = runtime;
+	_node = node;
+	_op = op;
+	_stack = stack;
 	if(!op->resolve(stack)) {
-		connx_exception("Validation failed node: %s(%s)", node->name, op->name);
+		connx_exception("Resolving failed: %s:%s", node->name, op->name);
 		return 0;
 	}
 	// printf("Validate done %s(%s)\n", node->name, op->name);
 
-	// create missing variables
-	if(missingCount > 0) {
-		uint32_t oldVariableCount = runtime->variableCount;
-		runtime->variableCount += missingCount;
-
-		// TODO: change to hashmap
-		runtime->variables = connx_realloc(runtime->variables, sizeof(connx_Value*) * runtime->variableCount);
-		runtime->initializers = connx_realloc(runtime->initializers, sizeof(connx_Value*) * runtime->variableCount);
-
-		for(uint32_t i = 0; i < missingCount; i++) {
-			connx_Value* value = (connx_Value*)stack[1 + missing[i]];
-			value->name = node->output[missing[i]];
-
-			runtime->initializers[oldVariableCount + i] = value;
-			runtime->variables[oldVariableCount + i] = connx_Value_clone(value);
-		}
-	}
-
+	printf("%s:%s %d, %d, %d, %d\n", node->name, node->op_type, count, node->n_output , op->inputCount , op->attributeCount);
 	assert(count == stackIdx);
 
 	return stackIdx;
@@ -2365,15 +2411,22 @@ bool connx_Thread_init(connx_Thread* thread) {
 		connx_Path* path = thread->paths[i];
 
 		for(uint32_t j = 0; j < path->count; j++) {
+			connx_Node* node = path->nodes[j];
 			connx_Operator* op = path->operators[j];
 
-			stackCount += 1 + op->outputCount + op->inputCount + op->attributeCount;
+			stackCount += 1;
 
 			if(op->isOutputVarArgs)
-				stackCount++;
+				stackCount += 1 + node->n_output;
+			else
+				stackCount += op->outputCount;
 
 			if(op->isInputVarArgs)
-				stackCount++;
+				stackCount += 1 + node->n_input;
+			else
+				stackCount += op->inputCount;
+
+			stackCount += op->attributeCount;
 		}
 	}
 
@@ -2391,6 +2444,7 @@ bool connx_Thread_init(connx_Thread* thread) {
 			connx_Node* node = path->nodes[j];
 			connx_Operator* op = path->operators[j];
 
+			printf("init %u/%u, %u/%u\n", i, thread->pathCount, j, path->count);
 			uint32_t count = Stack_init(thread->runtime, node, op, stack + stackIdx);
 			if(count == 0)
 				return false;
@@ -2497,8 +2551,12 @@ connx_Runtime* connx_Runtime_create(connx_Model* model) {
 
 	runtime->model = model;
 
+	return runtime;
+}
+
+bool connx_Runtime_init(connx_Runtime* runtime) {
 	// Dependency calculation and scheduling
-	connx_Graph* graph = model->graph;
+	connx_Graph* graph = runtime->model->graph;
 
 	// outputs
 	uint32_t outputIdx = 0;
@@ -2567,7 +2625,7 @@ next_input:
 			runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
 			runtime->variables[variableIdx++] = (connx_Value*)tensor;
 		} else {
-			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type);
+			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type, runtime);
 			value->name = valueInfo->name;
 			runtime->variables[variableIdx++] = value;
 		}
@@ -2581,7 +2639,7 @@ next_input:
 			runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
 			runtime->variables[variableIdx++] = (connx_Value*)tensor;
 		} else {
-			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type);
+			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type, runtime);
 			value->name = valueInfo->name;
 			runtime->variables[variableIdx++] = value;
 		}
@@ -2595,7 +2653,7 @@ next_input:
 			runtime->initializers[variableIdx] = (connx_Value*)connx_Tensor_clone(tensor);
 			runtime->variables[variableIdx++] = (connx_Value*)tensor;
 		} else {
-			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type);
+			connx_Value* value = connx_Value_create_from_onnx(valueInfo->type, runtime);
 			value->name = valueInfo->name;
 			runtime->variables[variableIdx++] = value;
 		}
@@ -2627,11 +2685,11 @@ next_input:
 		//printf("Thread_init: %s\n", runtime->threads[i]->paths[0]->nodes[0]->name);
 		if(!connx_Thread_init(runtime->threads[i])) {
 			connx_Runtime_delete(runtime);
-			return NULL;
+			return false;
 		}
 	}
 
-	return runtime;
+	return true;
 }
 
 void connx_Runtime_delete(connx_Runtime* runtime) {
@@ -2670,6 +2728,16 @@ void connx_Runtime_delete(connx_Runtime* runtime) {
 
 		connx_Value_delete(runtime->variables[i]);
 	}
+
+	for(uint32_t i = 0; i < runtime->parameterCount; i++) {
+		connx_free(runtime->parameterNames[i]);
+	}
+
+	if(runtime->parameterNames != NULL)
+		connx_free(runtime->parameterNames);
+
+	if(runtime->parameterValues != NULL)
+		connx_free(runtime->parameterValues);
 
 	connx_free(runtime->variables);
 
@@ -2938,6 +3006,7 @@ dependent_found:
 			path->operators[j] = connx_Operator_get(path->nodes[j]->op_type);
 			if(path->operators[j] == NULL) {
 				connx_exception("Cannot find operator: %s", path->nodes[j]->op_type);
+				ret = false;
 				goto done;
 			}
 		}
@@ -3033,6 +3102,20 @@ connx_Value* connx_Runtime_getVariable(connx_Runtime* runtime, const char* name)
 	for(uint32_t i = 0; i < runtime->variableCount; i++) {
 		if(strcmp(runtime->variables[i]->name, name) == 0) {
 			return runtime->variables[i];
+		}
+	}
+
+	return NULL;
+}
+
+connx_Value* connx_Runtime_removeVariable(connx_Runtime* runtime, const char* name) {
+	for(uint32_t i = 0; i < runtime->variableCount; i++) {
+		if(strcmp(runtime->variables[i]->name, name) == 0) {
+			connx_Value* value = runtime->variables[i];
+			memmove(runtime->variables + i, runtime->variables + i + 1, sizeof(connx_Value*) * (runtime->variableCount - i - 1));
+			memmove(runtime->initializers + i, runtime->initializers + i + 1, sizeof(connx_Value*) * (runtime->variableCount - i - 1));
+
+			return value;
 		}
 	}
 
@@ -3218,7 +3301,7 @@ void connx_Operator_add(const char* name,
 			case connx_DataType_GRAPH:
 				{
 					void* graph = va_arg(list, void*);
-					op->attributeValues[i] = (void*)graph;
+					op->attributeValues[i] = (uintptr_t)graph;
 				}
 				break;
 			default:
@@ -3243,6 +3326,97 @@ connx_Operator* connx_Operator_get(const char* name) {
 	}
 
 	return NULL;
+}
+
+/**
+ * type: 1 for output, 2 for input
+ * idx: index number of output or input
+ */
+bool connx_Operator_tensor_delete(int type, uint32_t idx) {
+	if(_runtime == NULL)
+		return false;
+
+	uint32_t outputBase = _op->isOutputVarArgs ? 2 : 1;
+	uint32_t inputBase = outputBase + (_op->isOutputVarArgs ? _node->n_output : _op->outputCount) + (_op->isInputVarArgs ? 1 : 0);
+
+	char* name;
+	if(type == 1) {
+		name = _node->output[idx - outputBase];
+	} else {
+		name = _node->input[idx - inputBase];
+	}
+
+	connx_Value* value = connx_Runtime_removeVariable(_runtime, name);
+	if(value != NULL)
+		return false;
+
+	connx_Value_delete(value);
+	_stack[idx] = 0;
+
+	return true;
+}
+
+/**
+ * type: 1 for output, 2 for input
+ * idx: index number of output or input
+ */
+__attribute__((weak)) bool connx_Operator_stack_update(connx_Tensor* tensor, int type, uint32_t idx) {
+	if(_runtime == NULL)
+		return false;
+
+	uint32_t outputBase = _op->isOutputVarArgs ? 2 : 1;
+	uint32_t inputBase = outputBase + (_op->isOutputVarArgs ? _node->n_output : _op->outputCount) + (_op->isInputVarArgs ? 1 : 0);
+
+	char* name;
+	if(type == 1) {
+		name = _node->output[idx - outputBase];
+	} else {
+		name = _node->input[idx - inputBase];
+	}
+
+	// remove variable
+	for(uint32_t i = 0; i < _runtime->variableCount; i++) {
+		if(strcmp(_runtime->variables[i]->name, name) == 0) {
+			if(_runtime->initializers[i] != NULL)
+				connx_Value_delete(_runtime->initializers[i]);
+
+			_runtime->initializers[i] = NULL;
+
+			if(_runtime->variables[i] != NULL)
+				connx_Value_delete(_runtime->variables[i]);
+
+			if(tensor != NULL) {
+				tensor->name = name;
+				_runtime->variables[i] = (connx_Value*)tensor;
+				_stack[idx] = (uintptr_t)tensor;
+			} else {
+				memmove(_runtime->initializers + i, _runtime->initializers + i + 1, (_runtime->variableCount - i - 1) * sizeof(connx_Value*));
+				memmove(_runtime->variables + i, _runtime->variables + i + 1, (_runtime->variableCount - i - 1) * sizeof(connx_Value*));
+				_stack[idx] = 0;
+			}
+
+			return true;
+		}
+	}
+
+	// update variable
+	if(tensor != NULL) {
+		uint32_t oldVariableCount = _runtime->variableCount;
+		_runtime->variableCount++;
+
+		// TODO: change to hashmap
+		_runtime->variables = connx_realloc(_runtime->variables, sizeof(connx_Value*) * _runtime->variableCount);
+		_runtime->initializers = connx_realloc(_runtime->initializers, sizeof(connx_Value*) * _runtime->variableCount);
+
+		tensor->name = name;
+		_runtime->initializers[oldVariableCount] = NULL;
+		_runtime->variables[oldVariableCount] = (connx_Value*)tensor;
+		_stack[idx] = (uintptr_t)tensor;
+	} else {
+		_stack[idx] = 0;
+	}
+
+	return true;
 }
 
 void connx_Operator_dump() {

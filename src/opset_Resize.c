@@ -16,6 +16,26 @@ static bool Resize_resolve(uintptr_t* stack) {
 	char* mode = (void*)stack[10];
 	char* nearest_mode = (void*)stack[11];
 
+	// Create Y if NULL
+	if(Y == NULL) {
+		uint32_t lengths[X->dimension];
+
+		if(sizes != NULL) {
+			int64_t* sizes_base = (int64_t*)sizes->base;
+			for(uint32_t i = 0; i < X->dimension; i++) {
+				lengths[i] = sizes_base[i];
+			}
+		} else {
+			float* scales_base = (float*)scales->base;
+			for(uint32_t i = 0; i < X->dimension; i++) {
+				lengths[i] = (int64_t)(scales_base[i] * X->lengths[i]);
+			}
+		}
+
+		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
+		connx_Operator_stack_update(Y, 1, 1);
+	}
+
 	// Check X and Y's dimension
 	if(X->dimension != Y->dimension) {
 		connx_exception("X's dimension and Y's dimension are different %u != %u", X->dimension, Y->dimension);

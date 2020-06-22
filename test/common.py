@@ -42,6 +42,7 @@ def print_help():
     print("Options:")
     print("\t-i    Input data file (protocol buffer format)")
     print("\t-t    Target data file (protocol buffer format)")
+    print("\t-o    Output variable")
     print("\t-l    Loop count (default is 1)")
     print("\t-e    Tolerance number (default is 0.00001)")
     print("\t-d    Dump variables")
@@ -62,6 +63,7 @@ def parse_args():
         'isDebug': False,
         'onnx': sys.argv[1],
         'model': None,
+        'outputs': None,
         'loop': 1,
         'tolerance': 0.00001,
         'inputs': {},
@@ -71,7 +73,7 @@ def parse_args():
     data['model'] = onnx.load(data['onnx'])
 
     try:
-        opts, args = getopt.getopt(sys.argv[2:], "i:t:l:e:dhvc")
+        opts, args = getopt.getopt(sys.argv[2:], "i:t:o:l:e:dhvc")
     except getopt.GetoptError as err:
         print_help()
         return None
@@ -91,6 +93,8 @@ def parse_args():
             if(name == "" and len(data['model'].graph.output) > idx):
                 name = data['model'].graph.output[idx].name
             data['targets'][name] = numpy_helper.to_array(tensor)
+        elif(opt == "-o"):
+            data['outputs'] = [ arg ]
         elif(opt == "-l"):
             data['loop'] = int(arg)
         elif(opt == "-e"):
@@ -123,6 +127,9 @@ def parse_args():
         print('* targets')
         for key in data['targets'].keys():
             print('\t', key, ':', data['targets'][key].shape)
+
+        print('* outputs')
+        print('\t', data['outputs'])
 
         model = data['model']
         print('* producer_name :', model.producer_name)

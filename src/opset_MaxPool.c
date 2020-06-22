@@ -41,16 +41,20 @@ static bool MaxPool_resolve(uintptr_t* stack) {
 	if(auto_pad[0] == 'S') {
 		int64_t array[kernel_shape_length * 2];
 		for(uint32_t i = 0; i < kernel_shape_length; i++) {
-			int64_t pad = (X->lengths[i] - 1) * strides[i] + ((kernel_shape[i] - 1) * dilations[i] + 1) - X->lengths[i];
+			// Same logic with Conv
+			// VALID: output_spatial_shape[i] = ceil((input_spatial_shape[i] - ((kernel_spatial_shape[i] - 1) * dilations[i] + 1) + 1) / strides_spatial_shape[i])
+			// SAME_UPPER or SAME_LOWER: output_spatial_shape[i] = ceil(input_spatial_shape[i] / strides_spatial_shape[i])
+			// output_spatial_shape[i] = ceil(input_spatial_shape[i] / strides_spatial_shape[i])
+			int64_t input_shape = X->lengths[X->dimension - kernel_shape_length + i];
+			int64_t output_shape = input_shape / strides[i] + (input_shape % strides[i] > 0 ? 1 : 0);
+			int64_t pad = (output_shape - 1) * strides[i] + ((kernel_shape[i] - 1) * dilations[i] + 1) - input_shape;
+			array[i] = array[i + kernel_shape_length] = pad / 2;
 			if(pad % 2 == 1) {
-				array[i] = array[i + kernel_shape_length] = pad / 2;
 				if(auto_pad[5] == 'U') {	// SAME_UPPER
 					array[i + kernel_shape_length]++;
 				} else {					// SAME_LOWER
 					array[i]++;
 				}
-			} else {
-				array[i] = array[i + kernel_shape_length] = pad / 2;
 			}
 		}
 
@@ -90,21 +94,25 @@ static bool MaxPool_resolve(uintptr_t* stack) {
 		uint32_t lengths[X->dimension];
 		memcpy(lengths, X->lengths, sizeof(uint32_t) * (X->dimension - kernel_shape_length));
 
-		for(uint32_t i = 0; i < kernel_shape_length; i++) {
-			uint32_t v1 = (X->lengths[X->dimension - kernel_shape_length + i] + pads[i] + pads[i + kernel_shape_length] - ((kernel_shape[i] - 1) * dilations[i] + 1));
-			uint32_t length = (uint32_t)(v1 / strides[i] + 1);
-			if(*ceil_mode != 0) {
-				if(v1 % strides[i] != 0) {
-					length++;
-					pads[i + kernel_shape_length]++;
-				}
-			}
+		if(*ceil_mode != 0) {
+			// output_spatial_shape[i] = ceil((input_spatial_shape[i] + pad_shape[i] - ((kernel_spatial_shape[i] - 1) * dilations[i] + 1)) / strides_spatial_shape[i] + 1)
 
-			lengths[X->dimension - kernel_shape_length + i] = length;
+			for(uint32_t i = 0; i < kernel_shape_length; i++) {
+				uint32_t i2 = X->dimension - kernel_shape_length + i;
+				lengths[i2] = X->lengths[i2] + pads[i] - ((kernel_shape[i] - 1) * dilations[i]);
+				lengths[i2] = lengths[i2] / strides[i] + 1 + (lengths[i2] % strides[i] > 0 ? 1 : 0);
+			}
+		} else {
+			// output_spatial_shape[i] = floor((input_spatial_shape[i] + pad_shape[i] - ((kernel_spatial_shape[i] - 1) * dilations[i] + 1)) / strides_spatial_shape[i] + 1)
+
+			for(uint32_t i = 0; i < kernel_shape_length; i++) {
+				uint32_t i2 = X->dimension - kernel_shape_length + i;
+				lengths[i2] = (X->lengths[i2] + pads[i] - ((kernel_shape[i] - 1) * dilations[i])) / strides[i] + 1;
+			}
 		}
 
 		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
-		stack[1] = (uintptr_t)Y;
+		connx_Operator_stack_update(Y, 1, 1);
 	}
 
 	if(X->dimension != Y->dimension) {

@@ -1,9 +1,41 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-	echo "Usage: dump [onnx file]"
+FILE=
+TYPE=
+
+POSITIONAL=()
+
+while [[ $# -gt 0 ]]; do
+	key="$1"
+
+	case $key in
+		-t | --type)
+			TYPE="$2"
+			TYPE="${TYPE^}Proto"
+			shift
+			shift
+			;;
+		*)
+			FILE="$1"
+			shift
+			;;
+	esac
+done
+
+if [ -z $TYPE ]; then
+	if [ ${FILE: -5} == ".onnx" ]; then
+		TYPE="ModelProto"
+	elif [ ${FILE: -3} == ".pb" ]; then
+		TYPE="TensorProto"
+	else
+		TYPE="ModelProto"
+	fi
+fi
+
+if [ -z $FILE ]; then
+	echo "Usage: dump [-t type] (onnx file)"
 	exit
 fi
 
 BASEDIR=$(realpath $(dirname $0)/../onnx/onnx)
-protoc --decode onnx.ModelProto --proto_path=$BASEDIR $BASEDIR/onnx.proto3 < $1
+protoc --decode onnx.$TYPE --proto_path=$BASEDIR $BASEDIR/onnx.proto3 < $FILE

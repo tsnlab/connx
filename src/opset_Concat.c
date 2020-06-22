@@ -9,17 +9,51 @@ static bool Concat_resolve(uintptr_t* stack) {
 
 	uintptr_t input_count = stack[2];
 
-	connx_Tensor* inputs[input_count];
-	for(uint32_t i = 0; i < input_count; i++)
-		inputs[i] = (void*)stack[3 + i];
+	connx_Tensor** inputs = (connx_Tensor**)(stack + 3);
+	int64_t* axis = (void*)stack[count - 1];
 
-	int64_t* axis = (void*)stack[count];
+	// Check axis
+	if(*axis < 0)
+		*axis += inputs[0]->dimension;
+
+	if(*axis < 0 || *axis >= inputs[0]->dimension) {
+		connx_exception("axis out of bounds: %ld", *axis);
+		return false;
+	}
+
+	// Create concat_result if NULL
+	if(concat_result == NULL) {
+		uint32_t lengths[inputs[0]->dimension];
+		memcpy(lengths, inputs[0]->lengths, sizeof(uint32_t) * inputs[0]->dimension);
+
+		for(uint32_t i = 1; i < input_count; i++) {
+			lengths[i] += inputs[i]->lengths[*axis];
+		}
+
+		concat_result = connx_Tensor_create2(inputs[0]->elemType, inputs[0]->dimension, lengths);
+		connx_Operator_stack_update(concat_result, 1, 1);
+	}
 
 	// Check every input shape is same
 	for(uint32_t i = 1; i < input_count; i++) {
-		if(!connx_Tensor_isShapeEquals(inputs[0], inputs[i])) {
-			connx_exception("input[0] and input[%u]'s shape is differ", i);
+		if(inputs[0]->elemType != inputs[i]->elemType) {
+			connx_exception("input[0] and input[%u]'s elemType is differ", i);
 			return false;
+		}
+
+		if(inputs[0]->dimension != inputs[i]->dimension) {
+			connx_exception("input[0] and input[%u]'s dimension is differ", i);
+			return false;
+		}
+
+		for(uint32_t j = 0; j < inputs[0]->dimension; j++) {
+			if(j == *axis)
+				continue;
+
+			if(inputs[0]->lengths[j] != inputs[i]->lengths[j]) {
+				connx_exception("input[0] and input[%u]'s length[%u] is differ: %u != %u", i, j, inputs[0]->lengths[j], inputs[i]->lengths[j]);
+				return false;
+			}
 		}
 	}
 
@@ -35,20 +69,14 @@ static bool Concat_resolve(uintptr_t* stack) {
 		return false;
 	}
 
-	// Check axis
-	if(*axis < 0)
-		*axis += concat_result->dimension;
-
-	if(*axis < 0 || *axis >= concat_result->dimension) {
-		connx_exception("axis out of bounds: %ld", *axis);
-		return false;
-	}
-
 	// Check concat_result's shape
 	for(uint32_t i = 0; i < concat_result->dimension; i++) {
 		uint32_t expected;
 		if(i == *axis) {
-			expected = inputs[0]->lengths[i] * input_count;
+			expected = 0;
+			for(uint32_t j = 0; j < input_count; j++) {
+				expected += inputs[j]->lengths[i];
+			}
 		} else {
 			expected = inputs[0]->lengths[i];
 		}
@@ -69,25 +97,28 @@ static bool Concat_exec(uintptr_t* stack) {
 
 	uintptr_t input_count = stack[2];
 
-	connx_Tensor* inputs[input_count];
-	for(uint32_t i = 0; i < input_count; i++)
-		inputs[i] = (void*)stack[3 + i];
+	connx_Tensor** inputs = (connx_Tensor**)(stack + 3);
+	int64_t* axis = (void*)stack[count - 1];
 
-	int64_t* axis = (void*)stack[count];
+	// calculate batches
+	uint32_t batches[input_count];
+	for(uint32_t i = 0; i < input_count; i++) {
+		batches[i] = 1;
 
-	// calculate batch
-	uint32_t batch = 1;
-	for(uint32_t i = *axis; i < inputs[0]->dimension; i++) {
-		batch *= inputs[0]->lengths[i];
+		for(uint32_t j = *axis; j < inputs[0]->dimension; j++) {
+			batches[i] *= inputs[i]->lengths[j];
+		}
 	}
 
 	// calculate units
-	uint32_t units[*axis];
+	uint32_t units[input_count][*axis];
 	if(*axis > 0) {
-		units[*axis - 1] = batch;
+		for(uint32_t i = 0; i < input_count; i++) {
+			units[i][*axis - 1] = batches[i];
 
-		for(uint32_t i = *axis; i > 1; i--) {
-			units[i - 2] = units[i - 1] * inputs[0]->lengths[i - 1];
+			for(uint32_t j = *axis; j > 1; j--) {
+				units[i][j - 2] = units[i][j - 1] * inputs[i]->lengths[j - 1];
+			}
 		}
 	}
 
@@ -96,55 +127,41 @@ static bool Concat_exec(uintptr_t* stack) {
 	bzero(indices, *axis * sizeof(uint32_t));
 	uint32_t elem_size = connx_DataType_size(concat_result->elemType);
 	uint8_t* concat_result_base = concat_result->base;
-	uint32_t chunk = batch * elem_size;
+	uint32_t chunks[input_count];
+	for(uint32_t i = 0; i < input_count; i++)
+		chunks[i] = batches[i] * elem_size;
 
 	while(true) {
-		// calculating index
-		uint32_t idx = 0;
-		for(uint32_t i = 0; i < *axis; i++) {
-			idx += indices[i] * units[i];
-		}
-
 		// batch copying
-		switch(chunk) {
-			case 1:
-				for(uint32_t j = 0; j < input_count; j++) {
-					uint8_t* input_base = inputs[j]->base;
+		for(uint32_t i = 0; i < input_count; i++) {
+			// calculating index
+			uint32_t idx = 0;
+			for(uint32_t j = 0; j < *axis; j++) {
+				idx += indices[j] * units[i][j];
+			}
 
+			uint8_t* input_base = inputs[i]->base;
+
+			switch(chunks[i]) {
+				case 1:
 					*concat_result_base++ = input_base[idx * elem_size];
-				}
-				break;
-			case 2:
-				for(uint32_t j = 0; j < input_count; j++) {
-					uint8_t* input_base = inputs[j]->base;
-
+					break;
+				case 2:
 					*(uint16_t*)concat_result_base = *(uint16_t*)(input_base + idx * elem_size);
 					concat_result_base += 2;
-				}
-				break;
-			case 4:
-				for(uint32_t j = 0; j < input_count; j++) {
-					uint8_t* input_base = inputs[j]->base;
-
+					break;
+				case 4:
 					*(uint32_t*)concat_result_base = *(uint32_t*)(input_base + idx * elem_size);
 					concat_result_base += 4;
-				}
-				break;
-			case 8:
-				for(uint32_t j = 0; j < input_count; j++) {
-					uint8_t* input_base = inputs[j]->base;
-
+					break;
+				case 8:
 					*(uint64_t*)concat_result_base = *(uint64_t*)(input_base + idx * elem_size);
 					concat_result_base += 8;
-				}
-				break;
-			default:
-				for(uint32_t j = 0; j < input_count; j++) {
-					uint8_t* input_base = inputs[j]->base;
-
-					memcpy(concat_result_base, input_base + idx * elem_size, batch * elem_size);
-					concat_result_base += batch * elem_size;
-				}
+					break;
+				default:
+					memcpy(concat_result_base, input_base + idx * elem_size, batches[i] * elem_size);
+					concat_result_base += batches[i] * elem_size;
+			}
 		}
 
 		// step next

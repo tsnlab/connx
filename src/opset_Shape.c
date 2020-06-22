@@ -5,6 +5,14 @@ static bool Shape_resolve(uintptr_t* stack) {
 	connx_Tensor* shape = (void*)stack[1];
 	connx_Tensor* data = (void*)stack[2];
 
+	// Create shape if NULL
+	if(shape == NULL) {
+		uint32_t lengths[1] = { data->dimension };
+
+		shape = connx_Tensor_create2(connx_DataType_INT64, 1, lengths);
+		connx_Operator_stack_update(shape, 1, 1);
+	}
+
 	if(shape->dimension != 1) {
 		connx_exception("shape's dimension must be 1 but: %u", shape->dimension);
 		return false;
