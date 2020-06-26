@@ -88,6 +88,11 @@ static bool Conv_resolve(uintptr_t* stack) {
 		return false;
 	}
 
+	if(W->lengths[1] * *group != X->lengths[1]) {
+		connx_exception("W's feature count is not matching: expected: %u * %u = %u but %u", W->lengths[1], *group, W->lengths[1] * *group, X->lengths[1]);
+		return false;
+	}
+
 	if(kernel_shape_length != 2 && kernel_shape_length != 3) {
 		connx_exception("kernel_shape count must be 2 or 3 but %u", kernel_shape_length);
 		return false;
@@ -105,9 +110,10 @@ static bool Conv_resolve(uintptr_t* stack) {
 
 	// Create Y if NULL
 	if(Y == NULL) {
+		// batch, feature * channel / group / filter, x1, x2, x3...
 		uint32_t lengths[X->dimension];
 		memcpy(lengths, X->lengths, sizeof(uint32_t) * X->dimension);
-		lengths[1] = W->lengths[0];
+		lengths[1] = X->lengths[1] * W->lengths[0] / *group / W->lengths[1];
 
 		for(uint32_t i = 0; i < kernel_shape_length; i++) {
 			lengths[i + 2] = (X->lengths[i + 2] - kernel_shape[i] + pads[i] + pads[i + kernel_shape_length]) / strides[i] + 1;
@@ -122,8 +128,8 @@ static bool Conv_resolve(uintptr_t* stack) {
 		return false;
 	}
 
-	if(Y->lengths[1] != W->lengths[0]) {
-		connx_exception("Y's feature size is not matching: Y: %u but W: %u", Y->lengths[1], W->lengths[1]);
+	if(Y->lengths[1] != W->lengths[0] * X->lengths[1] / *group / W->lengths[1]) {
+		connx_exception("Y's feature size is not matching: Y[1]: %u != W[0]: %u * X[1]: %u / group: %u", Y->lengths[1], W->lengths[0], X->lengths[1], *group);
 		return false;
 	}
 
@@ -161,18 +167,22 @@ static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y,
 		for(int64_t x = -pads[1]; x <= (int64_t)X_lengths[1] + pads[1 + 2] - kernels[1]; x += strides[1]) {
 			float tmp = 0;
 
+			//printf("x: %ld, y: %ld\n", x, y);
 			for(uint32_t ky = 0; ky < kernels[0]; ky++) {
 				for(uint32_t kx = 0; kx < kernels[1]; kx++) {
 					int64_t y2 = y + ky;
 					int64_t x2 = x + kx;
 
 					if(y2 >= 0 && x2 >= 0 && y2 < X_lengths[0] && x2 < X_lengths[1]) {
+						//printf("\tky: %u, kx: %u %f += %f * %f => %f\n", ky, kx, tmp, 
+						//		X[y2 * X_lengths[1] + x2], W[ky * W_lengths[1] + kx], X[y2 * X_lengths[1] + x2] * W[ky * W_lengths[1] + kx]);
 						tmp += X[y2 * X_lengths[1] + x2] * W[ky * W_lengths[1] + kx];
 					}
 				}
 			}
 
 			*Y++ += tmp + bias;
+			//printf("\t%f = %f + %f => %f\n", tmp + bias, tmp, bias, *(Y - 1));
 		}
 	}
 }
@@ -200,9 +210,9 @@ static bool Conv_exec(uintptr_t* stack) {
 	uint32_t y_unit = 1;
 	uint32_t w_unit = 1;
 	for(uint32_t i = 0; i < kernel_shape_length; i++) {
-		y_unit *= Y->lengths[Y->dimension - 2 + i];
-		x_unit *= X->lengths[X->dimension - 2 + i];
-		w_unit *= W->lengths[W->dimension - 2 + i];
+		y_unit *= Y->lengths[2 + i];
+		x_unit *= X->lengths[2 + i];
+		w_unit *= W->lengths[2 + i];
 	}
 
 	switch(X->elemType) {
@@ -214,19 +224,29 @@ static bool Conv_exec(uintptr_t* stack) {
 				if(B != NULL)
 					b_array = (float*)B->base;
 
-				for(uint32_t batch = 0; batch < X->lengths[0]; batch++) {
-					for(uint32_t feature = 0; feature < W->lengths[0]; feature++) {
-						for(uint32_t channel = 0; channel < W->lengths[1] * *group; channel++) {
-							float* x_array = (float*)X->base + batch * X->lengths[1] * x_unit + channel * x_unit;
-							float* w_array = (float*)W->base + feature * W->lengths[1] * w_unit + channel / *group * w_unit;
-							_conv2d_float(Y->lengths + Y->dimension - 2, y_array, 
-									X->lengths + X->dimension - 2, x_array, 
-									W->lengths + W->dimension - 2, w_array, 
-									kernel_shape, pads, strides, b_array != NULL ? b_array[batch] : 0);
+				uint32_t batch_count = X->lengths[0];
+				uint32_t channel_count = X->lengths[1] / *group;
+				uint32_t feature_count = W->lengths[0] / *group;
 
+				for(uint32_t batch = 0; batch < batch_count; batch++) {
+					for(uint32_t g = 0; g < *group; g++) {
+						for(uint32_t feature = 0; feature < feature_count; feature++) {
+							for(uint32_t channel = 0; channel < channel_count; channel++) {
+								uint32_t f = g * feature_count + feature;
+								uint32_t c = g * channel_count + channel;
+
+								float* x_array = (float*)X->base + (batch * channel_count * *group + c) * x_unit;
+								float* w_array = (float*)W->base + (f * W->lengths[1] + (c / *group)) * w_unit;
+
+								_conv2d_float(Y->lengths + 2, y_array, 
+										X->lengths + 2, x_array, 
+										W->lengths + 2, w_array, 
+										kernel_shape, pads, strides, b_array != NULL ? b_array[feature] : 0);
+
+							}
+
+							y_array += y_unit;
 						}
-
-						y_array += y_unit;
 					}
 				}
 			}

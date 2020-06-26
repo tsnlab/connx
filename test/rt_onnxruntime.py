@@ -1,11 +1,15 @@
 import os
-import numpy
+import sys
+import numpy as np
 import onnx
 from onnx import numpy_helper
 from onnx import helper
 import onnxruntime
 
 import common
+
+np.set_printoptions(threshold=sys.maxsize)
+np.set_printoptions(suppress=True)
 
 def main():
     data = common.parse_args()
@@ -47,7 +51,7 @@ def main():
 
             i = 0
             for key in targets.keys():
-                if(not numpy.allclose(outputs[i], targets[key], atol=data['tolerance'], rtol=0)):
+                if(not np.allclose(outputs[i], targets[key], atol=data['tolerance'], rtol=0)):
                     print('targets[', key, '] is not matched')
                     print('* outputs[', i, ']')
                     print(outputs[i])

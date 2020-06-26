@@ -1491,7 +1491,6 @@ connx_Value* connx_Value_create_from_onnx(connx_Type* type, connx_Runtime* runti
 								if(strcmp(runtime->parameterNames[j], dim_param) == 0) {
 									lengths[i] = runtime->parameterValues[j];
 									is_found = true;
-									printf("Value %s => %u\n", dim_param, lengths[i]);
 									break;
 								}
 							}
@@ -1509,7 +1508,6 @@ connx_Value* connx_Value_create_from_onnx(connx_Type* type, connx_Runtime* runti
 								if(strcmp(runtime->parameterNames[j], dim_param) == 0) {
 									lengths[i] = runtime->parameterValues[j];
 									is_found = true;
-									printf("Value %s => %u\n", dim_param, lengths[i]);
 									break;
 								}
 							}
@@ -2387,7 +2385,7 @@ static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Opera
 	}
 
 	// resolve
-	printf("Resolve %s:%s\n", node->name, op->name);
+	//printf("Resolve %s:%s\n", node->name, op->name);
 	_runtime = runtime;
 	_node = node;
 	_op = op;
@@ -2398,7 +2396,6 @@ static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Opera
 	}
 	// printf("Validate done %s(%s)\n", node->name, op->name);
 
-	printf("%s:%s %d, %d, %d, %d\n", node->name, node->op_type, count, node->n_output , op->inputCount , op->attributeCount);
 	assert(count == stackIdx);
 
 	return stackIdx;
@@ -2444,7 +2441,6 @@ bool connx_Thread_init(connx_Thread* thread) {
 			connx_Node* node = path->nodes[j];
 			connx_Operator* op = path->operators[j];
 
-			printf("init %u/%u, %u/%u\n", i, thread->pathCount, j, path->count);
 			uint32_t count = Stack_init(thread->runtime, node, op, stack + stackIdx);
 			if(count == 0)
 				return false;

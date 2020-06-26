@@ -8,6 +8,8 @@ static bool BatchNormalization_resolve(uintptr_t* stack) {
 	connx_Tensor* B = (void*)stack[4];
 	connx_Tensor* mean = (void*)stack[5];
 	connx_Tensor* var = (void*)stack[6];
+	__attribute__((unused)) float* epsilon = (void*)stack[7];
+	__attribute__((unused)) float* momentum = (void*)stack[8];
 
 	// Create Y if NULL
 	if(Y == NULL) {
@@ -31,6 +33,7 @@ static bool BatchNormalization_resolve(uintptr_t* stack) {
 	}
 
 	if(scale->lengths[0] != X->lengths[1]) {
+		connx_Tensor_dump_header(X);
 		connx_exception("scale's length must be equals to X or Y's channel count %u but %u", X->lengths[1], scale->lengths[0]);
 		return false;
 	}
@@ -95,6 +98,8 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 	connx_Tensor* B = (void*)stack[4];
 	connx_Tensor* mean = (void*)stack[5];
 	connx_Tensor* var = (void*)stack[6];
+	float* epsilon = (void*)stack[7];
+	float* momentum = (void*)stack[8];
 
 	uint32_t batch_count = Y->lengths[0];
 	uint32_t channel_count = Y->lengths[1];
@@ -114,13 +119,11 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 				float* means = (float*)mean->base;
 				float* vars = (float*)var->base;
 
-				float* epsilon = (float*)stack[7];
-
 				for(uint32_t b = 0; b < batch_count; b++) {
 					for(uint32_t c = 0; c < channel_count; c++) {
 						float scale_value = scales[c];
 						float B_value = Bs[c];
-						float mean_value = means[c];
+						float mean_value = means[c] * *momentum + means[c] * (1 - *momentum);
 						float sqrt_value = sqrtf(vars[c] + *epsilon);
 
 						for(uint32_t u = 0; u < unit_count; u++) {
@@ -140,13 +143,11 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 				double* means = (double*)mean->base;
 				double* vars = (double*)var->base;
 
-				double* epsilon = (double*)stack[7];
-
 				for(uint32_t b = 0; b < batch_count; b++) {
 					for(uint32_t c = 0; c < channel_count; c++) {
 						double scale_value = scales[c];
 						double B_value = Bs[c];
-						double mean_value = means[c];
+						double mean_value = means[c] * *momentum + means[c] * (1 - *momentum);
 						double sqrt_value = sqrt(vars[c] + *epsilon);
 
 						for(uint32_t u = 0; u < unit_count; u++) {
