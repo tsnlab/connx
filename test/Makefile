@@ -1,9 +1,9 @@
 .PHONY: all run clean cleanall mnist yolo3 mobilenet2
 
 CC=gcc
-CFLAGS=-I../include -Wall -g -O0 -fsanitize=address
+CFLAGS=-I../include -I../lib/ds/include -Wall -g -O0 -fsanitize=address
 
-LIBS=-lm
+LIBS=-L../lib/ds -lm -lds
 OPSET_OBJS=$(patsubst ../src/%.c, obj/%.o, $(wildcard ../src/opset*.c)) obj/connx.o
 OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/parse.o
 

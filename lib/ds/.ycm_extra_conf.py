@@ -61,8 +61,6 @@ flags = [
 'c',
 '-I',
 'include',
-'-I',
-'lib/ds/include',
 ]
 
 # Clang automatically sets the '-std=' flag to 'c++14' for MSVC 2015 or later,

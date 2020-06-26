@@ -2,14 +2,14 @@
 
 RELEASE ?= 0
 CC := gcc
-override CFLAGS += -Iinclude -Wall -std=c99
+override CFLAGS += -Iinclude -Ilib/ds/include -Wall -std=c99
 ifeq ($(RELEASE), 1)
 	override CFLAGS += -O3
 else
 	override CFLAGS += -O0 -g -fsanitize=address
 endif
 
-LIBS := -lprotobuf-c -lm -lpthread
+LIBS := -Llib/ds -lprotobuf-c -lm -lpthread -lds
 OPSET_OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
 OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 
@@ -28,18 +28,19 @@ mobilenet2: all
 	./connx examples/mobilenet2/mobilenetv2-7.onnx -i examples/mobilenet2/test_data_set_0/input_0.pb -t examples/mobilenet2/test_data_set_0/output_0.pb -d -e 0.001 -l 1
 
 clean:
-	make -C test clean
-	rm src/opset.c
+	$(MAKE) -C test clean
+	rm -f src/opset.c
 	rm -rf obj
 	rm -f connx
 
 cleanall: clean
-	rm src/onnx.proto3.pb-c.c
-	rm include/onnx/onnx.proto3.pb-c.h
-	rmdir include/onnx
+	$(MAKE) -C lib/ds clean
+	rm -f src/onnx.proto3.pb-c.c
+	rm -f include/onnx/onnx.proto3.pb-c.h
+	rmdir -f include/onnx
 
 test: all bin/re2c
-	make -C test run
+	$(MAKE) -C test run
 
 bin/re2c: bin/re2c-1.3.tar.gz
 	rm -rf obj
@@ -51,9 +52,11 @@ bin/re2c: bin/re2c-1.3.tar.gz
 	cp obj/$(notdir $(basename $(basename $^)))/re2c bin/
 	rm -rf obj
 
-connx: $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+lib/ds/libds.a:
+	$(MAKE) -C lib/ds
 
+connx: lib/ds/libds.a $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
 
 src/opset.c:
 	bin/opset.sh $(OPSET_OBJS)
