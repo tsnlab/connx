@@ -120,7 +120,7 @@ static bool Conv_resolve(uintptr_t* stack) {
 		}
 
 		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
-		connx_Operator_stack_update(Y, 1, 1);
+		connx_Stack_update(1, Y);
 	}
 
 	if(Y->lengths[0] != X->lengths[0]) {

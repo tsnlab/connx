@@ -56,7 +56,7 @@ static bool Add_resolve(uintptr_t* stack) {
 		}
 
 		C = connx_Tensor_create2(A->elemType, C_dimension, lengths);
-		connx_Operator_stack_update(C, 1, 1);
+		connx_Stack_update(1, C);
 	}
 
 	int32_t A_idx = A->dimension - C->dimension;

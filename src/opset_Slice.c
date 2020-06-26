@@ -130,12 +130,12 @@ done:
 		;
 	}
 
-	connx_Operator_stack_update(starts, 2, 3);
-	connx_Operator_stack_update(ends, 2, 4);
-	connx_Operator_stack_update(steps, 2, 6);
+	connx_Stack_update(3, starts);
+	connx_Stack_update(4, ends);
+	connx_Stack_update(6, steps);
 
 	if(axes != NULL) {
-		connx_Operator_stack_update(NULL, 2, 5);
+		connx_Stack_update(5, NULL);
 	}
 
 	// start/end boundary check
@@ -184,7 +184,7 @@ done:
 		}
 
 		output = connx_Tensor_create2(data->elemType, data->dimension, lengths);
-		connx_Operator_stack_update(output, 1, 1);
+		connx_Stack_update(1, output);
 	}
 
 	if(data->dimension != output->dimension) {

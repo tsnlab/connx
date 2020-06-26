@@ -34,7 +34,7 @@ static bool Unsqueeze_resolve(uintptr_t* stack) {
 		}
 
 		expanded = connx_Tensor_create2(data->elemType, len, lengths);
-		connx_Operator_stack_update(expanded, 1, 1);
+		connx_Stack_update(1, expanded);
 	}
 
 	if(expanded->dimension != data->dimension + axes_length) {

@@ -156,8 +156,18 @@ void connx_Operator_add(const char* name,
 		uint32_t outputCount, uint32_t inputCount, uint32_t attributeCount,
 		bool (*resolve)(uintptr_t* stack), bool (*exec)(uintptr_t* stack), ...);
 connx_Operator* connx_Operator_get(const char* name);
-bool connx_Operator_stack_update(connx_Tensor* tensor, int type, uint32_t idx);
 void connx_Operator_dump();
+
+void connx_Stack_set_count(uintptr_t* stack, uint32_t outputCount, uint32_t inputCount, uint32_t attrCount);
+uint32_t connx_Stack_count(uintptr_t* stack);
+uint32_t connx_Stack_output_count(uintptr_t* stack);
+uint32_t connx_Stack_input_count(uintptr_t* stack);
+uint32_t connx_Stack_attribute_count(uintptr_t* stack);
+void** connx_Stack_outputs(uintptr_t* stack);
+void** connx_Stack_inputs(uintptr_t* stack);
+void** connx_Stack_attributes(uintptr_t* stack);
+
+bool connx_Stack_update(uint32_t idx, connx_Tensor* tensor);
 
 uintptr_t connx_Attribute_create_float(float v);
 uintptr_t connx_Attribute_create_int(int64_t v);

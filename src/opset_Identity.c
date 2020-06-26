@@ -7,7 +7,7 @@ static bool Identity_resolve(uintptr_t* stack) {
 	// Create output if NULL
 	if(output == NULL) {
 		output = connx_Tensor_create2(input->elemType, input->dimension, input->lengths);
-		connx_Operator_stack_update(output, 1, 1);
+		connx_Stack_update(1, output);
 	}
 
 	if(!connx_Tensor_isShapeEquals(output, input)) {

@@ -33,7 +33,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 		}
 
 		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
-		connx_Operator_stack_update(Y, 1, 1);
+		connx_Stack_update(1, Y);
 	}
 
 	// Check X and Y's dimension

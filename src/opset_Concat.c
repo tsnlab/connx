@@ -3,14 +3,11 @@
 #include <connx/connx.h>
 
 static bool Concat_resolve(uintptr_t* stack) {
-	uintptr_t count = stack[0];
+	uint32_t input_count = connx_Stack_input_count(stack);
 
-	connx_Tensor* concat_result = (void*)stack[1];
-
-	uintptr_t input_count = stack[2];
-
-	connx_Tensor** inputs = (connx_Tensor**)(stack + 3);
-	int64_t* axis = (void*)stack[count - 1];
+	connx_Tensor* concat_result = connx_Stack_outputs(stack)[0];
+	connx_Tensor** inputs = (connx_Tensor**)connx_Stack_inputs(stack);
+	int64_t* axis = connx_Stack_attributes(stack)[0];
 
 	// Check axis
 	if(*axis < 0)
@@ -31,7 +28,7 @@ static bool Concat_resolve(uintptr_t* stack) {
 		}
 
 		concat_result = connx_Tensor_create2(inputs[0]->elemType, inputs[0]->dimension, lengths);
-		connx_Operator_stack_update(concat_result, 1, 1);
+		connx_Stack_update(1, concat_result);
 	}
 
 	// Check every input shape is same
@@ -91,14 +88,11 @@ static bool Concat_resolve(uintptr_t* stack) {
 }
 
 static bool Concat_exec(uintptr_t* stack) {
-	uintptr_t count = stack[0];
+	uint32_t input_count = connx_Stack_input_count(stack);
 
-	connx_Tensor* concat_result = (void*)stack[1];
-
-	uintptr_t input_count = stack[2];
-
-	connx_Tensor** inputs = (connx_Tensor**)(stack + 3);
-	int64_t* axis = (void*)stack[count - 1];
+	connx_Tensor* concat_result = connx_Stack_outputs(stack)[0];
+	connx_Tensor** inputs = (connx_Tensor**)connx_Stack_inputs(stack);
+	int64_t* axis = connx_Stack_attributes(stack)[0];
 
 	// calculate batches
 	uint32_t batches[input_count];

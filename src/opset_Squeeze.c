@@ -42,7 +42,7 @@ static bool Squeeze_resolve(uintptr_t* stack) {
 		}
 
 		squeezed = connx_Tensor_create2(data->elemType, data->dimension - axes_length, lengths);
-		connx_Operator_stack_update(squeezed, 1, 1);
+		connx_Stack_update(1, squeezed);
 	}
 
 	if(axes_length > data->dimension) {

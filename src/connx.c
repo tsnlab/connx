@@ -1982,30 +1982,23 @@ static connx_Node* _node;
 static connx_Operator* _op;
 static uintptr_t* _stack;
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+/**
+ * Stack payload
+ * counters: stackCount, ouputCount, inputCount, attrCount
+ * ouptuts
+ * inputs
+ * attributes
+ */
 static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Operator* op, uintptr_t* stack) {
+	uint32_t outputCount = MAX(node->n_output, op->outputCount);
+	uint32_t inputCount = MAX(node->n_input, op->inputCount);
+	uint32_t attrCount = op->attributeCount;
+
 	// set stack count
-	uintptr_t count = 1;	// stack count
-
-	if(op->isOutputVarArgs) {	// output count
-		count += 1 + node->n_output;
-	} else {
-		count += op->outputCount;
-	}
-
-	if(op->isInputVarArgs) {	// input count
-		count += 1 + node->n_input;
-	} else {
-		count += op->inputCount;
-	}
-
-	count += op->attributeCount;	// attribute count
-
-	uint32_t stackIdx = 0;
-	stack[stackIdx++] = count;
-
-	// check output count
-	if(op->isOutputVarArgs)
-		stack[stackIdx++] = (uintptr_t)node->n_output;
+	uint32_t stackIdx = 1;
+	connx_Stack_set_count(stack, outputCount, inputCount, attrCount);
 
 	// set output
 	for(uint32_t i = 0; i < node->n_output; i++) {
@@ -2017,10 +2010,6 @@ static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Opera
 	for(uint32_t i = node->n_output; i < op->outputCount; i++) {
 		stack[stackIdx++] = 0;
 	}
-
-	// check input count
-	if(op->isInputVarArgs)
-		stack[stackIdx++] = (uintptr_t)node->n_input;
 
 	// set inputs
 	for(uint32_t i = 0; i < node->n_input; i++) {
@@ -2115,7 +2104,7 @@ static uint32_t Stack_init(connx_Runtime* runtime, connx_Node* node, connx_Opera
 	}
 	// printf("Validate done %s(%s)\n", node->name, op->name);
 
-	assert(count == stackIdx);
+	assert(connx_Stack_count(stack) == stackIdx);
 
 	return stackIdx;
 }
@@ -2130,19 +2119,7 @@ bool connx_Thread_init(connx_Thread* thread) {
 			connx_Node* node = path->nodes[j];
 			connx_Operator* op = path->operators[j];
 
-			stackCount += 1;
-
-			if(op->isOutputVarArgs)
-				stackCount += 1 + node->n_output;
-			else
-				stackCount += op->outputCount;
-
-			if(op->isInputVarArgs)
-				stackCount += 1 + node->n_input;
-			else
-				stackCount += op->inputCount;
-
-			stackCount += op->attributeCount;
+			stackCount += 1 + MAX(node->n_output, op->outputCount) + MAX(node->n_input, op->inputCount) + op->attributeCount;
 		}
 	}
 
@@ -2177,31 +2154,23 @@ void connx_Thread_delete(connx_Thread* thread) {
 	// Do nothing
 #endif /* __linux__ */
 
-	uint32_t stackIdx = 0;
 	uintptr_t* stack = thread->stack;
 	for(uint32_t i = 0; i < thread->pathCount; i++) {
 		connx_Path* path = thread->paths[i];
 
 		for(uint32_t j = 0; j < path->count; j++) {
-			connx_Operator* op = path->operators[j];
+			uint32_t stackCount = connx_Stack_count(stack);
+			uint32_t attrCount = connx_Stack_attribute_count(stack);
+			void** attrs = connx_Stack_attributes(stack);
 
-			stackIdx++;	// count
+			for(uint32_t k = 0; k < attrCount; k++)
+				if(attrs[k] != NULL)
+					connx_Attribute_delete(attrs[k]);
 
-			if(op->isOutputVarArgs)
-				stackIdx++;	// output count
-
-			stackIdx += op->outputCount;	// outputs
-
-			if(op->isInputVarArgs)
-				stackIdx++;	// output count
-
-			stackIdx += op->inputCount;	// inputs
-
-			for(uint32_t j = 0; j < op->attributeCount; j++)
-				connx_Attribute_delete((void*)stack[stackIdx++]);
+			stack += stackCount;
 		}
 
-		connx_free(stack);
+		connx_free(thread->stack);
 		connx_free(thread->paths);
 	}
 
@@ -2231,7 +2200,7 @@ void* connx_Thread_run(connx_Thread* thread) {
 		connx_Operator** ops = path->operators;
 
 		for(uint32_t j = 0; j < path->count; j++) {
-			uintptr_t count = stack[stackIdx];
+			uintptr_t count = connx_Stack_count(stack + stackIdx);
 			if(!ops[j]->exec(stack + stackIdx))
 				return NULL;
 
@@ -3043,50 +3012,107 @@ connx_Operator* connx_Operator_get(const char* name) {
 	return NULL;
 }
 
-/**
- * type: 1 for output, 2 for input
- * idx: index number of output or input
- */
-bool connx_Operator_tensor_delete(int type, uint32_t idx) {
-	if(_runtime == NULL)
-		return false;
+void connx_Operator_dump() {
+	char buf[128];
 
-	uint32_t outputBase = _op->isOutputVarArgs ? 2 : 1;
-	uint32_t inputBase = outputBase + (_op->isOutputVarArgs ? _node->n_output : _op->outputCount) + (_op->isInputVarArgs ? 1 : 0);
+	for(uint32_t i = 0; i < connx_operator_count; i++) {
+		connx_Operator* op = &(connx_operators[i]);
+		tab(); fprintf(stdout, "Operator %s\n", op->name);
+		depth++;
+		for(uint32_t j = 0; j < op->outputCount; j++) {
+			connx_DataType_toString(op->outputs[j], 128, buf);
+			tab(); fprintf(stdout, "output[%u] = %s\n", j, buf);
+		}
 
-	char* name;
-	if(type == 1) {
-		name = _node->output[idx - outputBase];
-	} else {
-		name = _node->input[idx - inputBase];
+		for(uint32_t j = 0; j < op->inputCount; j++) {
+			connx_DataType_toString(op->inputs[j], 128, buf);
+			tab(); fprintf(stdout, "input[%u] = %s\n", j, buf);
+		}
+
+		for(uint32_t j = 0; j < op->attributeCount; j++) {
+			tab(); fprintf(stdout, "attribute[%u] ", j);
+			depth++;
+			if(op->attributes[j] == connx_DataType_STRING) {
+				connx_DataType_toString(op->attributes[j], 128, buf);
+				fprintf(stdout, "%s : %s = %s\n", 
+						op->attributeNames[j], buf, (char*)op->attributeValues[j]);
+			} else if((op->attributes[j] | connx_DataType_ARRAY) > 0) {
+				connx_DataType_toString(op->attributes[j], 128, buf);
+				fprintf(stdout, "%s : %s = %u\n", 
+						op->attributeNames[j], buf, *(uint32_t*)op->attributeValues[j]);
+			} else {
+				connx_DataType_toString(op->attributes[j], 128, buf);
+				fprintf(stdout, "%s : %s = %p\n", 
+						op->attributeNames[j], buf, (void*)op->attributeValues[j]);
+			}
+			depth--;
+		}
+		depth--;
 	}
+}
 
-	connx_Value* value = connx_Runtime_removeVariable(_runtime, name);
-	if(value != NULL)
-		return false;
+void connx_Stack_set_count(uintptr_t* stack, uint32_t outputCount, uint32_t inputCount, uint32_t attrCount) {
+	uint32_t stackCount = 1 + outputCount + inputCount + attrCount;
 
-	connx_Value_delete(value);
-	_stack[idx] = 0;
+	assert(outputCount <= 0xff);
+	assert(inputCount <= 0xff);
+	assert(attrCount <= 0xff);
+	assert(stackCount <= 0xff);
 
-	return true;
+	stack[0] = stackCount | (outputCount << 8) | (inputCount << 16) | (attrCount << 24);
+}
+
+uint32_t connx_Stack_count(uintptr_t* stack) {
+	return stack[0] & 0xff;
+}
+
+uint32_t connx_Stack_output_count(uintptr_t* stack) {
+	return (stack[0] >> 8) & 0xff;
+}
+
+uint32_t connx_Stack_input_count(uintptr_t* stack) {
+	return (stack[0] >> 16) & 0xff;
+}
+
+uint32_t connx_Stack_attribute_count(uintptr_t* stack) {
+	return (stack[0] >> 24) & 0xff;
+}
+
+void** connx_Stack_outputs(uintptr_t* stack) {
+	return (void**)(stack + 1);
+}
+
+void** connx_Stack_inputs(uintptr_t* stack) {
+	return (void**)(stack + 1 + connx_Stack_output_count(stack));
+}
+
+void** connx_Stack_attributes(uintptr_t* stack) {
+	return (void**)(stack + 1 + connx_Stack_output_count(stack) + connx_Stack_input_count(stack));
 }
 
 /**
  * type: 1 for output, 2 for input
  * idx: index number of output or input
  */
-__attribute__((weak)) bool connx_Operator_stack_update(connx_Tensor* tensor, int type, uint32_t idx) {
+__attribute__((weak)) bool connx_Stack_update(uint32_t idx, connx_Tensor* tensor) {
 	if(_runtime == NULL)
 		return false;
 
-	uint32_t outputBase = _op->isOutputVarArgs ? 2 : 1;
-	uint32_t inputBase = outputBase + (_op->isOutputVarArgs ? _node->n_output : _op->outputCount) + (_op->isInputVarArgs ? 1 : 0);
+	uint32_t outputCount = connx_Stack_output_count(_stack);
+	uint32_t inputCount = connx_Stack_input_count(_stack);
+
+	int type = 0;
+	if(idx < 1 + outputCount) {
+		type = 1;
+	} else if(idx < 1 + outputCount + inputCount) {
+		type = 2;
+	}
 
 	char* name;
 	if(type == 1) {
-		name = _node->output[idx - outputBase];
+		name = _node->output[idx - 1];
 	} else {
-		name = _node->input[idx - inputBase];
+		name = _node->input[idx - 1 - outputCount];
 	}
 
 	// remove variable
@@ -3132,45 +3158,6 @@ __attribute__((weak)) bool connx_Operator_stack_update(connx_Tensor* tensor, int
 	}
 
 	return true;
-}
-
-void connx_Operator_dump() {
-	char buf[128];
-
-	for(uint32_t i = 0; i < connx_operator_count; i++) {
-		connx_Operator* op = &(connx_operators[i]);
-		tab(); fprintf(stdout, "Operator %s\n", op->name);
-		depth++;
-		for(uint32_t j = 0; j < op->outputCount; j++) {
-			connx_DataType_toString(op->outputs[j], 128, buf);
-			tab(); fprintf(stdout, "output[%u] = %s\n", j, buf);
-		}
-
-		for(uint32_t j = 0; j < op->inputCount; j++) {
-			connx_DataType_toString(op->inputs[j], 128, buf);
-			tab(); fprintf(stdout, "input[%u] = %s\n", j, buf);
-		}
-
-		for(uint32_t j = 0; j < op->attributeCount; j++) {
-			tab(); fprintf(stdout, "attribute[%u] ", j);
-			depth++;
-			if(op->attributes[j] == connx_DataType_STRING) {
-				connx_DataType_toString(op->attributes[j], 128, buf);
-				fprintf(stdout, "%s : %s = %s\n", 
-						op->attributeNames[j], buf, (char*)op->attributeValues[j]);
-			} else if((op->attributes[j] | connx_DataType_ARRAY) > 0) {
-				connx_DataType_toString(op->attributes[j], 128, buf);
-				fprintf(stdout, "%s : %s = %u\n", 
-						op->attributeNames[j], buf, *(uint32_t*)op->attributeValues[j]);
-			} else {
-				connx_DataType_toString(op->attributes[j], 128, buf);
-				fprintf(stdout, "%s : %s = %p\n", 
-						op->attributeNames[j], buf, (void*)op->attributeValues[j]);
-			}
-			depth--;
-		}
-		depth--;
-	}
 }
 
 // Ref: https://stackoverflow.com/questions/3026441/float32-to-float16/3026505

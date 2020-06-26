@@ -48,7 +48,7 @@ found:
 		}
 
 		output = connx_Tensor_create2(input->elemType, input->dimension, lengths);
-		connx_Operator_stack_update(output, 1, 1);
+		connx_Stack_update(1, output);
 	}
 
 	if(output->elemType != input->elemType) {

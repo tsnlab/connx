@@ -62,7 +62,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 		}
 
 		output = connx_Tensor_create2(type, input->dimension, input->lengths);
-		connx_Operator_stack_update(output, 1, 1);
+		connx_Stack_update(1, output);
 	}
 
 	if(output->dimension != input->dimension) {
@@ -1357,7 +1357,8 @@ static bool string_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool string_to_string(connx_Tensor* input, connx_Tensor* output) {
+static bool string_to_string(__attribute__((unused)) connx_Tensor* input, __attribute__((unused)) connx_Tensor* output) {
+	abort();
 	return false;
 }
 

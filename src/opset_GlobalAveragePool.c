@@ -15,7 +15,7 @@ static bool GlobalAveragePool_resolve(uintptr_t* stack) {
 			lengths[i] = 1;
 
 		Y = connx_Tensor_create2(X->elemType, X->dimension, lengths);
-		connx_Operator_stack_update(Y, 1, 1);
+		connx_Stack_update(1, Y);
 	}
 
 	if(X->elemType != Y->elemType) {

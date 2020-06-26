@@ -86,7 +86,7 @@ static bool read_testcase(const char* path) {
 uint32_t stackIdx;
 uintptr_t stack[16];
 
-bool connx_Operator_stack_update(connx_Tensor* tensor, __attribute__((unused)) int type, uint32_t idx) {
+bool connx_Stack_update(uint32_t idx, connx_Tensor* tensor) {
 	if(stack[idx] != 0)
 		connx_Tensor_delete((void*)stack[idx]);
 
@@ -183,6 +183,8 @@ static bool exec_testcase(connx_Operator* op) {
 	fflush(stdout);
 
 	stackIdx = 1;
+	uint32_t outputCount = op->outputCount;
+	uint32_t inputCount = op->inputCount;
 	line = readline();
 	// Read metadata
 	while(line != NULL && (line[0] == '\0' || line[0] == '@' || line[0] == '#')) {
@@ -514,11 +516,11 @@ static bool exec_testcase(connx_Operator* op) {
 				fprintf(stderr, "Not supported type: %s\n", type);
 				abort();
 			}
-		} else if(strcmp(kind, "vararg") == 0 || strcmp(kind, "varar") == 0) {
+		} else if(strcmp(kind, "varar") == 0 || strcmp(kind, "vararg") == 0) {
 			char* num = NULL;
 			parse_int(line, &num);
 
-			stack[stackIdx++] = (uintptr_t)strtol(num, NULL, 10);
+			inputCount = strtol(num, NULL, 10);
 
 			line = readline();
 		} else if(strcmp(kind, "nul") == 0 || strcmp(kind, "null") == 0) {
@@ -529,21 +531,9 @@ static bool exec_testcase(connx_Operator* op) {
 		}
 	}
 
-	stack[0] = stackIdx - 1;
-
-	/*
-	if(op->isInputVarArgs || op->isOutputVarArgs) {
-		if(stack[0] < 1 + op->outputCount + op->inputCount + op->attributeCount) {
-			printf(RED "\tSTACK COUNT TOO SMALL: expected: more than %u but %lu\n" END, op->outputCount + op->inputCount + op->attributeCount, stack[0]);
-			return false;
-		}
-	} else {
-		if(stack[0] != op->outputCount + op->inputCount + op->attributeCount) {
-			printf(RED "\tSTACK COUNT MISMATCH: expected: %u but %lu\n" END, op->outputCount + op->inputCount + op->attributeCount, stack[0]);
-			return false;
-		}
-	}
-	*/
+	uint32_t stackCount = stackIdx - 1;
+	uint32_t attrCount = stackCount - 1 - outputCount - inputCount;
+	connx_Stack_set_count(stack, outputCount, inputCount, attrCount);
 
 	if(!op->resolve(stack)) {
 		printf(RED "\tRESOLVE FAILED: %s\n" END, connx_exception_message());
@@ -568,47 +558,35 @@ static bool exec_testcase(connx_Operator* op) {
 	}
 
 	// clean up
-	uint32_t stackIdx2 = 1;
+	stackIdx = 1;
 
 	// delete outputs
-	uintptr_t output_count = op->outputCount;
-
-	if(op->isOutputVarArgs) {
-		output_count = stack[stackIdx2++];
-	}
-
-	for(uint32_t i = 0; i < output_count; i++, stackIdx2++) {
-		if(stack[stackIdx2] != 0) {
-			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
+	for(uint32_t i = 0; i < outputCount; i++, stackIdx++) {
+		if(stack[stackIdx] != 0) {
+			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx];
 			connx_Tensor_delete(tensor);
 		}
 	}
 
 	// delete inputs
-	uintptr_t input_count = op->inputCount;
-
-	if(op->isInputVarArgs) {
-		input_count = stack[stackIdx2++];
-	}
-
-	for(uint32_t i = 0; i < input_count; i++, stackIdx2++) {
-		if(stack[stackIdx2] != 0) {
-			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
+	for(uint32_t i = 0; i < inputCount; i++, stackIdx++) {
+		if(stack[stackIdx] != 0) {
+			connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx];
 			connx_Tensor_delete(tensor);
 		}
 	}
 
 	// delete attributes
-	for(uint32_t i = 0; i < op->attributeCount; i++, stackIdx2++) {
-		if(stack[stackIdx2] != 0) {
-			connx_Attribute* attr = (connx_Attribute*)stack[stackIdx2];
+	for(uint32_t i = 0; i < attrCount; i++, stackIdx++) {
+		if(stack[stackIdx] != 0) {
+			connx_Attribute* attr = (connx_Attribute*)stack[stackIdx];
 			connx_Attribute_delete(attr);
 		}
 	}
 
 	// delete _result
-	if(stack[stackIdx2] != 0) {
-		connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx2];
+	if(stack[stackIdx] != 0) {
+		connx_Tensor* tensor = (connx_Tensor*)stack[stackIdx];
 		connx_Tensor_delete(tensor);
 	}
 
