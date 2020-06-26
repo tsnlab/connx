@@ -1,36 +1,37 @@
 # MNIST
 [X] Add
-[X] MatMul
-[X] Reshape
 [X] Conv
+[X] MatMul
 [X] MaxPool
 [X] Relu
+[X] Reshape
 
-# Tiny YOLO
-[X] Sub
-[X] Mul
-[X] Div
-[X] LeakyRelu
-[X] Ceil
-[X] Exp
-[X] Sigmoid
-[X] Round
-[X] Identify
-[X] Transpose
+# Mobilenet
+[X] GlobalAveragePool
+
+# YOLO
 [X] BatchNormalization
 [X] Cast
+[X] Ceil
+[X] Concat
+[X] Div
+[X] Exp
+[X] Identify
+[X] LeakyRelu
+[ ] Loop
+[X] Mul
+[X] NonMaxSupression
+[X] ReduceMin
+[X] Resize
+[X] Round
+[X] Shape
+[X] Sigmoid
 [X] Slice
 [X] Squeeze
-[X] Shape
-[X] Concat
-[X] Unsqueeze
-[ ] Loop
+[X] Sub
 [X] Tile
-[X] ReduceMin
-[X] NonMaxSupression
-[X] Resize
-
-# Full YOLO
+[X] Transpose
+[X] Unsqueeze
 
 # Remains
 [ ] Abs
@@ -71,7 +72,6 @@
 [ ] GatherElements
 [ ] GatherND
 [ ] Gemm
-[ ] GlobalAveragePool
 [ ] GlobalLpPool
 [ ] GlobalMaxPool
 [ ] Greater
