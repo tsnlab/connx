@@ -21,7 +21,7 @@ jobs:
       run: sudo apt install autoconf libtool
     - name: make test
       run: make test
-    - name: make example_mnist
-      run: make example_mnist
-#   - name: make example_yolo
-#     run: make example_yolo
+    - name: make mnist
+      run: make mnist
+   - name: make mobilenet2
+     run: make mobilenet2
