@@ -10,9 +10,9 @@ static bool Resize_resolve(uintptr_t* stack) {
 	connx_Tensor* scales = (void*)stack[4];
 	connx_Tensor* sizes = (void*)stack[5];	// optional
 	char* coordinate_transformation_mode = (void*)stack[6];
-	float* cubic_coeff_a = (void*)stack[7];
-	int64_t* exclude_outside = (void*)stack[8];
-	float* extrapolation_value = (void*)stack[9];
+	__attribute__((unused)) float* cubic_coeff_a = (void*)stack[7];
+	__attribute__((unused)) int64_t* exclude_outside = (void*)stack[8];
+	__attribute__((unused)) float* extrapolation_value = (void*)stack[9];
 	char* mode = (void*)stack[10];
 	char* nearest_mode = (void*)stack[11];
 

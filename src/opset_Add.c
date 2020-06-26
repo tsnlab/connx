@@ -39,7 +39,7 @@ static bool Add_resolve(uintptr_t* stack) {
 
 	// Create C if null
 	if(C == NULL) {
-		uint32_t min, max;
+		uint32_t __attribute__((unused)) min, max;
 		MINMAX(min, max, A->dimension, B->dimension);
 
 		uint32_t C_dimension = max;

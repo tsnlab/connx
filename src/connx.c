@@ -1459,17 +1459,6 @@ connx_Map* connx_Map_create(connx_DataType keyType, connx_DataType valueType, ui
 	return map;
 }
 
-static bool Runtime_getParameterValue(connx_Runtime* runtime, const char* name, int64_t* value) {
-	for(uint32_t i = 0; i < runtime->parameterCount; i++) {
-		if(strcmp(runtime->parameterNames[i], name) == 0) {
-			*value = runtime->parameterValues[i];
-			return true;
-		}
-	}
-
-	return false;
-}
-
 connx_Value* connx_Value_create_from_onnx(connx_Type* type, connx_Runtime* runtime) {
 	switch(type->value_case) {
 		case ONNX__TYPE_PROTO__VALUE_TENSOR_TYPE:
@@ -1756,15 +1745,6 @@ static bool _Graph_hasOutput(connx_Graph* graph, const char* name) {
 static bool _Graph_hasValueInfo(connx_Graph* graph, const char* name) {
 	for(uint32_t i = 0; i < graph->n_value_info; i++) {
 		if(strcmp(graph->value_info[i]->name, name) == 0)
-			return true;
-	}
-
-	return false;
-}
-
-static bool _Graph_hasInitializer(connx_Graph* graph, const char* name) {
-	for(uint32_t i = 0; i < graph->n_initializer; i++) {
-		if(strcmp(graph->initializer[i]->name, name) == 0)
 			return true;
 	}
 

@@ -23,5 +23,5 @@ jobs:
       run: make test
     - name: make mnist
       run: make mnist
-   - name: make mobilenet2
-     run: make mobilenet2
+    - name: make mobilenet2
+      run: make mobilenet2

@@ -97,7 +97,7 @@ next:
 	return true;
 }
 
-static uint32_t index(uint32_t* indices, uint32_t* units, uint32_t dimension) {
+static uint32_t get_index(uint32_t* indices, uint32_t* units, uint32_t dimension) {
 	uint32_t idx = 0;
 	for(uint32_t i = 0; i < dimension; i++) {
 		idx += indices[i] * units[i];
@@ -147,8 +147,8 @@ static bool Transpose_exec(uintptr_t* stack) {
 				uint8_t* input_base = (uint8_t*)input->base;
 
 				do {
-					uint32_t output_idx = index(output_indices, output_units, output->dimension);
-					uint32_t input_idx = index(input_indices, input_units, input->dimension);
+					uint32_t output_idx = get_index(output_indices, output_units, output->dimension);
+					uint32_t input_idx = get_index(input_indices, input_units, input->dimension);
 
 					output_base[output_idx] = input_base[input_idx];
 				} while(next(output_indices, output->lengths, output->dimension) && 
@@ -161,8 +161,8 @@ static bool Transpose_exec(uintptr_t* stack) {
 				uint16_t* input_base = (uint16_t*)input->base;
 
 				do {
-					uint32_t output_idx = index(output_indices, output_units, output->dimension);
-					uint32_t input_idx = index(input_indices, input_units, input->dimension);
+					uint32_t output_idx = get_index(output_indices, output_units, output->dimension);
+					uint32_t input_idx = get_index(input_indices, input_units, input->dimension);
 
 					output_base[output_idx] = input_base[input_idx];
 				} while(next(output_indices, output->lengths, output->dimension) && 
@@ -175,8 +175,8 @@ static bool Transpose_exec(uintptr_t* stack) {
 				uint32_t* input_base = (uint32_t*)input->base;
 
 				do {
-					uint32_t output_idx = index(output_indices, output_units, output->dimension);
-					uint32_t input_idx = index(input_indices, input_units, input->dimension);
+					uint32_t output_idx = get_index(output_indices, output_units, output->dimension);
+					uint32_t input_idx = get_index(input_indices, input_units, input->dimension);
 
 					output_base[output_idx] = input_base[input_idx];
 				} while(next(output_indices, output->lengths, output->dimension) && 
@@ -189,8 +189,8 @@ static bool Transpose_exec(uintptr_t* stack) {
 				uint64_t* input_base = (uint64_t*)input->base;
 
 				do {
-					uint32_t output_idx = index(output_indices, output_units, output->dimension);
-					uint32_t input_idx = index(input_indices, input_units, input->dimension);
+					uint32_t output_idx = get_index(output_indices, output_units, output->dimension);
+					uint32_t input_idx = get_index(input_indices, input_units, input->dimension);
 
 					output_base[output_idx] = input_base[input_idx];
 				} while(next(output_indices, output->lengths, output->dimension) && 

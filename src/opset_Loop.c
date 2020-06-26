@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <connx/connx.h>
 
-static bool Loop_resolve(uintptr_t* stack) {
+static bool Loop_resolve(__attribute__((unused)) uintptr_t* stack) {
+	/*
 	uintptr_t count = stack[0];
 
 	uintptr_t output_count = stack[2];
@@ -13,11 +14,12 @@ static bool Loop_resolve(uintptr_t* stack) {
 	connx_Value** v_initials = (void*)(stack + 5 + output_count);
 
 	void* graph = stack[count];
+	*/
 
 	return true;
 }
 
-static bool Loop_exec(uintptr_t* stack) {
+static bool Loop_exec(__attribute__((unused)) uintptr_t* stack) {
 	return true;
 }
 
