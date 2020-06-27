@@ -25,7 +25,7 @@ yolo3: all
 	./connx examples/yolov3-tiny/yolov3-tiny.onnx -i examples/yolov3-tiny/test_data_set_0/input_0.pb -i examples/yolov3-tiny/test_data_set_0/input_1.pb -t examples/yolov3-tiny/test_data_set_0/output_0.pb -t examples/yolov3-tiny/test_data_set_0/output_1.pb -t examples/yolov3-tiny/test_data_set_0/output_2.pb -d -e 0.001 -l 100 -p N=1,_=416
 
 mobilenet2: all
-	./connx examples/mobilenet2/mobilenetv2-7.onnx -i examples/mobilenet2/test_data_set_0/input_0.pb -t examples/mobilenet2/test_data_set_0/output_0.pb -d -e 0.001 -l 1
+	./connx examples/mobilenet2/mobilenetv2-7.onnx -i examples/mobilenet2/test_data_set_0/input_0.pb -t examples/mobilenet2/test_data_set_0/output_0.pb -d -e 0.001 -l 10
 
 clean:
 	$(MAKE) -C test clean

@@ -26,7 +26,7 @@ yolo3:
 	venv/bin/python rt_onnxruntime.py ../examples/yolov3-tiny/yolov3-tiny.onnx -i ../examples/yolov3-tiny/test_data_set_0/input_0.pb -i ../examples/yolov3-tiny/test_data_set_0/input_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_0.pb -t ../examples/yolov3-tiny/test_data_set_0/output_1.pb -t ../examples/yolov3-tiny/test_data_set_0/output_2.pb -d -e 0.001 -l 100
 
 mobilenet2:
-	venv/bin/python rt_onnxruntime.py ../examples/mobilenet2/mobilenetv2-7.onnx -i ../examples/mobilenet2/test_data_set_0/input_0.pb -t ../examples/mobilenet2/test_data_set_0/output_0.pb -d -e 0.001 -l 100
+	venv/bin/python rt_onnxruntime.py ../examples/mobilenet2/mobilenetv2-7.onnx -i ../examples/mobilenet2/test_data_set_0/input_0.pb -t ../examples/mobilenet2/test_data_set_0/output_0.pb -d -e 0.001 -l 10
 
 src/parse.c: src/parse.re
 	../bin/re2c -T $^ -o $@
