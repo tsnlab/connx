@@ -71,5 +71,8 @@ obj/%.d: src/%.c src/onnx.proto3.pb-c.c
 
 -include $(patsubst src/%.c, obj/%.d, $(wildcard src/*.c))  
 
+obj/connx.o: src/connx.c
+	mkdir -p obj; $(CC) $(CFLAGS) -Wno-strict-aliasing -c -o $@ $^
+
 obj/%.o: src/%.c
 	mkdir -p obj; $(CC) $(CFLAGS) -c -o $@ $^

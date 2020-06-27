@@ -10,7 +10,7 @@ OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/parse.o
 all: test
 
 run: all
-	./test
+	ASAN_OPTIONS=verify_asan_link_order=0 ./test
 
 clean:
 	rm -rf obj

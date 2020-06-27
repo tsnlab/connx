@@ -240,7 +240,7 @@ void onnx_Node_dump(connx_Node* node)  {
 
 	tab(); fprintf(stdout, "domain: %s\n", node->domain);
 
-	tab(); fprintf(stdout, "attribute: %" PRId64 "\n", node->n_attribute);
+	tab(); fprintf(stdout, "attribute: %" PRIdPTR "\n", node->n_attribute);
 
 	depth++;
 	for(size_t i = 0; i < node->n_attribute; i++) {
@@ -283,7 +283,7 @@ void onnx_Graph_dump(connx_Graph* graph) {
 
 	depth++;
 
-	tab(); fprintf(stdout, "initializer: %" PRId64 "\n", graph->n_initializer);
+	tab(); fprintf(stdout, "initializer: %" PRIdPTR "\n", graph->n_initializer);
 	depth++;
 	for(size_t i = 0; i < graph->n_initializer; i++) {
 		onnx_Tensor_dump(graph->initializer[i]);
@@ -293,9 +293,9 @@ void onnx_Graph_dump(connx_Graph* graph) {
 	}
 	depth--;
 
-	tab(); fprintf(stdout, "sparse_initializer: %" PRId64 "\n", graph->n_sparse_initializer);
+	tab(); fprintf(stdout, "sparse_initializer: %" PRIdPTR "\n", graph->n_sparse_initializer);
 	for(size_t i = 0; i < graph->n_sparse_initializer; i++) {
-		tab(); fprintf(stdout, "[%" PRId64 "]\n", i);
+		tab(); fprintf(stdout, "[%" PRIdPTR "]\n", i);
 		depth++;
 		onnx_SparseTensor_dump(graph->sparse_initializer[i]);
 		depth--;
@@ -384,7 +384,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 			}
 
 			if(len < tensor->n_float_data) {
-				fprintf(stdout, "... (%" PRId64 " more)", tensor->n_float_data - len);
+				fprintf(stdout, "... (%" PRIdPTR " more)", tensor->n_float_data - len);
 			}
 
 			fprintf(stdout, "\n");
@@ -403,7 +403,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 			}
 
 			if(len < tensor->n_int32_data) {
-				fprintf(stdout, "... (%" PRIu64 " more)", tensor->n_int32_data - len);
+				fprintf(stdout, "... (%" PRIuPTR " more)", tensor->n_int32_data - len);
 			}
 
 			fprintf(stdout, "\n");
@@ -416,11 +416,11 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 				memcpy(buf, tensor->string_data[i].data, tensor->string_data[i].len);
 				buf[tensor->string_data[i].len] = 0;
 
-				fprintf(stdout, "%s (%" PRIu64 ")", tensor->string_data[i].data, tensor->string_data[i].len);
+				fprintf(stdout, "%s (%" PRIuPTR ")", tensor->string_data[i].data, tensor->string_data[i].len);
 			}
 
 			if(len < tensor->n_string_data) {
-				fprintf(stdout, "... (%" PRIu64 " more)", tensor->n_string_data - len);
+				fprintf(stdout, "... (%" PRIuPTR " more)", tensor->n_string_data - len);
 			}
 
 			fprintf(stdout, "\n");
@@ -433,7 +433,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 			}
 
 			if(len < tensor->n_int64_data) {
-				fprintf(stdout, "... (%" PRIu64 " more)", tensor->n_int64_data - len);
+				fprintf(stdout, "... (%" PRIuPTR " more)", tensor->n_int64_data - len);
 			}
 
 			fprintf(stdout, "\n");
@@ -447,7 +447,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 			}
 
 			if(len < tensor->n_double_data) {
-				fprintf(stdout, "... (%" PRIu64 " more)", tensor->n_double_data - len);
+				fprintf(stdout, "... (%" PRIuPTR " more)", tensor->n_double_data - len);
 			}
 
 			fprintf(stdout, "\n");
@@ -461,7 +461,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 			}
 
 			if(len < tensor->n_uint64_data) {
-				fprintf(stdout, "... (%" PRIu64 " more)", tensor->n_uint64_data - len);
+				fprintf(stdout, "... (%" PRIuPTR " more)", tensor->n_uint64_data - len);
 			}
 
 			fprintf(stdout, "\n");
@@ -475,7 +475,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 		tab(); fprintf(stdout, "doc_string: %s\n", tensor->doc_string);
 	}
 
-	tab(); fprintf(stdout, "raw_data: %" PRId64, tensor->raw_data.len);
+	tab(); fprintf(stdout, "raw_data: %" PRIdPTR, tensor->raw_data.len);
 	tab();
 	len = tensor->raw_data.len > 64 ? 64 : tensor->raw_data.len;
 	for(size_t i = 0; i < len; i++) {
@@ -483,7 +483,7 @@ void onnx_Tensor_dump(Onnx__TensorProto* tensor) {
 	}
 
 	if(len < tensor->raw_data.len) {
-		fprintf(stdout, "... (%" PRIu64 " more)", tensor->raw_data.len - len);
+		fprintf(stdout, "... (%" PRIuPTR " more)", tensor->raw_data.len - len);
 	}
 
 	fprintf(stdout, "\n");
@@ -499,7 +499,7 @@ void onnx_SparseTensor_dump(connx_SparseTensor* sparse) {
 	onnx_Tensor_dump(sparse->values);
 	tab(); fprintf(stdout, "indices: ");
 	onnx_Tensor_dump(sparse->indices);
-	tab(); fprintf(stdout, "dims: [%" PRId64 "] ", sparse->n_dims);
+	tab(); fprintf(stdout, "dims: [%" PRIdPTR "] ", sparse->n_dims);
 	for(size_t i = 0; i < sparse->n_dims; i++) {
 		fprintf(stdout, "%" PRId64 " ", sparse->dims[i]);
 	}
