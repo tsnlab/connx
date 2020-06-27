@@ -1,4 +1,5 @@
 #include <float.h>
+#include <inttypes.h>
 #include <string.h>
 #include <connx/connx.h>
 
@@ -21,7 +22,7 @@ static bool ReduceMin_resolve(uintptr_t* stack) {
 
 	// input and output's element type is same
 	if(reduced->elemType != data->elemType) {
-		connx_exception("reduced and data's element type is differ: %u != %u", data->elemType, reduced->elemType);
+		connx_exception("reduced and data's element type is differ: %" PRIu32 " != %" PRIu32, data->elemType, reduced->elemType);
 		return false;
 	}
 
@@ -65,7 +66,7 @@ static bool ReduceMin_resolve(uintptr_t* stack) {
 	// Check reduced's lengths
 	if(*keepdims != 0) {	// keepdims
 		if(data->dimension != reduced->dimension) {
-			connx_exception("reduced's dimension is differ from data's dimension: %u != %u", reduced->dimension, data->dimension);
+			connx_exception("reduced's dimension is differ from data's dimension: %" PRIu32 " != %" PRIu32, reduced->dimension, data->dimension);
 			return false;
 		}
 
@@ -74,12 +75,12 @@ static bool ReduceMin_resolve(uintptr_t* stack) {
 				axes_idx++;
 
 				if(reduced->lengths[i] != 1) {
-					connx_exception("reduced's length[%u] is not 1 but %u", i, reduced->lengths[i]);
+					connx_exception("reduced's length[%" PRIu32 "] is not 1 but %" PRIu32, i, reduced->lengths[i]);
 					return false;
 				}
 			} else {
 				if(reduced->lengths[i] != data->lengths[i]) {
-					connx_exception("reduced's length[%u] is differ from data's length[%u]: %u != %u", i, i, reduced->lengths[i], data->lengths[i]);
+					connx_exception("reduced's length[%" PRIu32 "] is differ from data's length[%" PRIu32 "]: %" PRIu32 " != %" PRIu32, i, i, reduced->lengths[i], data->lengths[i]);
 					return false;
 				}
 			}
@@ -87,11 +88,11 @@ static bool ReduceMin_resolve(uintptr_t* stack) {
 	} else {				// do not keepdims
 		if(data->dimension - axes_length == 0) {
 			if(reduced->dimension != 1) {
-				connx_exception("Illegal reduced's dimension: %u, expected: %u", reduced->dimension, 1);
+				connx_exception("Illegal reduced's dimension: %" PRIu32 ", expected: %" PRIu32, reduced->dimension, 1);
 				return false;
 			}
 		} else if(data->dimension - axes_length != reduced->dimension) {
-			connx_exception("Illegal reduced's dimension: %u, expected: %u", reduced->dimension, data->dimension - axes_length);
+			connx_exception("Illegal reduced's dimension: %" PRIu32 ", expected: %" PRIu32, reduced->dimension, data->dimension - axes_length);
 			return false;
 		}
 
@@ -102,7 +103,7 @@ static bool ReduceMin_resolve(uintptr_t* stack) {
 			}
 
 			if(reduced->lengths[j] != data->lengths[i]) {
-				connx_exception("Illegal reduced's length[%u]: %u, expected: %u", j, reduced->lengths[j], data->lengths[i]);
+				connx_exception("Illegal reduced's length[%" PRIu32 "]: %" PRIu32 ", expected: %" PRIu32, j, reduced->lengths[j], data->lengths[i]);
 				return false;
 			}
 
@@ -566,7 +567,7 @@ static bool ReduceMin_exec(uintptr_t* stack) {
 			}
 			break;
 		default:
-			connx_exception("Illegal elemType: %u", reduced->elemType);
+			connx_exception("Illegal elemType: %" PRIu32, reduced->elemType);
 			return false;
 	}
 

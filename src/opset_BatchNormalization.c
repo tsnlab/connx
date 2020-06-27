@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <math.h>
 #include <connx/connx.h>
 
@@ -23,68 +24,68 @@ static bool BatchNormalization_resolve(uintptr_t* stack) {
 	}
 
 	if(X->dimension < 3) {
-		connx_exception("X and Y's dimension must be greater than 3 but %u", X->dimension);
+		connx_exception("X and Y's dimension must be greater than 3 but %" PRIu32, X->dimension);
 		return false;
 	}
 
 	if(scale->dimension != 1) {
-		connx_exception("scale must be a 1 dimensional tensor but %u", scale->dimension);
+		connx_exception("scale must be a 1 dimensional tensor but %" PRIu32, scale->dimension);
 		return false;
 	}
 
 	if(scale->lengths[0] != X->lengths[1]) {
 		connx_Tensor_dump_header(X);
-		connx_exception("scale's length must be equals to X or Y's channel count %u but %u", X->lengths[1], scale->lengths[0]);
+		connx_exception("scale's length must be equals to X or Y's channel count %" PRIu32 " but %" PRIu32, X->lengths[1], scale->lengths[0]);
 		return false;
 	}
 
 	if(scale->elemType != Y->elemType) {
-		connx_exception("scale's type is differ from X or Y's type: %u", scale->elemType);
+		connx_exception("scale's type is differ from X or Y's type: %" PRIu32, scale->elemType);
 		return false;
 	}
 
 	if(B->dimension != 1) {
-		connx_exception("B must be a 1 dimensional tensor but %u", B->dimension);
+		connx_exception("B must be a 1 dimensional tensor but %" PRIu32, B->dimension);
 		return false;
 	}
 
 	if(B->lengths[0] != X->lengths[1]) {
-		connx_exception("B's length must be equals to X or Y's channel count %u but %u", X->lengths[1], B->lengths[0]);
+		connx_exception("B's length must be equals to X or Y's channel count %" PRIu32 " but %" PRIu32, X->lengths[1], B->lengths[0]);
 		return false;
 	}
 
 	if(B->elemType != Y->elemType) {
-		connx_exception("B's type is differ from X or Y's type: %u", B->elemType);
+		connx_exception("B's type is differ from X or Y's type: %" PRIu32, B->elemType);
 		return false;
 	}
 
 	if(mean->dimension != 1) {
-		connx_exception("mean must be a 1 dimensional tensor but %u", mean->dimension);
+		connx_exception("mean must be a 1 dimensional tensor but %" PRIu32, mean->dimension);
 		return false;
 	}
 
 	if(mean->lengths[0] != X->lengths[1]) {
-		connx_exception("mean's length must be equals to X or Y's channel count %u but %u", X->lengths[1], mean->lengths[0]);
+		connx_exception("mean's length must be equals to X or Y's channel count %" PRIu32 " but %" PRIu32, X->lengths[1], mean->lengths[0]);
 		return false;
 	}
 
 	if(mean->elemType != Y->elemType) {
-		connx_exception("mean's type is differ from X or Y's type: %u", mean->elemType);
+		connx_exception("mean's type is differ from X or Y's type: %" PRIu32, mean->elemType);
 		return false;
 	}
 
 	if(var->dimension != 1) {
-		connx_exception("var must be a 1 dimensional tensor but %u", var->dimension);
+		connx_exception("var must be a 1 dimensional tensor but %" PRIu32, var->dimension);
 		return false;
 	}
 
 	if(var->lengths[0] != X->lengths[1]) {
-		connx_exception("var's length must be equals to X or Y's channel count %u but %u", X->lengths[1], var->lengths[0]);
+		connx_exception("var's length must be equals to X or Y's channel count %" PRIu32 " but %" PRIu32, X->lengths[1], var->lengths[0]);
 		return false;
 	}
 
 	if(var->elemType != Y->elemType) {
-		connx_exception("var's type is differ from X or Y's type: %u", var->elemType);
+		connx_exception("var's type is differ from X or Y's type: %" PRIu32, var->elemType);
 		return false;
 	}
 

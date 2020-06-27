@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdlib.h>
 #include <connx/connx.h>
 
@@ -25,27 +26,27 @@ static bool MatMul_resolve(uintptr_t* stack) {
 	}
 
 	if(A->dimension < 2) {
-		connx_exception("A is not a matrix: dimension: %u", A->dimension);
+		connx_exception("A is not a matrix: dimension: %" PRIu32, A->dimension);
 		return false;
 	}
 
 	if(A->dimension != B->dimension) {
-		connx_exception("A and B's dimension is not equal A's dimension: %u, B's dimension: %u", A->dimension, B->dimension);
+		connx_exception("A and B's dimension is not equal A's dimension: %" PRIu32 ", B's dimension: %" PRIu32, A->dimension, B->dimension);
 		return false;
 	}
 
 	if(A->dimension != C->dimension) {
-		connx_exception("A and C's dimension is not equal A's dimension: %u, C's dimension: %u", A->dimension, C->dimension);
+		connx_exception("A and C's dimension is not equal A's dimension: %" PRIu32 ", C's dimension: %" PRIu32, A->dimension, C->dimension);
 		return false;
 	}
 
 	for(uint32_t i = 0; i < A->dimension - 2; i++) {
 		if(A->lengths[i] != B->lengths[i]) {
-			connx_exception("Tensor A's %uth length: %u is different to B's %uth length: %u", i, A->lengths[i], i, B->lengths[i]);
+			connx_exception("Tensor A's %" PRIu32 "th length: %" PRIu32 " is different to B's %" PRIu32 "th length: %" PRIu32, i, A->lengths[i], i, B->lengths[i]);
 			return false;
 		}
 		if(A->lengths[i] != C->lengths[i]) {
-			connx_exception("Tensor A's %uth length: %u is different to C's %uth length: %u", i, A->lengths[i], i, C->lengths[i]);
+			connx_exception("Tensor A's %" PRIu32 "th length: %" PRIu32 " is different to C's %" PRIu32 "th length: %" PRIu32, i, A->lengths[i], i, C->lengths[i]);
 			return false;
 		}
 	}

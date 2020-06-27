@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <strings.h>
 #include <connx/connx.h>
@@ -14,7 +15,7 @@ static bool Concat_resolve(uintptr_t* stack) {
 		*axis += inputs[0]->dimension;
 
 	if(*axis < 0 || *axis >= inputs[0]->dimension) {
-		connx_exception("axis out of bounds: %ld", *axis);
+		connx_exception("axis out of bounds: %" PRId64, *axis);
 		return false;
 	}
 
@@ -34,12 +35,12 @@ static bool Concat_resolve(uintptr_t* stack) {
 	// Check every input shape is same
 	for(uint32_t i = 1; i < input_count; i++) {
 		if(inputs[0]->elemType != inputs[i]->elemType) {
-			connx_exception("input[0] and input[%u]'s elemType is differ", i);
+			connx_exception("input[0] and input[%" PRIu32 "]'s elemType is differ", i);
 			return false;
 		}
 
 		if(inputs[0]->dimension != inputs[i]->dimension) {
-			connx_exception("input[0] and input[%u]'s dimension is differ", i);
+			connx_exception("input[0] and input[%" PRIu32 "]'s dimension is differ", i);
 			return false;
 		}
 
@@ -48,7 +49,7 @@ static bool Concat_resolve(uintptr_t* stack) {
 				continue;
 
 			if(inputs[0]->lengths[j] != inputs[i]->lengths[j]) {
-				connx_exception("input[0] and input[%u]'s length[%u] is differ: %u != %u", i, j, inputs[0]->lengths[j], inputs[i]->lengths[j]);
+				connx_exception("input[0] and input[%" PRIu32 "]'s length[%" PRIu32 "] is differ: %" PRIu32 " != %" PRIu32, i, j, inputs[0]->lengths[j], inputs[i]->lengths[j]);
 				return false;
 			}
 		}
@@ -56,13 +57,13 @@ static bool Concat_resolve(uintptr_t* stack) {
 
 	// Check input and concat_result's element type
 	if(inputs[0]->elemType != concat_result->elemType) {
-		connx_exception("input and concat_result's element type is differ: %u != %u", inputs[0]->elemType, concat_result->elemType);
+		connx_exception("input and concat_result's element type is differ: %" PRIu32 " != %" PRIu32, inputs[0]->elemType, concat_result->elemType);
 		return false;
 	}
 
 	// Check concat_result's dimension
 	if(concat_result->dimension != inputs[0]->dimension) {
-		connx_exception("input and concat_result's dimension is differ: %u != %u", inputs[0]->dimension, concat_result->dimension);
+		connx_exception("input and concat_result's dimension is differ: %" PRIu32 " != %" PRIu32, inputs[0]->dimension, concat_result->dimension);
 		return false;
 	}
 
@@ -79,7 +80,7 @@ static bool Concat_resolve(uintptr_t* stack) {
 		}
 
 		if(concat_result->lengths[i] != expected) {
-			connx_exception("concat_result's length[%u] is wrong: %u, expected: %u", i, concat_result->lengths[i], expected);
+			connx_exception("concat_result's length[%" PRIu32 "] is wrong: %" PRIu32 ", expected: %" PRIu32, i, concat_result->lengths[i], expected);
 			return false;
 		}
 	}

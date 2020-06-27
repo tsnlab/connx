@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <strings.h>
 #include <connx/connx.h>
@@ -9,24 +10,24 @@ static bool Tile_resolve(uintptr_t* stack) {
 
 	// input and output's element type is same
 	if(output->elemType != input->elemType) {
-		connx_exception("input and output's element type is differ: %u != %u", input->elemType, output->elemType);
+		connx_exception("input and output's element type is differ: %" PRIu32 " != %" PRIu32, input->elemType, output->elemType);
 		return false;
 	}
 
 	// Check repeat's dimension is 1
 	if(repeats->dimension != 1) {
-		connx_exception("repeats's dimension is not 1 but %u", repeats->dimension);
+		connx_exception("repeats's dimension is not 1 but %" PRIu32, repeats->dimension);
 		return false;
 	}
 
 	// Check repeat's lengths is same as input and output's
 	if(repeats->lengths[0] != input->dimension) {
-		connx_exception("input's dimension is differ from repeat's length: %u != %u", input->dimension, repeats->lengths[0]);
+		connx_exception("input's dimension is differ from repeat's length: %" PRIu32 " != %" PRIu32, input->dimension, repeats->lengths[0]);
 		return false;
 	}
 
 	if(repeats->lengths[0] != output->dimension) {
-		connx_exception("output's dimension is differ from repeat's length: %u != %u", output->dimension, repeats->lengths[0]);
+		connx_exception("output's dimension is differ from repeat's length: %" PRIu32 " != %" PRIu32, output->dimension, repeats->lengths[0]);
 		return false;
 	}
 
@@ -34,7 +35,7 @@ static bool Tile_resolve(uintptr_t* stack) {
 	int64_t* repeats_base = (int64_t*)repeats->base;
 	for(uint32_t i = 0; i < output->dimension; i++) {
 		if(input->lengths[i] * repeats_base[i] != output->lengths[i]) {
-			connx_exception("Illegal output's length[%u] = %u, expcted: %u", i, output->lengths[i], input->lengths[i] * repeats_base[i]);
+			connx_exception("Illegal output's length[%" PRIu32 "] = %" PRIu32 ", expcted: %" PRIu32, i, output->lengths[i], input->lengths[i] * repeats_base[i]);
 			return false;
 		}
 	}

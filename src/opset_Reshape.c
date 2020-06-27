@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <connx/connx.h>
 
@@ -24,7 +25,7 @@ static bool Reshape_exec(uintptr_t* stack) {
 			if(i < data->dimension) {
 				lengths[i] = data->lengths[i];
 			} else {
-				connx_exception("zero index cannot be set out of bounds: %ld >= %ld", i, data->dimension);
+				connx_exception("zero index cannot be set out of bounds: %" PRId64 " >= %" PRId64, i, data->dimension);
 				return false;
 			}
 			len *= lengths[i];
@@ -32,7 +33,7 @@ static bool Reshape_exec(uintptr_t* stack) {
 			if(guess == -1) {
 				guess = i;
 			} else {
-				connx_exception("-1 index cannot be repeated more than once: %ld", i);
+				connx_exception("-1 index cannot be repeated more than once: %" PRId64, i);
 				return false;
 			}
 		} else {
@@ -49,7 +50,7 @@ static bool Reshape_exec(uintptr_t* stack) {
 	}
 
 	if(total != len) {
-		connx_exception("shape is not maching: data(%u) vs shape(%u)", total, len);
+		connx_exception("shape is not maching: data(%" PRIu32 ") vs shape(%" PRIu32 ")", total, len);
 		return false;
 	}
 

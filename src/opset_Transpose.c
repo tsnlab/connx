@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <connx/connx.h>
 
 static bool Transpose_resolve(uintptr_t* stack) {
@@ -10,7 +11,7 @@ static bool Transpose_resolve(uintptr_t* stack) {
 
 	if(perm_length != 0) {
 		if(input->dimension != perm_length) {
-			connx_exception("Illegal perm length: %u, must be %u", perm_length, input->dimension);
+			connx_exception("Illegal perm length: %" PRIu32 ", must be %" PRIu32, perm_length, input->dimension);
 			return false;
 		}
 
@@ -20,7 +21,7 @@ static bool Transpose_resolve(uintptr_t* stack) {
 					goto found;
 			}
 
-			connx_exception("index %u is not found in perm the attrbitue", i);
+			connx_exception("index %" PRIu32 " is not found in perm the attrbitue", i);
 			return false;
 
 found:
@@ -52,12 +53,12 @@ found:
 	}
 
 	if(output->elemType != input->elemType) {
-		connx_exception("Input and output's element type is differ: %u vs %u", input->elemType, output->elemType);
+		connx_exception("Input and output's element type is differ: %" PRIu32 " vs %" PRIu32, input->elemType, output->elemType);
 		return false;
 	}
 
 	if(connx_Tensor_total(output) != connx_Tensor_total(input)) {
-		connx_exception("Input and output's total length is differ: %u vs %u", 
+		connx_exception("Input and output's total length is differ: %" PRIu32 " vs %" PRIu32, 
 			connx_Tensor_total(input), connx_Tensor_total(output));
 		return false;
 	}
@@ -198,7 +199,7 @@ static bool Transpose_exec(uintptr_t* stack) {
 			}
 			break;
 		default:
-			connx_exception("Illegal element size: %u, type: %u", connx_DataType_size(output->elemType), output->elemType);
+			connx_exception("Illegal element size: %" PRIu32 ", type: %" PRIu32, connx_DataType_size(output->elemType), output->elemType);
 			return false;
 	}
 

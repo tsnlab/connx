@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <connx/connx.h>
 
@@ -14,12 +15,12 @@ static bool Shape_resolve(uintptr_t* stack) {
 	}
 
 	if(shape->dimension != 1) {
-		connx_exception("shape's dimension must be 1 but: %u", shape->dimension);
+		connx_exception("shape's dimension must be 1 but: %" PRIu32, shape->dimension);
 		return false;
 	}
 
 	if(shape->lengths[0] != data->dimension) {
-		connx_exception("shape's length is wrong: %u, expected: %u", shape->lengths[0], data->dimension);
+		connx_exception("shape's length is wrong: %" PRIu32 ", expected: %" PRIu32, shape->lengths[0], data->dimension);
 		return false;
 	}
 

@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <connx/connx.h>
 
@@ -74,37 +75,37 @@ static bool Conv_resolve(uintptr_t* stack) {
 	}
 
 	if(kernel_shape_length * 2 != pads_length) {
-		connx_exception("pads shape is not maching: kernel_shape's dimension: %u but pads dimension: %u", kernel_shape_length, pads_length);
+		connx_exception("pads shape is not maching: kernel_shape's dimension: %" PRIu32 " but pads dimension: %" PRIu32, kernel_shape_length, pads_length);
 		return false;
 	}
 
 	if(X->dimension != kernel_shape_length + 2) {
-		connx_exception("X's dimension: %u and kernel_shape's dimension: %u is not matching", X->dimension, kernel_shape_length);
+		connx_exception("X's dimension: %" PRIu32 " and kernel_shape's dimension: %" PRIu32 " is not matching", X->dimension, kernel_shape_length);
 		return false;
 	}
 
 	if(W->dimension != kernel_shape_length + 2) {
-		connx_exception("W's dimension: %u is and kernel_shape's dimension: %u is not matching", W->dimension, kernel_shape_length);
+		connx_exception("W's dimension: %" PRIu32 " is and kernel_shape's dimension: %" PRIu32 " is not matching", W->dimension, kernel_shape_length);
 		return false;
 	}
 
 	if(W->lengths[1] * *group != X->lengths[1]) {
-		connx_exception("W's feature count is not matching: expected: %u * %u = %u but %u", W->lengths[1], *group, W->lengths[1] * *group, X->lengths[1]);
+		connx_exception("W's feature count is not matching: expected: %" PRIu32 " * %" PRIu32 " = %" PRIu32 " but %" PRIu32, W->lengths[1], *group, W->lengths[1] * *group, X->lengths[1]);
 		return false;
 	}
 
 	if(kernel_shape_length != 2 && kernel_shape_length != 3) {
-		connx_exception("kernel_shape count must be 2 or 3 but %u", kernel_shape_length);
+		connx_exception("kernel_shape count must be 2 or 3 but %" PRIu32, kernel_shape_length);
 		return false;
 	}
 
 	if(kernel_shape_length != dilations_length) {
-		connx_exception("dilation shape dimension: %u is different to kernel_shape's dimension: %u", dilations_length, kernel_shape_length);
+		connx_exception("dilation shape dimension: %" PRIu32 " is different to kernel_shape's dimension: %" PRIu32, dilations_length, kernel_shape_length);
 		return false;
 	}
 
 	if(kernel_shape_length != strides_length) {
-		connx_exception("stride shape dimension: %u is different to kernel_shape's dimension: %u", strides_length, kernel_shape_length);
+		connx_exception("stride shape dimension: %" PRIu32 " is different to kernel_shape's dimension: %" PRIu32, strides_length, kernel_shape_length);
 		return false;
 	}
 
@@ -124,18 +125,18 @@ static bool Conv_resolve(uintptr_t* stack) {
 	}
 
 	if(Y->lengths[0] != X->lengths[0]) {
-		connx_exception("Y's batch size is not matching: Y: %u but X: %u", Y->lengths[0], X->lengths[0]);
+		connx_exception("Y's batch size is not matching: Y: %" PRIu32 " but X: %" PRIu32, Y->lengths[0], X->lengths[0]);
 		return false;
 	}
 
 	if(Y->lengths[1] != W->lengths[0] * X->lengths[1] / *group / W->lengths[1]) {
-		connx_exception("Y's feature size is not matching: Y[1]: %u != W[0]: %u * X[1]: %u / group: %u", Y->lengths[1], W->lengths[0], X->lengths[1], *group);
+		connx_exception("Y's feature size is not matching: Y[1]: %" PRIu32 " != W[0]: %" PRIu32 " * X[1]: %" PRIu32 " / group: %" PRIu32, Y->lengths[1], W->lengths[0], X->lengths[1], *group);
 		return false;
 	}
 
 	for(uint32_t i = 0; i < kernel_shape_length; i++) {
 		if(Y->lengths[i + 2] != (X->lengths[i + 2] - kernel_shape[i] + pads[i] + pads[i + kernel_shape_length]) / strides[i] + 1) {
-			connx_exception("Y's %uth shape is not matching: Y: %u, expected: %u", i + 2,
+			connx_exception("Y's %" PRIu32 "th shape is not matching: Y: %" PRIu32 ", expected: %" PRIu32, i + 2,
 					Y->lengths[i + 2],
 					(X->lengths[i + 2] - kernel_shape[i] + pads[i] + pads[i + kernel_shape_length]) / strides[i] + 1);
 			return false;
@@ -144,17 +145,17 @@ static bool Conv_resolve(uintptr_t* stack) {
 
 	if(B != NULL) {
 		if(B->elemType != X->elemType) {
-			connx_exception("B's elemType is differ from X's: %u != %u", B->elemType, X->elemType);
+			connx_exception("B's elemType is differ from X's: %" PRIu32 " != %" PRIu32, B->elemType, X->elemType);
 			return false;
 		}
 
 		if(B->dimension != 1) {
-			connx_exception("B's dimension must be 1 but %u", B->dimension);
+			connx_exception("B's dimension must be 1 but %" PRIu32, B->dimension);
 			return false;
 		}
 
 		if(B->lengths[0] == X->lengths[0]) {
-			connx_exception("B's length must be equal to batch size: %u != %u", B->lengths[0], X->lengths[0]);
+			connx_exception("B's length must be equal to batch size: %" PRIu32 " != %" PRIu32, B->lengths[0], X->lengths[0]);
 			return false;
 		}
 	}

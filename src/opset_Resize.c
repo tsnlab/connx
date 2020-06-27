@@ -1,8 +1,14 @@
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <connx/connx.h>
 
 #define DEBUG 0
+
+#if DEBUG
+#include <stdio.h>
+#endif
+
 static bool Resize_resolve(uintptr_t* stack) {
 	connx_Tensor* Y = (void*)stack[1];
 	connx_Tensor* X = (void*)stack[2];
@@ -38,32 +44,32 @@ static bool Resize_resolve(uintptr_t* stack) {
 
 	// Check X and Y's dimension
 	if(X->dimension != Y->dimension) {
-		connx_exception("X's dimension and Y's dimension are different %u != %u", X->dimension, Y->dimension);
+		connx_exception("X's dimension and Y's dimension are different %" PRIu32 " != %" PRIu32, X->dimension, Y->dimension);
 		return false;
 	}
 
 	// Check X and Y's type
 	if(X->type != Y->type) {
-		connx_exception("X and Y's type is differ: X: %u, Y: %u", X->type, Y->type);
+		connx_exception("X and Y's type is differ: X: %" PRIu32 ", Y: %" PRIu32, X->type, Y->type);
 		return false;
 	}
 
 	// Set scales or sizes
 	if(sizes != NULL) {	// make scales from size
 		if(sizes->dimension != 1) {
-			connx_exception("sizes' dimension is not 1 but %u", sizes->dimension);
+			connx_exception("sizes' dimension is not 1 but %" PRIu32, sizes->dimension);
 			return false;
 		}
 		
 		if(sizes->lengths[0] != X->dimension) {
-			connx_exception("sizes' length is different from X and Y's: %u != %u", sizes->lengths[0], X->dimension);
+			connx_exception("sizes' length is different from X and Y's: %" PRIu32 " != %" PRIu32, sizes->lengths[0], X->dimension);
 			return false;
 		}
 
 		int64_t* sizes_base = (int64_t*)sizes->base;
 		for(uint32_t i = 0; i < Y->dimension; i++) {
 			if(Y->lengths[i] != sizes_base[i]) {
-				connx_exception("output size is mismatch: Y[%u]'s length is %u but sizes[%u] is %u", i, Y->lengths[i], i, sizes_base[i]);
+				connx_exception("output size is mismatch: Y[%" PRIu32 "]'s length is %" PRIu32 " but sizes[%" PRIu32 "] is %" PRIu32, i, Y->lengths[i], i, sizes_base[i]);
 				return false;
 			}
 		}
@@ -78,12 +84,12 @@ static bool Resize_resolve(uintptr_t* stack) {
 		}
 	} else {			// make sizes from scales
 		if(scales->dimension != 1) {
-			connx_exception("scales' dimension is not 1 but %u", scales->dimension);
+			connx_exception("scales' dimension is not 1 but %" PRIu32, scales->dimension);
 			return false;
 		}
 		
 		if(scales->lengths[0] != X->dimension) {
-			connx_exception("scales' length is different from X and Y's: %u != %u", scales->lengths[0], X->dimension);
+			connx_exception("scales' length is different from X and Y's: %" PRIu32 " != %" PRIu32, scales->lengths[0], X->dimension);
 			return false;
 		}
 
@@ -98,7 +104,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 
 		for(uint32_t i = 0; i < Y->dimension; i++) {
 			if(sizes_base[i] != Y->lengths[i]) {
-				connx_exception("scaled output mismatches: Y[%u]'s length is %u, expected: %ld", i, Y->lengths[i], sizes_base[i]);
+				connx_exception("scaled output mismatches: Y[%" PRIu32 "]'s length is %" PRIu32 ", expected: %" PRId64, i, Y->lengths[i], sizes_base[i]);
 				return false;
 			}
 		}
@@ -111,7 +117,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 	} else if(strncmp(coordinate_transformation_mode, "tf_half_pixel_for_nn", 21) == 0) {
 	} else if(strncmp(coordinate_transformation_mode, "tf_crop_and_resize", 19) == 0) {
 		if(roi->dimension != 1) {
-			connx_exception("roi must be 1 dimension but %u", roi->dimension);
+			connx_exception("roi must be 1 dimension but %" PRIu32, roi->dimension);
 			return false;
 		}
 
@@ -132,7 +138,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 					}
 					break;
 				default:
-					connx_exception("Illegal roi type: %u", roi->type);
+					connx_exception("Illegal roi type: %" PRIu32, roi->type);
 					return false;
 			}
 
@@ -178,7 +184,7 @@ static bool Resize_resolve(uintptr_t* stack) {
 // Ref: onnx/onnx/backend/test/case/node/resize.py
 static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, float scale, float* roi, char* coordinate_transformation_mode, float cubic_coeff_a, bool exclude_outside, float extrapolation_value, char* mode, char* nearest_mode) {
 #if DEBUG
-	printf("interpolate_1d: [%u] ", idx);
+	printf("interpolate_1d: [%" PRIu32 "] ", idx);
 	for(uint32_t i = 0; i < length; i++)
 		printf("%f ", data[i]);
 #endif
@@ -299,7 +305,7 @@ static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, 
 	}
 
 #if DEBUG
-	printf("x=%f (int)x=%d ", origin_idx, origin_idx_int);
+	printf("x=%f (int)x=%" PRId32 " ", origin_idx, origin_idx_int);
 #endif
 	// calculate base
 	int32_t idx_base;
@@ -343,7 +349,7 @@ static float interpolate_1d_float32(uint32_t idx, float* data, uint32_t length, 
 
 		int j = idx_base + i;
 #if DEBUG
-		printf("%d ", j);
+		printf("%" PRId32 " ", j);
 #endif
 		if(j < 0) {	// left edge padding
 			value = data[0];
@@ -422,7 +428,7 @@ static bool Resize_exec(uintptr_t* stack) {
 #if DEBUG
 		printf("\nidxs = ");
 		for(uint32_t i = 0; i < dimension; i++)
-			printf("%u ", idxs[i]);
+			printf("%" PRIu32 " ", idxs[i]);
 		printf("\n");
 #endif
 

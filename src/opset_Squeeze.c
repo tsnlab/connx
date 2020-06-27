@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <connx/connx.h>
 
@@ -15,12 +16,12 @@ static bool Squeeze_resolve(uintptr_t* stack) {
 			axes[i] += data->dimension;
 
 		if(axes[i] < 0 || axes[i] >= data->dimension) {
-			connx_exception("axes[%u]'s index is out of bounds: %u", i, axes[i]);
+			connx_exception("axes[%" PRIu32 "]'s index is out of bounds: %" PRIu32, i, axes[i]);
 			return false;
 		}
 
 		if(data->lengths[axes[i]] != 1) {
-			connx_exception("data[%u]'s lengths is not 1 but %u", axes[i], data->lengths[axes[i]]);
+			connx_exception("data[%" PRIu32 "]'s lengths is not 1 but %" PRIu32, axes[i], data->lengths[axes[i]]);
 			return false;
 		}
 	}
@@ -46,17 +47,17 @@ static bool Squeeze_resolve(uintptr_t* stack) {
 	}
 
 	if(axes_length > data->dimension) {
-		connx_exception("axes's length cannot exceed data's dimension: %u > %u", axes_length, data->dimension);
+		connx_exception("axes's length cannot exceed data's dimension: %" PRIu32 " > %" PRIu32, axes_length, data->dimension);
 		return false;
 	}
 
 	if(squeezed->dimension != data->dimension - axes_length) {
-		connx_exception("squeezed's dimension is wrong: %u, expected: %u", squeezed->dimension, data->dimension - axes_length);
+		connx_exception("squeezed's dimension is wrong: %" PRIu32 ", expected: %" PRIu32, squeezed->dimension, data->dimension - axes_length);
 		return false;
 	}
 
 	if(squeezed->elemType != data->elemType) {
-		connx_exception("data and squeezed's element type is different: %u != %u", data->elemType, squeezed->elemType);
+		connx_exception("data and squeezed's element type is different: %" PRIu32 " != %" PRIu32, data->elemType, squeezed->elemType);
 		return false;
 	}
 

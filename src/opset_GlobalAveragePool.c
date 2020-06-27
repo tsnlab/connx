@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
 #include <float.h>
@@ -19,12 +20,12 @@ static bool GlobalAveragePool_resolve(uintptr_t* stack) {
 	}
 
 	if(X->elemType != Y->elemType) {
-		connx_exception("X and Y's elemType is differ: %u != %u", X->elemType, Y->elemType);
+		connx_exception("X and Y's elemType is differ: %" PRIu32 " != %" PRIu32, X->elemType, Y->elemType);
 		return false;
 	}
 
 	if(X->dimension != Y->dimension) {
-		connx_exception("Illegal X's dimension is differ from Y: %u != %u", X->dimension, Y->dimension);
+		connx_exception("Illegal X's dimension is differ from Y: %" PRIu32 " != %" PRIu32, X->dimension, Y->dimension);
 		return false;
 	}
 

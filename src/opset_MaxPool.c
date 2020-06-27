@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
 #include <float.h>
@@ -116,13 +117,13 @@ static bool MaxPool_resolve(uintptr_t* stack) {
 	}
 
 	if(X->dimension != Y->dimension) {
-		connx_exception("X's dimension and Y's dimension is not same: X: %u, Y: %u", X->dimension, Y->dimension);
+		connx_exception("X's dimension and Y's dimension is not same: X: %" PRIu32 ", Y: %" PRIu32, X->dimension, Y->dimension);
 		return false;
 	}
 
 	for(uint32_t i = 0; i < X->dimension - kernel_shape_length; i++) {
 		if(X->lengths[i] != Y->lengths[i]) {
-			connx_exception("X's shape and Y's shape is not same: X[%u]: %u, Y[%u]: %u", i, X->lengths[i], i, Y->lengths[i]);
+			connx_exception("X's shape and Y's shape is not same: X[%" PRIu32 "]: %" PRIu32 ", Y[%" PRIu32 "]: %" PRIu32, i, X->lengths[i], i, Y->lengths[i]);
 			return false;
 		}
 	}
@@ -138,33 +139,33 @@ static bool MaxPool_resolve(uintptr_t* stack) {
 		}
 
 		if(Y->lengths[Y->dimension - kernel_shape_length + i] != length) {
-			connx_exception("Illegal shape, Y's length[%u] is %u, expected: %u", Y->dimension - kernel_shape_length + i, Y->lengths[Y->dimension - kernel_shape_length + i], length);
+			connx_exception("Illegal shape, Y's length[%" PRIu32 "] is %" PRIu32 ", expected: %" PRIu32, Y->dimension - kernel_shape_length + i, Y->lengths[Y->dimension - kernel_shape_length + i], length);
 			return false;
 		}
 	}
 
 	if(X->dimension < kernel_shape_length) {
-		connx_exception("X's dimension: %u is smaller than kernel_shape's dimension: %u", X->dimension, kernel_shape_length);
+		connx_exception("X's dimension: %" PRIu32 " is smaller than kernel_shape's dimension: %" PRIu32, X->dimension, kernel_shape_length);
 		return false;
 	}
 
 	if(kernel_shape_length != 1 && kernel_shape_length != 2 && kernel_shape_length != 3) {
-		connx_exception("kernel_shape count must be 1, 2 or 3 but %u", kernel_shape_length);
+		connx_exception("kernel_shape count must be 1, 2 or 3 but %" PRIu32, kernel_shape_length);
 		return false;
 	}
 
 	if(kernel_shape_length != dilations_length) {
-		connx_exception("dilation shape dimension: %u is different to kernel_shape's dimension: %u", dilations_length, kernel_shape_length);
+		connx_exception("dilation shape dimension: %" PRIu32 " is different to kernel_shape's dimension: %" PRIu32, dilations_length, kernel_shape_length);
 		return false;
 	}
 
 	if(kernel_shape_length != strides_length) {
-		connx_exception("stride shape dimension: %u is different to kernel_shape's dimension: %u", strides_length, kernel_shape_length);
+		connx_exception("stride shape dimension: %" PRIu32 " is different to kernel_shape's dimension: %" PRIu32, strides_length, kernel_shape_length);
 		return false;
 	}
 
 	if(kernel_shape_length * 2 != pads_length) {
-		connx_exception("pads shape dimension: %u is different to kernel_shape's dimension: %u", pads_length, kernel_shape_length);
+		connx_exception("pads shape dimension: %" PRIu32 " is different to kernel_shape's dimension: %" PRIu32, pads_length, kernel_shape_length);
 		return false;
 	}
 
@@ -685,7 +686,7 @@ static bool MaxPool_exec(uintptr_t* stack) {
 					X_base += unit;
 				}
 			} else {
-				connx_exception("Kernel shape not supported: %u\n", kernel_shape_length);
+				connx_exception("Kernel shape not supported: %" PRIu32 "\n", kernel_shape_length);
 				return false;
 			}
 			break;
@@ -706,7 +707,7 @@ static bool MaxPool_exec(uintptr_t* stack) {
 					X_base += unit;
 				}
 			} else {
-				connx_exception("Kernel shape not supported: %u\n", kernel_shape_length);
+				connx_exception("Kernel shape not supported: %" PRIu32 "\n", kernel_shape_length);
 				return false;
 			}
 			break;
@@ -727,7 +728,7 @@ static bool MaxPool_exec(uintptr_t* stack) {
 					X_base += unit;
 				}
 			} else {
-				connx_exception("Kernel shape not supported: %u\n", kernel_shape_length);
+				connx_exception("Kernel shape not supported: %" PRIu32 "\n", kernel_shape_length);
 				return false;
 			}
 			break;
@@ -748,7 +749,7 @@ static bool MaxPool_exec(uintptr_t* stack) {
 					X_base += unit;
 				}
 			} else {
-				connx_exception("Kernel shape not supported: %u\n", kernel_shape_length);
+				connx_exception("Kernel shape not supported: %" PRIu32 "\n", kernel_shape_length);
 				return false;
 			}
 			break;
@@ -770,7 +771,7 @@ static bool MaxPool_exec(uintptr_t* stack) {
 					X_base += unit;
 				}
 			} else {
-				connx_exception("Kernel shape not supported: %u\n", kernel_shape_length);
+				connx_exception("Kernel shape not supported: %" PRIu32 "\n", kernel_shape_length);
 				return false;
 			}
 			break;
@@ -791,7 +792,7 @@ static bool MaxPool_exec(uintptr_t* stack) {
 					X_base += unit;
 				}
 			} else {
-				connx_exception("Kernel shape not supported: %u\n", kernel_shape_length);
+				connx_exception("Kernel shape not supported: %" PRIu32 "\n", kernel_shape_length);
 				return false;
 			}
 			break;

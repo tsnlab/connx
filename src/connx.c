@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -577,7 +578,7 @@ void connx_Tensor_dump_header(connx_Tensor* tensor) {
 	for(uint32_t i = 0; i < tensor->dimension; i++) {
 		total *= tensor->lengths[i];
 
-		fprintf(stdout, "%u", tensor->lengths[i]);
+		fprintf(stdout, "%" PRIu32, tensor->lengths[i]);
 
 		if(i + 1 < tensor->dimension) {
 			fprintf(stdout, ", ");
@@ -594,7 +595,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 	for(uint32_t i = 0; i < tensor->dimension; i++) {
 		total *= tensor->lengths[i];
 
-		fprintf(stdout, "%u", tensor->lengths[i]);
+		fprintf(stdout, "%" PRIu32, tensor->lengths[i]);
 
 		if(i + 1 < tensor->dimension) {
 			fprintf(stdout, ", ");
@@ -614,7 +615,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				uint8_t* array = (uint8_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%u", array[i]);
+					fprintf(stdout, "%" PRIu32, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -628,7 +629,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				uint16_t* array = (uint16_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%u", array[i]);
+					fprintf(stdout, "%" PRIu32, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -642,7 +643,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				uint32_t* array = (uint32_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%u", array[i]);
+					fprintf(stdout, "%" PRIu32, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -656,7 +657,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				uint64_t* array = (uint64_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%lu", array[i]);
+					fprintf(stdout, "%" PRIu64, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -670,7 +671,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				int8_t* array = (int8_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%d", array[i]);
+					fprintf(stdout, "%" PRId32, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -684,7 +685,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				int16_t* array = (int16_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%d", array[i]);
+					fprintf(stdout, "%" PRId32, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -698,7 +699,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				int32_t* array = (int32_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%d", array[i]);
+					fprintf(stdout, "%" PRId32, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -712,7 +713,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			{
 				int64_t* array = (int64_t*)tensor->base;
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%ld", array[i]);
+					fprintf(stdout, "%" PRId64, array[i]);
 					if(i + 1 < total) {
 						fprintf(stdout, ", ");
 
@@ -803,7 +804,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
 			}
 			break;
 		default:
-			fprintf(stdout, "Illegal type: %d", tensor->elemType);
+			fprintf(stdout, "Illegal type: %" PRId32, tensor->elemType);
 	}
 
 	fprintf(stdout, "\n}\n");
@@ -820,12 +821,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 	for(uint32_t i = 0; i < tensor->dimension; i++) {
 		total *= tensor->lengths[i];
 
-		fprintf(stdout, "%u", tensor->lengths[i]);
+		fprintf(stdout, "%" PRIu32, tensor->lengths[i]);
 
 		if(i >= tensor2->dimension) {
 			fprintf(stdout, RED "(%s)" END, "N/A");
 		} else if(tensor2->lengths[i] != tensor->lengths[i]) {
-			fprintf(stdout, RED "(%u)" END, tensor2->lengths[i]);
+			fprintf(stdout, RED "(%" PRIu32 ")" END, tensor2->lengths[i]);
 		}
 
 		if(i + 1 < tensor->dimension) {
@@ -850,12 +851,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				uint8_t* array2 = (uint8_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%u", array[i]);
+					fprintf(stdout, "%" PRIu32, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%u)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRIu32 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -873,12 +874,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				uint16_t* array2 = (uint16_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%u", array[i]);
+					fprintf(stdout, "%" PRIu32, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%u)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRIu32 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -896,12 +897,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				uint32_t* array2 = (uint32_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%u", array[i]);
+					fprintf(stdout, "%" PRIu32, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%u)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRIu32 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -919,12 +920,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				uint64_t* array2 = (uint64_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%lu", array[i]);
+					fprintf(stdout, "%" PRIu64, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%lu)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRIu64 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -942,12 +943,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				int8_t* array2 = (int8_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%d", array[i]);
+					fprintf(stdout, "%" PRId32, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%d)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRId32 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -965,12 +966,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				int16_t* array2 = (int16_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%d", array[i]);
+					fprintf(stdout, "%" PRId32, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%d)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRId32 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -988,12 +989,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				int32_t* array2 = (int32_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%d", array[i]);
+					fprintf(stdout, "%" PRId32, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%d)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRId32 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -1011,12 +1012,12 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 				int64_t* array2 = (int64_t*)tensor2->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					fprintf(stdout, "%ld", array[i]);
+					fprintf(stdout, "%" PRId64, array[i]);
 
 					if(i >= total2) {
 						fprintf(stdout, RED "(%s)" END, "N/A");
 					} else if(array[i] != array2[i]) {
-						fprintf(stdout, RED "(%ld)" END, array2[i]);
+						fprintf(stdout, RED "(%" PRId64 ")" END, array2[i]);
 					}
 
 					if(i + 1 < total) {
@@ -1181,7 +1182,7 @@ void connx_Tensor_dump_compare(connx_Tensor* tensor, connx_Tensor* tensor2, doub
 			}
 			break;
 		default:
-			fprintf(stdout, "Illegal type: %d", tensor->elemType);
+			fprintf(stdout, "Illegal type: %" PRId32, tensor->elemType);
 	}
 
 	fprintf(stdout, "\n}\n");
@@ -1430,7 +1431,7 @@ int connx_Tensor_toShapeString(connx_Tensor* tensor, int len, char* buf) {
 	int pos = connx_DataType_toString(tensor->elemType, len, buf);
 	pos += snprintf(buf, len, "[ ");
 	for(uint32_t i = 0; i < tensor->dimension; i++) {
-		pos += snprintf(buf + pos, len - pos, "%u", tensor->lengths[i]);
+		pos += snprintf(buf + pos, len - pos, "%" PRIu32, tensor->lengths[i]);
 		if(i + 1 < tensor->dimension) {
 			pos += snprintf(buf + pos, len - pos, ", ");
 		}
@@ -1895,25 +1896,25 @@ void connx_Path_addPath(connx_Path* path, connx_Path* inputPath) {
 
 void connx_Path_dump(connx_Path* path) {
 	if(path->count > 0) {
-		fprintf(stdout, "Path %s:%s ~ %s:%s (%u)\n", 
+		fprintf(stdout, "Path %s:%s ~ %s:%s (%" PRIu32 ")\n", 
 				path->nodes[0]->name,
 				path->nodes[0]->op_type,
 				path->nodes[path->count - 1]->name,
 				path->nodes[path->count - 1]->op_type,
 				path->count);
 	} else {
-		fprintf(stdout, "Path (null):(null) ~ (null):(null) (%u)\n", path->count);
+		fprintf(stdout, "Path (null):(null) ~ (null):(null) (%" PRIu32 ")\n", path->count);
 	}
 
 	depth++;
 
 	for(uint32_t i = 0; i < path->outputNameCount; i++) {
-		tab(); fprintf(stdout, "output[%u] = %s\n", i, path->outputNames[i]);
+		tab(); fprintf(stdout, "output[%" PRIu32 "] = %s\n", i, path->outputNames[i]);
 	}
 	fprintf(stdout, "\n");
 
 	for(uint32_t i = 0; i < path->inputNameCount; i++) {
-		tab(); fprintf(stdout, "input[%u] = %s\n", i, path->inputNames[i]);
+		tab(); fprintf(stdout, "input[%" PRIu32 "] = %s\n", i, path->inputNames[i]);
 	}
 	fprintf(stdout, "\n");
 
@@ -1921,14 +1922,14 @@ void connx_Path_dump(connx_Path* path) {
 		connx_Path* subPath = path->outputPaths[i];
 
 		if(subPath->count > 0) {
-			tab(); fprintf(stdout, "OutputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
+			tab(); fprintf(stdout, "OutputPath[%" PRIu32 "] %s:%s ~ %s:%s (%" PRIu32 ")\n", i,
 					subPath->nodes[0]->name,
 					subPath->nodes[0]->op_type,
 					subPath->nodes[subPath->count - 1]->name,
 					subPath->nodes[subPath->count - 1]->op_type,
 					subPath->count);
 		} else {
-			tab(); fprintf(stdout, "OutputPath[%u] (null):(null) ~ (null):(null) (%u)\n", i, subPath->count);
+			tab(); fprintf(stdout, "OutputPath[%" PRIu32 "] (null):(null) ~ (null):(null) (%" PRIu32 ")\n", i, subPath->count);
 		}
 	}
 	fprintf(stdout, "\n");
@@ -1937,14 +1938,14 @@ void connx_Path_dump(connx_Path* path) {
 		connx_Path* subPath = path->inputPaths[i];
 
 		if(subPath->count > 0) {
-			tab(); fprintf(stdout, "InputPath[%u] %s:%s ~ %s:%s (%u)\n", i,
+			tab(); fprintf(stdout, "InputPath[%" PRIu32 "] %s:%s ~ %s:%s (%" PRIu32 ")\n", i,
 					subPath->nodes[0]->name, 
 					subPath->nodes[0]->op_type,
 					subPath->nodes[subPath->count - 1]->name,
 					subPath->nodes[subPath->count - 1]->op_type,
 					subPath->count);
 		} else {
-			tab(); fprintf(stdout, "InputPath[%u] (null):(null) ~ (null):(null) (%u)\n", i, subPath->count);
+			tab(); fprintf(stdout, "InputPath[%" PRIu32 "] (null):(null) ~ (null):(null) (%" PRIu32 ")\n", i, subPath->count);
 		}
 	}
 	fprintf(stdout, "\n");
@@ -1952,7 +1953,7 @@ void connx_Path_dump(connx_Path* path) {
 	for(uint32_t i = 0; i < path->count; i++) {
 		connx_Node* node = path->nodes[i];
 
-		tab(); fprintf(stdout, "node[%u] = %s:%s\n", i, node->name, node->op_type);
+		tab(); fprintf(stdout, "node[%" PRIu32 "] = %s:%s\n", i, node->name, node->op_type);
 	}
 
 	depth--;
@@ -2186,7 +2187,7 @@ bool connx_Thread_start(connx_Thread* thread) {
 		case 0:
 			return true;
 		default:
-			connx_exception("Cannot start POSIX thread: %d", ret);
+			connx_exception("Cannot start POSIX thread: %" PRId32, ret);
 			return false;
 	}
 #endif /* __linux__ */
@@ -2220,7 +2221,7 @@ bool connx_Thread_join(connx_Thread* thread) {
 		case 0:
 			return true;
 		default:
-			connx_exception("Cannot join POSIX thread: %d", ret);
+			connx_exception("Cannot join POSIX thread: %" PRId32, ret);
 			return false;
 	}
 #endif /* __linux__ */
@@ -2577,7 +2578,7 @@ bool connx_Runtime_schedule(connx_Runtime* runtime) {
 					connx_exception("Cannot find dependency %s, %s, %s", ds_List_get(names, 0), ds_List_get(names, 1), ds_List_get(names, 2));
 					break;
 				default:
-					connx_exception("Cannot find dependency %s, %s, %s and %u more", ds_List_get(names, 0), ds_List_get(names, 1), ds_List_get(names, 2), remain - 3);
+					connx_exception("Cannot find dependency %s, %s, %s and %" PRIu32 " more", ds_List_get(names, 0), ds_List_get(names, 1), ds_List_get(names, 2), remain - 3);
 			}
 
 			ret = false;
@@ -2703,11 +2704,11 @@ done:
 	ds_List_delete(unresolved);
 
 	/*
-	printf("pathCount = %u\n", runtime->pathCount);
+	printf("pathCount = %" PRIu32 "\n", runtime->pathCount);
 	for(uint32_t i = 0; i < runtime->pathCount; i++) {
 		connx_Path* path = runtime->paths[i];
 
-		printf("path[%u] inputs=", i);
+		printf("path[%" PRIu32 "] inputs=", i);
 		for(uint32_t j = 0; j < path->inputNameCount; j++) {
 			printf("%s ", path->inputNames[j]);
 		}
@@ -2720,7 +2721,7 @@ done:
 
 		for(uint32_t j = 0; j < path->count; j++) {
 			connx_Node* node = path->nodes[j];
-			printf("\tNode[%u]=%s inputs=", j, node->name);
+			printf("\tNode[%" PRIu32 "]=%s inputs=", j, node->name);
 
 			for(uint32_t k = 0; k < node->n_input; k++) {
 				printf("%s ", node->input[k]);
@@ -3021,16 +3022,16 @@ void connx_Operator_dump() {
 		depth++;
 		for(uint32_t j = 0; j < op->outputCount; j++) {
 			connx_DataType_toString(op->outputs[j], 128, buf);
-			tab(); fprintf(stdout, "output[%u] = %s\n", j, buf);
+			tab(); fprintf(stdout, "output[%" PRIu32 "] = %s\n", j, buf);
 		}
 
 		for(uint32_t j = 0; j < op->inputCount; j++) {
 			connx_DataType_toString(op->inputs[j], 128, buf);
-			tab(); fprintf(stdout, "input[%u] = %s\n", j, buf);
+			tab(); fprintf(stdout, "input[%" PRIu32 "] = %s\n", j, buf);
 		}
 
 		for(uint32_t j = 0; j < op->attributeCount; j++) {
-			tab(); fprintf(stdout, "attribute[%u] ", j);
+			tab(); fprintf(stdout, "attribute[%" PRIu32 "] ", j);
 			depth++;
 			if(op->attributes[j] == connx_DataType_STRING) {
 				connx_DataType_toString(op->attributes[j], 128, buf);
@@ -3038,7 +3039,7 @@ void connx_Operator_dump() {
 						op->attributeNames[j], buf, (char*)op->attributeValues[j]);
 			} else if((op->attributes[j] | connx_DataType_ARRAY) > 0) {
 				connx_DataType_toString(op->attributes[j], 128, buf);
-				fprintf(stdout, "%s : %s = %u\n", 
+				fprintf(stdout, "%s : %s = %" PRIu32 "\n", 
 						op->attributeNames[j], buf, *(uint32_t*)op->attributeValues[j]);
 			} else {
 				connx_DataType_toString(op->attributes[j], 128, buf);

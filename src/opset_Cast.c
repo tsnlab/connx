@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -57,7 +58,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			case 15: // COMPLEX128 = 15
 			case 16: // BFLOAT16 = 16
 			default:
-				connx_exception("Not supported type: %u\n", *to);
+				connx_exception("Not supported type: %" PRIu32 "\n", *to);
 				return false;
 		}
 
@@ -72,7 +73,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 
 	for(uint32_t i = 0; i < output->dimension; i++) {
 		if(input->lengths[i] != output->lengths[i]) {
-			connx_exception("input and output length is differ: dimension: %u, input length: %u, output length: %u", output->dimension, input->lengths[i], output->lengths[i]);
+			connx_exception("input and output length is differ: dimension: %" PRIu32 ", input length: %" PRIu32 ", output length: %" PRIu32, output->dimension, input->lengths[i], output->lengths[i]);
 			return false;
 		}
 	}
@@ -82,7 +83,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_FLOAT32) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -90,7 +91,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_UINT8) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -98,7 +99,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_INT8) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -106,7 +107,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_UINT16) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -114,7 +115,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_INT16) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -122,7 +123,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_INT32) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -130,7 +131,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_INT64) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -138,7 +139,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_STRING) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -146,7 +147,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_BOOL) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -154,7 +155,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_FLOAT16) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -162,7 +163,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_FLOAT64) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -170,7 +171,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_UINT32) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -178,7 +179,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 			if(output->elemType != connx_DataType_UINT64) {
 				char buf[32];
 				connx_DataType_toString(output->elemType, 32, buf);
-				connx_exception("output's element type and to attribute is differ: %s vs %lu", buf, *to);
+				connx_exception("output's element type and to attribute is differ: %s vs %" PRIu64, buf, *to);
 				return false;
 			}
 			break;	
@@ -186,7 +187,7 @@ static bool Cast_resolve(uintptr_t* stack) {
 		case 15: // COMPLEX128 = 15
 		case 16: // BFLOAT16 = 16
 		default:
-			connx_exception("Not supported type: %u\n", *to);
+			connx_exception("Not supported type: %" PRIu32 "\n", *to);
 			return false;
 	}
 
@@ -295,7 +296,7 @@ static bool uint8_to_string(connx_Tensor* input, connx_Tensor* output) {
 	uint8_t* input_base = (uint8_t*)input->base;
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%u", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -378,7 +379,7 @@ static bool uint16_to_string(connx_Tensor* input, connx_Tensor* output) {
 	uint16_t* input_base = (uint16_t*)input->base;
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%u", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -461,7 +462,7 @@ static bool uint32_to_string(connx_Tensor* input, connx_Tensor* output) {
 	uint32_t* input_base = (uint32_t*)input->base;
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%u", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -544,7 +545,7 @@ static bool uint64_to_string(connx_Tensor* input, connx_Tensor* output) {
 	uint64_t* input_base = (uint64_t*)input->base;
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%lu", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu64, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -627,7 +628,7 @@ static bool int8_to_string(connx_Tensor* input, connx_Tensor* output) {
 	int8_t* input_base = (int8_t*)input->base;
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%u", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -710,7 +711,7 @@ static bool int16_to_string(connx_Tensor* input, connx_Tensor* output) {
 	int16_t* input_base = (int16_t*)input->base;
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%u", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -793,7 +794,7 @@ static bool int32_to_string(connx_Tensor* input, connx_Tensor* output) {
 	int32_t* input_base = (int32_t*)input->base;
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%u", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
@@ -876,7 +877,7 @@ static bool int64_to_string(connx_Tensor* input, connx_Tensor* output) {
 	int64_t* input_base = (int64_t*)input->base;
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
-		int len = snprintf(buf, 32, "%lu", *input_base++);
+		int len = snprintf(buf, 32, "%" PRIu64, *input_base++);
 		char* buf2 = connx_alloc(len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;

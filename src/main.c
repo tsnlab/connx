@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -246,7 +247,7 @@ int main(int argc, char** argv) {
 
 			printf("\t%s: (", tensor->name);
 			for(uint32_t i = 0; i < tensor->dimension; i++) {
-				printf("%u", tensor->lengths[i]);
+				printf("%" PRIu32, tensor->lengths[i]);
 				if(i + 1 < tensor->dimension) {
 					printf(", ");
 				}
@@ -277,7 +278,7 @@ int main(int argc, char** argv) {
 
 			printf("\t%s: (", tensor->name);
 			for(uint32_t i = 0; i < tensor->dimension; i++) {
-				printf("%u", tensor->lengths[i]);
+				printf("%" PRIu32, tensor->lengths[i]);
 				if(i + 1 < tensor->dimension) {
 					printf(", ");
 				}
@@ -331,7 +332,7 @@ int main(int argc, char** argv) {
 	uint64_t time_end = get_us();
 
 	char buf[32];
-	sprintf(buf, "%lu", time_end - time_start);
+	sprintf(buf, "%" PRIu64, time_end - time_start);
 	pretty_number(buf);
 	printf("Time: %s us\n", buf);
 

@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdlib.h>
 #include <float.h>
 #include <connx/connx.h>
@@ -12,44 +13,44 @@ static bool NonMaxSuppression_resolve(uintptr_t* stack) {
 	int64_t* center_point_box = (void*)stack[7];				// 0 or 1
 
 	if(selected_indices->dimension != 2) {
-		connx_exception("Illegal selected_indices dimension: %u, expected: %u", selected_indices->dimension, 2);
+		connx_exception("Illegal selected_indices dimension: %" PRIu32 ", expected: %" PRIu32, selected_indices->dimension, 2);
 		return false;
 	}
 
 	if(selected_indices->lengths[1] != 3) {
-		connx_exception("Illegal selected_indices length[1]: %u, expected: %u", selected_indices->lengths[1], 3);
+		connx_exception("Illegal selected_indices length[1]: %" PRIu32 ", expected: %" PRIu32, selected_indices->lengths[1], 3);
 		return false;
 	}
 
 	// Check selected_indices.num_selected_indices
 
 	if(boxes->dimension != 3) {
-		connx_exception("Illegal boxes dimension: %u, expected: %u", boxes->dimension, 3);
+		connx_exception("Illegal boxes dimension: %" PRIu32 ", expected: %" PRIu32, boxes->dimension, 3);
 		return false;
 	}
 
 	if(boxes->lengths[2] != 4) {
-		connx_exception("Illegal boxes length[2]: %u, expected: %u", boxes->lengths[2], 4);
+		connx_exception("Illegal boxes length[2]: %" PRIu32 ", expected: %" PRIu32, boxes->lengths[2], 4);
 		return false;
 	}
 
 	if(scores->dimension != 3) {
-		connx_exception("Illegal scores dimension: %u, expected: %u", scores->dimension, 3);
+		connx_exception("Illegal scores dimension: %" PRIu32 ", expected: %" PRIu32, scores->dimension, 3);
 		return false;
 	}
 
 	if(scores->lengths[0] != boxes->lengths[0]) {
-		connx_exception("Illegal scores length[0]: %u, expected: %u", scores->lengths[0], boxes->lengths[0]);
+		connx_exception("Illegal scores length[0]: %" PRIu32 ", expected: %" PRIu32, scores->lengths[0], boxes->lengths[0]);
 		return false;
 	}
 
 	if(scores->lengths[2] != boxes->lengths[1]) {
-		connx_exception("Illegal scores length[2]: %u, expected: %u", scores->lengths[2], boxes->lengths[1]);
+		connx_exception("Illegal scores length[2]: %" PRIu32 ", expected: %" PRIu32, scores->lengths[2], boxes->lengths[1]);
 		return false;
 	}
 
 	if(scores->elemType != boxes->elemType) {
-		connx_exception("Illegal scores elemType: %u, expected: %u", scores->elemType, boxes->elemType);
+		connx_exception("Illegal scores elemType: %" PRIu32 ", expected: %" PRIu32, scores->elemType, boxes->elemType);
 		return false;
 	}
 
@@ -60,7 +61,7 @@ static bool NonMaxSuppression_resolve(uintptr_t* stack) {
 	}
 
 	if(max_output_boxes_per_class->dimension != 1) {
-		connx_exception("Illegal max_output_boxes_per_class dimension: %u, expected: %u", max_output_boxes_per_class->dimension, 1);
+		connx_exception("Illegal max_output_boxes_per_class dimension: %" PRIu32 ", expected: %" PRIu32, max_output_boxes_per_class->dimension, 1);
 		return false;
 	}
 
@@ -80,12 +81,12 @@ static bool NonMaxSuppression_resolve(uintptr_t* stack) {
 	}
 
 	if(iou_threshold->dimension != 1) {
-		connx_exception("Illegal iou_threshold dimension: %u, expected: %u", iou_threshold->dimension, 1);
+		connx_exception("Illegal iou_threshold dimension: %" PRIu32 ", expected: %" PRIu32, iou_threshold->dimension, 1);
 		return false;
 	}
 
 	if(iou_threshold->elemType != boxes->elemType) {
-		connx_exception("Illegal iou_threshold elemType: %u, expected: %u", iou_threshold->elemType, boxes->elemType);
+		connx_exception("Illegal iou_threshold elemType: %" PRIu32 ", expected: %" PRIu32, iou_threshold->elemType, boxes->elemType);
 		return false;
 	}
 
@@ -105,12 +106,12 @@ static bool NonMaxSuppression_resolve(uintptr_t* stack) {
 	}
 
 	if(score_threshold->dimension != 1) {
-		connx_exception("Illegal score_threshold dimension: %u, expected: %u", score_threshold->dimension, 1);
+		connx_exception("Illegal score_threshold dimension: %" PRIu32 ", expected: %" PRIu32, score_threshold->dimension, 1);
 		return false;
 	}
 
 	if(score_threshold->elemType != boxes->elemType) {
-		connx_exception("Illegal score_threshold elemType: %u, expected: %u", score_threshold->elemType, boxes->elemType);
+		connx_exception("Illegal score_threshold elemType: %" PRIu32 ", expected: %" PRIu32, score_threshold->elemType, boxes->elemType);
 		return false;
 	}
 

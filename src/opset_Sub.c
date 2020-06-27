@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdlib.h>
 #include <connx/connx.h>
 
@@ -47,13 +48,13 @@ static bool Sub_resolve(uintptr_t* stack) {
 		MINMAX(min, length, A_length, B_length);
 		if(min != length) {
 			if(min != 0 && min != 1) {
-				connx_exception("Broadcasting only supports on dimension 0 or 1 but %u\n", min);
+				connx_exception("Broadcasting only supports on dimension 0 or 1 but %" PRIu32 "\n", min);
 				return false;
 			}
 		}
 
 		if(C->lengths[i] != length) {
-			connx_exception("C's lengths is incorrect: dimension: %u, length: %u != %u", i, C->lengths[i], length);
+			connx_exception("C's lengths is incorrect: dimension: %" PRIu32 ", length: %" PRIu32 " != %" PRIu32, i, C->lengths[i], length);
 			return false;
 		}
 	}

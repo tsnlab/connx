@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <string.h>
 #include <strings.h>
 #include <connx/connx.h>
@@ -12,19 +13,19 @@ static bool Slice_resolve(uintptr_t* stack) {
 
 	// check starts dimension
 	if(starts->dimension != 1) {
-		connx_exception("starts' dimension is not 1 but %u", starts->dimension);
+		connx_exception("starts' dimension is not 1 but %" PRIu32, starts->dimension);
 		return false;
 	}
 
 	// check ends dimension
 	if(ends->dimension != 1) {
-		connx_exception("ends' dimension is not 1 but %u", ends->dimension);
+		connx_exception("ends' dimension is not 1 but %" PRIu32, ends->dimension);
 		return false;
 	}
 
 	// check steps dimension
 	if(steps != NULL && steps->dimension != 1) {
-		connx_exception("steps' dimension is not 1 but %u", steps->dimension);
+		connx_exception("steps' dimension is not 1 but %" PRIu32, steps->dimension);
 		return false;
 	}
 
@@ -34,21 +35,21 @@ static bool Slice_resolve(uintptr_t* stack) {
 
 	if(axes != NULL) {
 		if(axes->dimension != 1) {
-			connx_exception("axes' dimension is not 1 but %u", axes->dimension);
+			connx_exception("axes' dimension is not 1 but %" PRIu32, axes->dimension);
 			return false;
 		} else {
 			if(axes->lengths[0] != starts->lengths[0]) {
-				connx_exception("axes' length and starts' length is differ: %u vs %u", axes->lengths[0], starts->lengths[0]);
+				connx_exception("axes' length and starts' length is differ: %" PRIu32 " vs %" PRIu32, axes->lengths[0], starts->lengths[0]);
 				return false;
 			}
 
 			if(axes->lengths[0] != ends->lengths[0]) {
-				connx_exception("axes' length and ends' length is differ: %u vs %u", axes->lengths[0], ends->lengths[0]);
+				connx_exception("axes' length and ends' length is differ: %" PRIu32 " vs %" PRIu32, axes->lengths[0], ends->lengths[0]);
 				return false;
 			}
 
 			if(steps != NULL && axes->lengths[0] != steps->lengths[0]) {
-				connx_exception("axes' length and steps' length is differ: %u vs %u", axes->lengths[0], steps->lengths[0]);
+				connx_exception("axes' length and steps' length is differ: %" PRIu32 " vs %" PRIu32, axes->lengths[0], steps->lengths[0]);
 				return false;
 			}
 		}
@@ -165,7 +166,7 @@ done:
 				ends_base[i] = starts_base[i];
 			}
 		} else {
-			connx_exception("steps[%u] can not be zero", i);
+			connx_exception("steps[%" PRIu32 "] can not be zero", i);
 			return false;
 		}
 	}
@@ -193,7 +194,7 @@ done:
 	}
 
 	if(data->elemType != output->elemType) {
-		connx_exception("data's type is differ from output's: %u, expected: %u", data->elemType, output->elemType);
+		connx_exception("data's type is differ from output's: %" PRIu32 ", expected: %" PRIu32, data->elemType, output->elemType);
 		return false;
 	}
 
@@ -205,12 +206,12 @@ done:
 		len += rem;
 
 		if(len < 0) {
-			connx_exception("steps[%u]'s sign is incorrect: %u", i, steps_base[i]);
+			connx_exception("steps[%" PRIu32 "]'s sign is incorrect: %" PRIu32, i, steps_base[i]);
 			return false;
 		}
 
 		if((int32_t)output->lengths[i] != len) {
-			connx_exception("output[%u] length is incorrect: %u, expected: %u", i, output->lengths[i], len);
+			connx_exception("output[%" PRIu32 "] length is incorrect: %" PRIu32 ", expected: %" PRIu32, i, output->lengths[i], len);
 			return false;
 		}
 	}
