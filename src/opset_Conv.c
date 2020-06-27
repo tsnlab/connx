@@ -163,26 +163,42 @@ static bool Conv_resolve(uintptr_t* stack) {
 }
 
 static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y, uint32_t* X_lengths, float* X, uint32_t* W_lengths, float* W, int64_t* kernels, int64_t* pads, int64_t* strides, float bias) {
-	for(int64_t y = -pads[0]; y <= (int64_t)X_lengths[0] + pads[0 + 2] - kernels[0]; y += strides[0]) {
-		for(int64_t x = -pads[1]; x <= (int64_t)X_lengths[1] + pads[1 + 2] - kernels[1]; x += strides[1]) {
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+	uint32_t ky_end = kernels[0];
+	uint32_t kx_end = kernels[1];
+	uint32_t height = X_lengths[0];
+	uint32_t width = X_lengths[1];
+	uint32_t y_stride = strides[0];
+	uint32_t x_stride = strides[1];
+	int32_t y_start = -pads[0];
+	int32_t y_end = height + pads[0 + 2] - ky_end;
+	int32_t x_start = -pads[1];
+	int32_t x_end = width + pads[1 + 2] - kx_end;
+	uint32_t w_lengths_1 = W_lengths[1];
+
+	for(int32_t y = y_start; y <= y_end; y += y_stride) {
+		for(int32_t x = x_start; x <= x_end; x += x_stride) {
 			float tmp = 0;
 
-			//printf("x: %ld, y: %ld\n", x, y);
-			for(uint32_t ky = 0; ky < kernels[0]; ky++) {
-				for(uint32_t kx = 0; kx < kernels[1]; kx++) {
-					int64_t y2 = y + ky;
-					int64_t x2 = x + kx;
+			uint32_t y2_start = MAX(y, 0);
+			uint32_t y2_end = MIN(y + ky_end, height);
 
-					if(y2 >= 0 && x2 >= 0 && y2 < X_lengths[0] && x2 < X_lengths[1]) {
-						//printf("\tky: %u, kx: %u %f += %f * %f => %f\n", ky, kx, tmp, 
-						//		X[y2 * X_lengths[1] + x2], W[ky * W_lengths[1] + kx], X[y2 * X_lengths[1] + x2] * W[ky * W_lengths[1] + kx]);
-						tmp += X[y2 * X_lengths[1] + x2] * W[ky * W_lengths[1] + kx];
-					}
+			uint32_t x2_start = MAX(x, 0);
+			uint32_t x2_end = MIN(x + kx_end, width);
+
+			for(uint32_t y2 = y2_start; y2 < y2_end; y2++) {
+				uint32_t x_base = y2 * width;
+				uint32_t ky = y2 - y;
+				uint32_t w_base = ky * w_lengths_1 - x;
+
+				for(uint32_t x2 = x2_start; x2 < x2_end; x2++) {
+					tmp += X[x_base + x2] * W[w_base + x2];
 				}
 			}
 
 			*Y++ += tmp + bias;
-			//printf("\t%f = %f + %f => %f\n", tmp + bias, tmp, bias, *(Y - 1));
 		}
 	}
 }
