@@ -9,7 +9,7 @@ else
 	override CFLAGS += -O0 -g -fsanitize=address
 endif
 
-LIBS := -Llib/ds -lprotobuf-c -lm -lpthread -lds
+LIBS := -Llib/ds -lprotobuf-c -lm -pthread -lds
 OPSET_OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/opset_*.c))
 OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o obj/onnx.proto3.pb-c.o
 

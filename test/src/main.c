@@ -95,6 +95,10 @@ bool connx_Stack_update(uint32_t idx, connx_Tensor* tensor) {
 	return true;
 }
 
+uint32_t connx_SubThread_alloc(connx_SubThread** threads, uint32_t count) {
+	return 0;
+}
+
 char* readline() {
 	if(idx >= len)
 		return NULL;

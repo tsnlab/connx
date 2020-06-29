@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-I../include -I../lib/ds/include -Wall -g -O0 -fsanitize=address
 
-LIBS=-L../lib/ds -lm -lds
+LIBS=-L../lib/ds -lm -lds -pthread
 OPSET_OBJS=$(patsubst ../src/%.c, obj/%.o, $(wildcard ../src/opset*.c)) obj/connx.o
 OBJS=$(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/parse.o
 

@@ -158,6 +158,25 @@ void connx_Operator_add(const char* name,
 connx_Operator* connx_Operator_get(const char* name);
 void connx_Operator_dump();
 
+// Operator Thread
+typedef struct _connx_SubThread {
+	void*		(* volatile func)(uint32_t work_count, void* works, void* context);
+	uint32_t	work_count;
+	void*		works;
+	void*	 	context;
+	void*		ret;
+	bool		isRunning;
+	uint8_t 	priv[0] __attribute__((aligned(sizeof(void*))));
+} connx_SubThread;
+
+bool connx_SubThread_init(uint32_t count);
+void connx_SubThread_finalize();
+
+uint32_t connx_SubThread_alloc(connx_SubThread** threads, uint32_t count);
+void connx_SubThread_run(connx_SubThread* thread, void* (*func)(uint32_t work_count, void* works, void* context), uint32_t work_count, void* works, void* context);
+void* connx_SubThread_wait(connx_SubThread* thread);
+
+// Stack
 void connx_Stack_set_count(uintptr_t* stack, uint32_t outputCount, uint32_t inputCount, uint32_t attrCount);
 uint32_t connx_Stack_count(uintptr_t* stack);
 uint32_t connx_Stack_output_count(uintptr_t* stack);

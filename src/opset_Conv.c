@@ -204,6 +204,97 @@ static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y,
 	}
 }
 
+struct Work {
+	uint32_t batch;
+	uint32_t group;
+	uint32_t feature;
+};
+
+struct Context {
+	float* y_array;
+	float* b_array;
+
+	uint8_t* y_base;
+	uint32_t y_unit;
+	uint32_t* y_lengths_2;
+
+	uint8_t* x_base;
+	uint32_t x_unit;
+	uint32_t* x_lengths_2;
+
+	uint8_t* w_base;
+	uint32_t w_unit;
+	uint32_t w_lengths_1;
+	uint32_t* w_lengths_2;
+
+	uint32_t channel_count;
+	uint32_t feature_count;
+	uint32_t group_count;
+
+	uint32_t group_unit;
+	uint32_t batch_unit;
+
+	int64_t* kernel_shape;
+	int64_t* pads;
+	int64_t* strides;
+};
+
+static void* run_float32(uint32_t work_count, void* _works, void* _context) {
+	struct Work* works = _works;
+	struct Context* context = _context;
+
+	float* y_array = context->y_array;
+	float* b_array = context->b_array;
+
+	uint8_t* y_base = context->y_base;
+	uint32_t y_unit = context->y_unit;
+	uint32_t* y_lengths_2 = context->y_lengths_2;
+
+	uint8_t* x_base = context->x_base;
+	uint32_t x_unit = context->x_unit;
+	uint32_t* x_lengths_2 = context->x_lengths_2;
+
+	uint8_t* w_base = context->w_base;
+	uint32_t w_unit = context->w_unit;
+	uint32_t w_lengths_1 = context->w_lengths_1;
+	uint32_t* w_lengths_2 = context->w_lengths_2;
+
+	uint32_t channel_count = context->channel_count;
+	uint32_t feature_count = context->feature_count;
+	uint32_t group_count = context->group_count;
+
+	uint32_t group_unit = context->group_unit;
+	uint32_t batch_unit = context->batch_unit;
+
+	int64_t* kernel_shape = context->kernel_shape;
+	int64_t* pads = context->pads;
+	int64_t* strides = context->strides;
+
+	for(uint32_t i = 0; i < work_count; i++) {
+		uint32_t batch = works[i].batch;
+		uint32_t group = works[i].group;
+		uint32_t feature = works[i].feature;
+
+		y_array = (float*)y_base + batch * batch_unit + group * group_unit + feature * y_unit;
+
+		for(uint32_t channel = 0; channel < channel_count; channel++) {
+			uint32_t f = group * feature_count + feature;
+			uint32_t c = group * channel_count + channel;
+
+			float* x_array = (float*)x_base + (batch * channel_count * group_count + c) * x_unit;
+			float* w_array = (float*)w_base + (f * w_lengths_1 + (c / group_count)) * w_unit;
+
+			_conv2d_float(y_lengths_2, y_array, 
+					x_lengths_2, x_array, 
+					w_lengths_2, w_array, 
+					kernel_shape, pads, strides, b_array != NULL ? b_array[feature] : 0);
+
+		}
+	}
+
+	return NULL;
+}
+
 static bool Conv_exec(uintptr_t* stack) {
 	connx_Tensor* Y = (void*)stack[1];
 	connx_Tensor* X = (void*)stack[2];
@@ -236,35 +327,83 @@ static bool Conv_exec(uintptr_t* stack) {
 		case connx_DataType_FLOAT16:
 		case connx_DataType_FLOAT32:
 			{
-				float* y_array = (float*)Y->base;
-				float* b_array = NULL;
-				if(B != NULL)
-					b_array = (float*)B->base;
-
 				uint32_t batch_count = X->lengths[0];
 				uint32_t channel_count = X->lengths[1] / *group;
 				uint32_t feature_count = W->lengths[0] / *group;
 
+				uint32_t group_unit = feature_count * y_unit;
+				uint32_t batch_unit = *group * group_unit;
+
+				// Create works
+				uint32_t work_count = batch_count * *group * feature_count;
+				struct Work works[work_count];
+				uint32_t work_idx = 0;
 				for(uint32_t batch = 0; batch < batch_count; batch++) {
 					for(uint32_t g = 0; g < *group; g++) {
 						for(uint32_t feature = 0; feature < feature_count; feature++) {
-							for(uint32_t channel = 0; channel < channel_count; channel++) {
-								uint32_t f = g * feature_count + feature;
-								uint32_t c = g * channel_count + channel;
-
-								float* x_array = (float*)X->base + (batch * channel_count * *group + c) * x_unit;
-								float* w_array = (float*)W->base + (f * W->lengths[1] + (c / *group)) * w_unit;
-
-								_conv2d_float(Y->lengths + 2, y_array, 
-										X->lengths + 2, x_array, 
-										W->lengths + 2, w_array, 
-										kernel_shape, pads, strides, b_array != NULL ? b_array[feature] : 0);
-
-							}
-
-							y_array += y_unit;
+							works[work_idx].batch = batch;
+							works[work_idx].group = g;
+							works[work_idx].feature = feature;
+							work_idx++;
 						}
 					}
+				}
+
+				struct Context context = {
+					.y_array = (float*)Y->base,
+					.b_array = B != NULL ? (float*)B->base : NULL,
+                                                     
+					.y_base = Y->base,
+					.y_unit = y_unit,
+					.y_lengths_2 = Y->lengths + 2,
+                                                     
+					.x_base = X->base,
+					.x_unit = x_unit,
+					.x_lengths_2 = X->lengths + 2,
+                                                     
+					.w_base = W->base,
+					.w_unit = w_unit,
+					.w_lengths_1 = W->lengths[1],
+					.w_lengths_2 = W->lengths + 2,
+                                                     
+					.channel_count = channel_count,
+					.feature_count = feature_count,
+					.group_count = *group,
+                                                     
+					.group_unit = group_unit,
+					.batch_unit = batch_unit,
+                                                     
+					.kernel_shape = kernel_shape,
+					.pads = pads,
+					.strides = strides,
+				};
+
+
+				// Allocate threads
+				connx_SubThread* threads[work_count];
+				uint32_t thread_count = connx_SubThread_alloc(threads, work_count - 1);
+				work_idx = 0;
+				struct Work* ws = works;
+
+				if(thread_count > 0) {
+					uint32_t work_batch = (work_count / (thread_count + 1)) + (work_count % (thread_count + 1) > 0 ? 1 : 0);
+					
+					for(uint32_t i = 0; i < thread_count; i++) {
+						uint32_t remain = work_count - work_idx;
+						if(remain > work_batch)
+							remain = work_batch;
+
+						connx_SubThread_run(threads[i], run_float32, remain, ws, &context);
+
+						ws += remain;
+						work_idx += remain;
+					}
+				}
+
+				run_float32(work_count - work_idx, ws, &context);
+
+				for(uint32_t i = 0; i < thread_count; i++) {
+					connx_SubThread_wait(threads[i]);
 				}
 			}
 			break;

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <sys/time.h>
+#include <sys/sysinfo.h>
 #include <connx/connx.h>
 
 #define TITLE				"CONNX - C implementation of Open Neural Network Exchange Runtime"
@@ -64,6 +65,7 @@ static void print_help() {
 	printf("\t-o	Output data name\n");
 	printf("\t-p	Dimensional parameter(key=value comma separated format,\n");
 	printf("\t  	key _ is used for no named parameter)\n");
+    printf("\t-c    Number of CPU cores to parallel processing");
 	printf("\t-l	Loop count (default is 1)\n");
     printf("\t-e    Tolerance number (default is 0.00001)");
 	printf("\t-d	Dump variables\n");
@@ -98,6 +100,7 @@ int main(int argc, char** argv) {
 	uint32_t parameterCount = 0;
 	char** parameterNames = NULL;
 	int64_t* parameterValues = NULL;
+	int32_t coreCount = -1;
 
 #define CLEAR()			\
 	for(uint32_t i = 0; i < inputCount; i++) {	\
@@ -130,7 +133,7 @@ int main(int argc, char** argv) {
 	
 	int len;
 	int option;
-	while((option = getopt(argc, argv, "i:t:o:p:l:e:dhvc")) != -1) {
+	while((option = getopt(argc, argv, "i:t:o:p:c:l:e:dhvC")) != -1) {
 		switch(option) {
 			case 'i':
 				len = strlen(optarg) + 1;
@@ -187,6 +190,9 @@ int main(int argc, char** argv) {
 					}
 				}
 				break;
+			case 'c':
+				coreCount = (int32_t)atoi(optarg);
+				break;
 			case 'l':
 				loopCount = (uint32_t)atoi(optarg);
 				break;
@@ -204,7 +210,7 @@ int main(int argc, char** argv) {
 				print_notice();
 				print_version();
 				return 0;
-			case 'c':
+			case 'C':
 				print_copyright();
 				return 0;
 			default:
@@ -303,6 +309,12 @@ int main(int argc, char** argv) {
 		connx_Model_dump(model);
 	}
 
+	if(coreCount == -1) {
+		coreCount = get_nprocs() * 2;
+	}
+
+	connx_SubThread_init(coreCount);
+
 	/*
 	if(isDebug) {
 		printf("* operators\n");
@@ -377,6 +389,7 @@ int main(int argc, char** argv) {
 
 	connx_Runtime_delete(runtime);
 	CLEAR();
+	connx_SubThread_finalize();
 
 	return 0;
 }

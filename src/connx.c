@@ -3052,6 +3052,176 @@ void connx_Operator_dump() {
 	}
 }
 
+static struct ds_List* _subThreads;
+
+#ifdef __linux__
+static pthread_mutex_t _subThreadsLock;
+
+struct PSubThread {
+	pthread_t		pthread;
+	pthread_cond_t	cond;
+	pthread_mutex_t	mutex;
+};
+#endif /* __linux__ */
+
+static void* _subthread_run(void* context) {
+	connx_SubThread* thread = context;
+#ifdef __linux__
+	struct PSubThread* pSubThread = (void*)thread->priv;
+#endif /* __linux__ */
+
+	do {
+#ifdef __linux__
+		pthread_mutex_lock(&pSubThread->mutex);
+		pthread_cond_wait(&pSubThread->cond, &pSubThread->mutex);
+		pthread_mutex_unlock(&pSubThread->mutex);
+#endif /* __linux__ */
+
+		if(thread->func != NULL)
+			thread->ret = thread->func(thread->work_count, thread->works, thread->context);
+		else
+			thread->ret = NULL;
+
+		thread->func = NULL;
+	} while(thread->isRunning);
+
+	return NULL;
+}
+
+bool connx_SubThread_init(uint32_t count) {
+#ifdef __linux__
+	if(pthread_mutex_init(&_subThreadsLock, NULL) != 0) {
+		return false;
+	}
+#endif /* __linux__ */
+
+	_subThreads = ds_List_create(sizeof(connx_SubThread*), ds_List_equals_ptr, connx_alloc, connx_free);
+	if(_subThreads == NULL)
+		return false;
+
+	for(uint32_t i = 0; i < count; i++) {
+#ifdef __linux__
+		connx_SubThread* thread = connx_alloc(sizeof(connx_SubThread) + sizeof(struct PSubThread));
+		if(thread == NULL)
+			goto failed;
+
+		struct PSubThread* pSubThread = (void*)thread->priv;
+
+		thread->isRunning = true;
+
+		if(pthread_cond_init(&pSubThread->cond, NULL) != 0) {
+			connx_free(thread);
+			goto failed;
+		}
+
+		if(pthread_mutex_init(&pSubThread->mutex, NULL) != 0) {
+			pthread_cond_destroy(&pSubThread->cond);
+			connx_free(thread);
+			goto failed;
+		}
+
+		if(pthread_create(&pSubThread->pthread, NULL, _subthread_run, thread) != 0) {
+			pthread_cond_destroy(&pSubThread->cond);
+			pthread_mutex_destroy(&pSubThread->mutex);
+			connx_free(thread);
+			goto failed;
+		}
+
+		ds_List_add(_subThreads, thread);
+#endif /* __linux__ */
+	}
+
+	return true;
+
+failed:
+	connx_SubThread_finalize();
+	return false;
+}
+
+void connx_SubThread_finalize() {
+	pthread_mutex_lock(&_subThreadsLock);
+
+	for(struct ds_ListIterator iter = ds_ListIterator_create(_subThreads); ds_ListIterator_hasNext(&iter); ) {
+		connx_SubThread* thread = ds_ListIterator_next(&iter);
+		struct PSubThread* pSubThread = (void*)thread->priv;
+
+		thread->isRunning = false;
+		thread->func = NULL;
+		pthread_mutex_lock(&pSubThread->mutex);
+		pthread_cond_signal(&pSubThread->cond);
+		pthread_mutex_unlock(&pSubThread->mutex);
+	}
+
+	for(struct ds_ListIterator iter = ds_ListIterator_create(_subThreads); ds_ListIterator_hasNext(&iter); ) {
+		connx_SubThread* thread = ds_ListIterator_next(&iter);
+		struct PSubThread* pSubThread = (void*)thread->priv;
+
+		pthread_join(pSubThread->pthread, NULL);
+		pthread_cond_destroy(&pSubThread->cond);
+		pthread_mutex_destroy(&pSubThread->mutex);
+		pthread_cancel(pSubThread->pthread);
+		connx_free(thread);
+
+		ds_ListIterator_remove(&iter);
+	}
+
+	pthread_mutex_unlock(&_subThreadsLock);
+	pthread_mutex_destroy(&_subThreadsLock);
+}
+
+__attribute__((weak)) uint32_t connx_SubThread_alloc(connx_SubThread** threads, uint32_t count) {
+	uint32_t idx = 0;
+
+	pthread_mutex_lock(&_subThreadsLock);
+
+	for(struct ds_ListIterator iter = ds_ListIterator_create(_subThreads); ds_ListIterator_hasNext(&iter); ) {
+		if(idx >= count)
+			break;
+
+		connx_SubThread* thread = ds_ListIterator_next(&iter);
+		ds_ListIterator_remove(&iter);
+
+		threads[idx++] = thread;
+	}
+
+	pthread_mutex_unlock(&_subThreadsLock);
+
+	return idx;
+}
+
+void connx_SubThread_run(connx_SubThread* thread, void* (*func)(uint32_t work_count, void* works, void* context), uint32_t work_count, void* works, void* context) {
+	thread->func = func;
+	thread->work_count = work_count;
+	thread->works = works;
+	thread->context = context;
+
+	struct PSubThread* pSubThread = (void*)thread->priv;
+	pthread_cond_signal(&pSubThread->cond);
+}
+
+void* connx_SubThread_wait(connx_SubThread* thread) {
+	while(thread->func != NULL) {
+		
+#ifdef __linux__
+		// Busy waitting
+		__asm volatile("nop");
+		__asm volatile("nop");
+		__asm volatile("nop");
+		__asm volatile("nop");
+		__asm volatile("nop");
+#endif /* __linux__ */
+	}
+
+	void* ret = thread->ret;
+	thread->ret = NULL;
+
+	pthread_mutex_lock(&_subThreadsLock);
+	ds_List_add(_subThreads, thread);
+	pthread_mutex_unlock(&_subThreadsLock);
+
+	return ret;
+}
+
 void connx_Stack_set_count(uintptr_t* stack, uint32_t outputCount, uint32_t inputCount, uint32_t attrCount) {
 	uint32_t stackCount = 1 + outputCount + inputCount + attrCount;
 
