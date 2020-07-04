@@ -3061,6 +3061,7 @@ struct PSubThread {
 	pthread_t		pthread;
 	pthread_cond_t	cond;
 	pthread_mutex_t	mutex;
+
 };
 #endif /* __linux__ */
 
@@ -3073,7 +3074,8 @@ static void* _subthread_run(void* context) {
 	do {
 #ifdef __linux__
 		pthread_mutex_lock(&pSubThread->mutex);
-		pthread_cond_wait(&pSubThread->cond, &pSubThread->mutex);
+		if(thread->func == NULL)
+			pthread_cond_wait(&pSubThread->cond, &pSubThread->mutex);
 		pthread_mutex_unlock(&pSubThread->mutex);
 #endif /* __linux__ */
 
@@ -3099,7 +3101,7 @@ bool connx_SubThread_init(uint32_t count) {
 	if(_subThreads == NULL)
 		return false;
 
-	for(uint32_t i = 0; i < count; i++) {
+	for(uint32_t i = 1; i < count; i++) {
 #ifdef __linux__
 		connx_SubThread* thread = connx_alloc(sizeof(connx_SubThread) + sizeof(struct PSubThread));
 		if(thread == NULL)
@@ -3147,6 +3149,7 @@ void connx_SubThread_finalize() {
 
 		thread->isRunning = false;
 		thread->func = NULL;
+
 		pthread_mutex_lock(&pSubThread->mutex);
 		pthread_cond_signal(&pSubThread->cond);
 		pthread_mutex_unlock(&pSubThread->mutex);
@@ -3196,12 +3199,14 @@ void connx_SubThread_run(connx_SubThread* thread, void* (*func)(uint32_t work_co
 	thread->context = context;
 
 	struct PSubThread* pSubThread = (void*)thread->priv;
+
+	pthread_mutex_lock(&pSubThread->mutex);
 	pthread_cond_signal(&pSubThread->cond);
+	pthread_mutex_unlock(&pSubThread->mutex);
 }
 
 void* connx_SubThread_wait(connx_SubThread* thread) {
 	while(thread->func != NULL) {
-		
 #ifdef __linux__
 		// Busy waitting
 		__asm volatile("nop");

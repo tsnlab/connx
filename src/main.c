@@ -10,7 +10,7 @@
 #define TITLE				"CONNX - C implementation of Open Neural Network Exchange Runtime"
 #define COPYRIGHT_HOLDER	"Semih Kim"
 
-uint64_t get_us() {
+static uint64_t get_us() {
 	struct timeval  tv;
 	gettimeofday(&tv, NULL);
 
@@ -310,8 +310,9 @@ int main(int argc, char** argv) {
 	}
 
 	if(coreCount == -1) {
-		coreCount = get_nprocs() * 2;
+		coreCount = get_nprocs();
 	}
+	printf("* coreCount = %u\n", coreCount);
 
 	connx_SubThread_init(coreCount);
 
