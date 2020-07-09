@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <sys/time.h>
-#include <sys/sysinfo.h>
 #include <connx/connx.h>
 
 #define TITLE				"CONNX - C implementation of Open Neural Network Exchange Runtime"
@@ -222,7 +221,7 @@ int main(int argc, char** argv) {
 
 	print_notice();
 
-	connx_init();
+	connx_init(coreCount);
 
 	connx_Model* model = connx_Model_create_from_file(fileOnnx);
 	if(model == NULL) {
@@ -309,19 +308,6 @@ int main(int argc, char** argv) {
 		connx_Model_dump(model);
 	}
 
-	if(coreCount == -1) {
-		coreCount = get_nprocs() * 2;
-	}
-
-	connx_SubThread_init(coreCount);
-
-	/*
-	if(isDebug) {
-		printf("* operators\n");
-		connx_Operator_dump();
-	}
-	*/
-
 	connx_Runtime* runtime = connx_Runtime_create(model);
 	if(runtime == NULL) {
 		CLEAR();
@@ -389,7 +375,7 @@ int main(int argc, char** argv) {
 
 	connx_Runtime_delete(runtime);
 	CLEAR();
-	connx_SubThread_finalize();
+	connx_finalize();
 
 	return 0;
 }

@@ -4,7 +4,8 @@
 #include <connx/onnx.h>
 
 // connx
-bool connx_init();
+bool connx_init(int coreCount);
+void connx_finalize();
 
 // exception
 void connx_exception(char* format, ...);

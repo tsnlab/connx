@@ -6,10 +6,14 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <math.h>
-#include <pthread.h>
 #include <ds/list.h>
 #include <ds/ring.h>
 #include <connx/connx.h>
+
+#ifdef __linux__
+#include <pthread.h>
+#include <sys/sysinfo.h>
+#endif /* __linux__ */
 
 #define EXCEPTION_MESSAGE_SIZE 256
 
@@ -20,6 +24,25 @@ static int depth = 0;
 static void tab() {
 	for(int i = 0; i < depth; i++)
 		fprintf(stdout, "\t");
+}
+
+// connx
+bool connx_init(int coreCount) {
+	extern bool connx_Operator_init();
+	if(!connx_Operator_init())
+		return false;
+
+	if(coreCount < 0)
+		coreCount = get_nprocs();
+
+	if(!connx_SubThread_init(coreCount))
+		return false;
+
+	return true;
+}
+
+void connx_finalize() {
+	connx_SubThread_finalize();
 }
 
 // exception

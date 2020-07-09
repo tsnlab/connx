@@ -22,7 +22,7 @@ cat << EOF > src/opset.c
 uint32_t connx_operator_count;
 connx_Operator connx_operators[OPERATOR_COUNT];
 
-bool connx_init() {
+bool connx_Operator_init() {
 EOF
 
 for (( i = 0; i < $COUNT; i++))
