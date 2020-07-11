@@ -29,6 +29,7 @@ mobilenet2: all
 
 clean:
 	$(MAKE) -C test clean
+	rm -f src/version.h
 	rm -f src/opset.c
 	rm -rf obj
 	rm -f connx
@@ -55,8 +56,11 @@ bin/re2c: bin/re2c-1.3.tar.gz
 lib/ds/libds.a:
 	$(MAKE) -C lib/ds
 
-connx: lib/ds/libds.a $(OBJS)
+connx: src/version.h lib/ds/libds.a $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
+
+src/version.h:
+	bin/version.sh
 
 src/opset.c:
 	bin/opset.sh $(OPSET_OBJS)

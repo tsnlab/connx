@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <sys/time.h>
 #include <connx/connx.h>
+#include "version.h"
 
 #define TITLE				"CONNX - C implementation of Open Neural Network Exchange Runtime"
 #define COPYRIGHT_HOLDER	"Semih Kim"
@@ -31,7 +32,7 @@ static void pretty_number(char* buf) {
 }
 
 static void print_notice() {
-	printf("CONNX  Copyright (C) 2019-2020  " COPYRIGHT_HOLDER "\n\n");
+	printf("CONNX " CONNX_VERSION " Copyright (C) 2019-2020 " COPYRIGHT_HOLDER "\n\n");
     printf("This program comes with ABSOLUTELY NO WARRANTY.\n");
     printf("This is free software, and you are welcome to redistribute it\n");
     printf("under certain conditions; use -c option for details.\n\n");
@@ -39,7 +40,7 @@ static void print_notice() {
 
 static void print_copyright() {
 	printf(TITLE "\n");
-	printf("Copyright (C) 2019-2020  " COPYRIGHT_HOLDER "\n\n");
+	printf("Copyright (C) 2019-2020 " COPYRIGHT_HOLDER "\n\n");
 
 	printf("This program is free software: you can redistribute it and/or modify\n");
 	printf("it under the terms of the GNU General Public License as published by\n");
@@ -59,22 +60,17 @@ static void print_help() {
 	printf("Usage:\n");
 	printf("\tconnx [onnx file] -i [input data] [-t [target data]] [-l [loop count]] [-e [tolerance number]] [-d]\n\n");
 	printf("Options:\n");
-	printf("\t-i	Input data file (protocol buffer format)\n");
-	printf("\t-t	Target data file (protocol buffer format)\n");
-	printf("\t-o	Output data name\n");
-	printf("\t-p	Dimensional parameter(key=value comma separated format,\n");
-	printf("\t  	key _ is used for no named parameter)\n");
-    printf("\t-c    Number of CPU cores to parallel processing");
-	printf("\t-l	Loop count (default is 1)\n");
-    printf("\t-e    Tolerance number (default is 0.00001)");
-	printf("\t-d	Dump variables\n");
-	printf("\t-h	Display this help message\n");
-	printf("\t-v	Display this application version\n");
-	printf("\t-c	Display copyright\n");
-}
-
-static void print_version() {
-	printf("CONNX ver 0.0.0\n");
+	printf("\t-i\tInput data file (protocol buffer format)\n");
+	printf("\t-t\tTarget data file (protocol buffer format)\n");
+	printf("\t-o\tOutput data name\n");
+	printf("\t-p\tDimensional parameter(key=value comma separated format,\n");
+	printf("\t  \tkey _ is used for no named parameter)\n");
+    printf("\t-c\tNumber of CPU cores to parallel processing\n");
+	printf("\t-l\tLoop count (default is 1)\n");
+    printf("\t-e\tTolerance number (default is 0.00001)\n");
+	printf("\t-d\tDump variables\n");
+	printf("\t-h\tDisplay this help message\n");
+	printf("\t-c\tDisplay copyright\n");
 }
 
 int main(int argc, char** argv) {
@@ -132,7 +128,7 @@ int main(int argc, char** argv) {
 	
 	int len;
 	int option;
-	while((option = getopt(argc, argv, "i:t:o:p:c:l:e:dhvC")) != -1) {
+	while((option = getopt(argc, argv, "i:t:o:p:c:l:e:dhC")) != -1) {
 		switch(option) {
 			case 'i':
 				len = strlen(optarg) + 1;
@@ -204,10 +200,6 @@ int main(int argc, char** argv) {
 			case 'h':
 				print_notice();
 				print_help();
-				return 0;
-			case 'v':
-				print_notice();
-				print_version();
 				return 0;
 			case 'C':
 				print_copyright();
