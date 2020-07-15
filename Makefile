@@ -70,7 +70,7 @@ src/onnx.proto3.pb-c.c: onnx/onnx/onnx.proto3
 	mv src/onnx/onnx.proto3.pb-c.c src/
 	mv src/onnx include/
 
-obj/%.d: src/%.c src/onnx.proto3.pb-c.c
+obj/%.d: src/version.h src/%.c src/onnx.proto3.pb-c.c
 	mkdir -p obj; $(CC) $(CFLAGS) -M $< > $@
 
 -include $(patsubst src/%.c, obj/%.d, $(wildcard src/*.c))  

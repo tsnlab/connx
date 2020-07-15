@@ -100,7 +100,7 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 	connx_Tensor* mean = (void*)stack[5];
 	connx_Tensor* var = (void*)stack[6];
 	float* epsilon = (void*)stack[7];
-	float* momentum = (void*)stack[8];
+	__attribute__((unused)) float* momentum = (void*)stack[8];
 
 	uint32_t batch_count = Y->lengths[0];
 	uint32_t channel_count = Y->lengths[1];
@@ -124,7 +124,7 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 					for(uint32_t c = 0; c < channel_count; c++) {
 						float scale_value = scales[c];
 						float B_value = Bs[c];
-						float mean_value = means[c] * *momentum + means[c] * (1 - *momentum);
+						float mean_value = means[c];// * *momentum + means[c] * (1 - *momentum); // momentum is only applied on trainning
 						float sqrt_value = sqrtf(vars[c] + *epsilon);
 
 						for(uint32_t u = 0; u < unit_count; u++) {
@@ -148,7 +148,7 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 					for(uint32_t c = 0; c < channel_count; c++) {
 						double scale_value = scales[c];
 						double B_value = Bs[c];
-						double mean_value = means[c] * *momentum + means[c] * (1 - *momentum);
+						double mean_value = means[c];// * *momentum + means[c] * (1 - *momentum); // momentum is only applied on trainning
 						double sqrt_value = sqrt(vars[c] + *epsilon);
 
 						for(uint32_t u = 0; u < unit_count; u++) {
