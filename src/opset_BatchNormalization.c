@@ -126,9 +126,10 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 						float B_value = Bs[c];
 						float mean_value = means[c];// * *momentum + means[c] * (1 - *momentum); // momentum is only applied on trainning
 						float sqrt_value = sqrtf(vars[c] + *epsilon);
+						float scale_div_sqrt_value = scale_value / sqrt_value;
 
 						for(uint32_t u = 0; u < unit_count; u++) {
-							*Y_base++ = scale_value * (*X_base++ - mean_value) / sqrt_value + B_value;
+							*Y_base++ = (*X_base++ - mean_value) * scale_div_sqrt_value + B_value;
 						}
 					}
 				}
@@ -150,9 +151,10 @@ static bool BatchNormalization_exec(uintptr_t* stack) {
 						double B_value = Bs[c];
 						double mean_value = means[c];// * *momentum + means[c] * (1 - *momentum); // momentum is only applied on trainning
 						double sqrt_value = sqrt(vars[c] + *epsilon);
+						double scale_div_sqrt_value = scale_value / sqrt_value;
 
 						for(uint32_t u = 0; u < unit_count; u++) {
-							*Y_base++ = scale_value * (*X_base++ - mean_value) / sqrt_value + B_value;
+							*Y_base++ = (*X_base++ - mean_value) * scale_div_sqrt_value + B_value;
 						}
 					}
 				}
