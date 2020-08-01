@@ -1,7 +1,4 @@
-bin/re2c
-include/onnx/onnx.proto3.pb-c.h
-src/version.h
-src/onnx.proto3.pb-c.c
+src/ver.h
 src/opset.c
 obj
 ./connx

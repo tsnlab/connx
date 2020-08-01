@@ -73,6 +73,10 @@ static void error(connx_HAL* hal, const char* msg) {
 	fprintf(stderr, "ERROR: %s\n", msg);
 }
 
+static void debug(connx_HAL* hal, const char* msg) {
+	fprintf(stdout, "DEBUG: %s\n", msg);
+}
+
 connx_HAL* hal_create(char* path) {
 	connx_HAL* hal = calloc(1, sizeof(connx_HAL) + sizeof(HALPriv));
 	hal->alloc = mem_alloc;
@@ -84,6 +88,7 @@ connx_HAL* hal_create(char* path) {
 	hal->join = join;
 	hal->info = info;
 	hal->error = error;
+	hal->debug = debug;
 
 	HALPriv* priv = (HALPriv*)hal->priv;
 	snprintf(priv->path, 128, "%s", path);

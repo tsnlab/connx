@@ -67,6 +67,7 @@ struct _connx_HAL {
 	// error
 	void (*info)(connx_HAL* hal, const char* msg);
 	void (*error)(connx_HAL* hal, const char* msg);
+	void (*debug)(connx_HAL* hal, const char* msg);
 
 	uint8_t priv[0];
 };
