@@ -16,7 +16,6 @@ OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o
 all: connx
 
 clean:
-	$(MAKE) -C test clean
 	rm -f src/ver.h
 	rm -f src/opset.c
 	rm -rf obj

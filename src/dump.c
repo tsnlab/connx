@@ -198,3 +198,67 @@ void connx_Tensor_dump(connx_HAL* hal, connx_Tensor* tensor) {
 done:
 	hal->debug(hal, _message);
 }
+
+void connx_AttributeInt_dump(connx_HAL* hal, const char* title, connx_AttributeInt* attr) {
+	snprintf(_message, MESSAGE_SIZE, "%s: %" PRId32, title, attr->value);
+	hal->debug(hal, _message);
+}
+
+void connx_AttributeFloat_dump(connx_HAL* hal, const char* title, connx_AttributeFloat* attr) {
+	snprintf(_message, MESSAGE_SIZE, "%s: %f", title, attr->value);
+	hal->debug(hal, _message);
+}
+
+void connx_AttributeString_dump(connx_HAL* hal, const char* title, connx_AttributeString* attr) {
+	snprintf(_message, MESSAGE_SIZE, "%s: %s", title, attr->value);
+	hal->debug(hal, _message);
+}
+
+void connx_AttributeInts_dump(connx_HAL* hal, const char* title, connx_AttributeInts* attr) {
+	char* m = _message;
+	int size = MESSAGE_SIZE;
+
+	int len = snprintf(m, size, "%s: ", title);
+	m += len; size -= len; if(size < 0) goto done;
+
+	for(uint32_t i = 0; i < attr->length; i++) {
+		len = snprintf(m, size, "%" PRId32 " ", attr->values[i]);
+		m += len; size -= len; if(size < 0) goto done;
+	}
+
+done:
+	hal->debug(hal, _message);
+}
+
+void connx_AttributeFloats_dump(connx_HAL* hal, const char* title, connx_AttributeFloats* attr) {
+	char* m = _message;
+	int size = MESSAGE_SIZE;
+
+	int len = snprintf(m, size, "%s: ", title);
+	m += len; size -= len; if(size < 0) goto done;
+
+	for(uint32_t i = 0; i < attr->length; i++) {
+		len = snprintf(m, size, "%f ", attr->values[i]);
+		m += len; size -= len; if(size < 0) goto done;
+	}
+
+done:
+	hal->debug(hal, _message);
+}
+
+void connx_AttributeStrings_dump(connx_HAL* hal, const char* title, connx_AttributeStrings* attr) {
+	char* m = _message;
+	int size = MESSAGE_SIZE;
+
+	int len = snprintf(m, size, "%s: ", title);
+	m += len; size -= len; if(size < 0) goto done;
+
+	for(uint32_t i = 0; i < attr->length; i++) {
+		len = snprintf(m, size, "%s ", (char*)attr + attr->offsets[i]);
+		m += len; size -= len; if(size < 0) goto done;
+	}
+
+done:
+	hal->debug(hal, _message);
+}
+

@@ -23,28 +23,29 @@ static void* load(connx_HAL* hal, const char* name) {
 	snprintf(path, 256, "%s/%s", priv->path, name);
 
 	FILE* file = fopen(path, "r");
-	if(file == NULL)
+	if(file == NULL) {
+		fprintf(stderr, "HAL ERROR: There is no such file: '%s'\n", path);
 		return NULL;
+	}
 
 	fseek(file, 0L, SEEK_END);
-	long len = ftell(file) + 1;
+	size_t len = ftell(file);
 	fseek(file, 0L, SEEK_SET);
 
 	void* buf = malloc(len);
 	if(buf == NULL) {
+		fprintf(stderr, "HAL ERROR: Cannot allocate memory: %ld bytes", len);
 		fclose(file);
 		return NULL;
 	}
 
-	size_t len2 = fread(buf, 1, len, file);
+	len -= fread(buf, 1, len, file);
+	void* p = buf;
+	while(len > 0) {
+		p += len;
+		len -= fread(p, 1, len, file);
+	}
 	fclose(file);
-	((uint8_t*)buf)[len - 1] = 0;
-
-	if((long)len2 + 1 != len) {
-		free(buf);
-		fclose(file);
-		return NULL;
-	}
 
 	return buf;
 }
@@ -94,4 +95,8 @@ connx_HAL* hal_create(char* path) {
 	snprintf(priv->path, 128, "%s", path);
 
 	return hal;
+}
+
+void hal_delete(connx_HAL* hal) {
+	free(hal);
 }

@@ -9,14 +9,23 @@ static char _message[MESSAGE_SIZE];
 
 // Delete operator
 static bool opset_delete(connx_Backend* backend, uint32_t counts, uint32_t* params) {
-	for(uint32_t i = 0; i < counts; i++)
+	uint32_t input_count = CONNX_INPUT_COUNT(counts);
+
+	for(uint32_t i = 0; i < input_count; i++) {
 		connx_Backend_delete_variable(backend, params[i]);
+	}
 
 	return true;
 }
 
+// DataType
+uint32_t connx_DataType_size(connx_DataType type) {
+	const static uint32_t DATA_TYPE_SIZE[] = { 0, 4, 1, 1, 2, 2, 4, 8, 0, 1, 2, 8, 4, 4 };
+
+	return DATA_TYPE_SIZE[type];
+}
+
 // Tensor
-const static uint32_t DATA_TYPE_SIZE[] = { 0, 4, 1, 1, 2, 2, 4, 8, 0, 1, 2, 8, 4, 4 };
 
 connx_Tensor* connx_Tensor_create(connx_HAL* hal, connx_DataType type, uint32_t dimension, uint32_t* lengths) {
 	uint32_t total = 1;
@@ -24,7 +33,7 @@ connx_Tensor* connx_Tensor_create(connx_HAL* hal, connx_DataType type, uint32_t 
 		total *= lengths[i];
 	}
 
-	connx_Tensor* tensor = hal->alloc(hal, sizeof(connx_Tensor) + DATA_TYPE_SIZE[type] * total);
+	connx_Tensor* tensor = hal->alloc(hal, sizeof(connx_Tensor) + connx_DataType_size(type) * total);
 	if(tensor == NULL) {
 		return NULL;
 	}
@@ -44,9 +53,55 @@ connx_Tensor* connx_Tensor_create(connx_HAL* hal, connx_DataType type, uint32_t 
 	return tensor;
 }
 
+connx_Tensor* connx_Tensor_create_from_buffer(connx_HAL* hal, void* buf) {
+	uint32_t data_type = *(uint32_t*)buf;
+	buf += sizeof(uint32_t);
+
+	uint32_t dimension = *(uint32_t*)buf;
+	buf += sizeof(uint32_t);
+
+	uint32_t total = 1;
+	uint32_t lengths[dimension];
+	for(uint32_t j = 0; j < dimension; j++) {
+		lengths[j] = *(uint32_t*)buf;
+		buf += sizeof(uint32_t);
+
+		total *= lengths[j];
+	}
+
+	connx_Tensor* tensor = connx_Tensor_create(hal, data_type, dimension, lengths);
+	memcpy(tensor->base, buf, connx_DataType_size(data_type) * total);
+
+	return tensor;
+}
+
 void connx_Tensor_delete(connx_HAL* hal, connx_Tensor* tensor) {
 	hal->free(hal, tensor->lengths);
 	hal->free(hal, tensor);
+}
+
+bool connx_Tensor_is_shape_equals(connx_Tensor* x, connx_Tensor* y) {
+	if(x->type != y->type)
+		return false;
+
+	if(x->dimension != y->dimension)
+		return false;
+
+	for(uint32_t i = 0; i < x->dimension; i++) {
+		if(x->lengths[i] != y->lengths[i])
+			return false;
+	}
+
+	return true;
+}
+
+uint32_t connx_Tensor_total(connx_Tensor* tensor) {
+	uint32_t total = 1;
+	for(uint32_t i = 0; i < tensor->dimension; i++) {
+		total *= tensor->lengths[i];
+	}
+
+	return total;
 }
 
 // Backend
@@ -92,7 +147,26 @@ void connx_Path_delete(connx_HAL* hal, connx_Path* path) {
 		hal->free(hal, path->input_paths);
 	}
 
+	if(path->outputs != NULL) {
+		hal->free(hal, path->outputs);
+	}
+
+	if(path->inputs != NULL) {
+		hal->free(hal, path->inputs);
+	}
+
 	hal->free(hal, path);
+}
+
+bool connx_Path_run(connx_Path* path, connx_Backend* backend) {
+	for(uint32_t i = 0; i < path->call_count; i++) {
+		connx_Call* call = path->calls[i];
+		if(!call->op(backend, call->counts, call->params)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 #define TOKEN_COUNT 32
@@ -349,8 +423,20 @@ static bool parse_script(connx_Backend* backend) {
 
 				path->calls[path_call_idx++] = call;
 			} else if(strncmp(tokens[0], "inputs", 7) == 0) {
-				// Do nothing
+				path->input_count = count - 1;
+
+				path->inputs = hal->alloc(hal, sizeof(uint32_t) * path->input_count);
+				for(uint32_t i = 0; i < count - 1; i++) {
+					path->inputs[i] = strtoul(tokens[1 + i], NULL, 0);
+				}
 			} else if(strncmp(tokens[0], "outputs", 8) == 0) {
+				path->output_count = count - 1;
+
+				path->outputs = hal->alloc(hal, sizeof(uint32_t) * path->output_count);
+				for(uint32_t i = 0; i < count - 1; i++) {
+					path->outputs[i] = strtoul(tokens[1 + i], NULL, 0);
+				}
+
 				status = 0;
 			} else {
 				snprintf(_message, MESSAGE_SIZE, "Not supported command: %s", tokens[0]);
@@ -390,33 +476,10 @@ static bool load_initializers(connx_Backend* backend) {
 		return false;
 	}
 
-	printf("index[0] = %x, [1] = %x, [2] = %x, [3] = %x\n", index[0], index[1], index[2], index[3]);
 	for(uint32_t i = 0; i < backend->initializer_count; i++) {
 		void* info = db + index[i];
-		printf("variable: %u, offset: %x\n", i, index[i]);
 
-		uint32_t data_type = *(uint32_t*)info;
-		info += sizeof(uint32_t);
-
-		uint32_t dimension = *(uint32_t*)info;
-		info += sizeof(uint32_t);
-
-		uint32_t total = 1;
-		uint32_t lengths[dimension];
-		for(uint32_t j = 0; j < dimension; j++) {
-			lengths[j] = *(uint32_t*)info;
-			info += sizeof(uint32_t);
-
-			total *= lengths[j];
-		}
-
-		void* array = info;
-
-		connx_Tensor* tensor = connx_Tensor_create(hal, data_type, dimension, lengths);
-		memcpy(tensor->base, array, DATA_TYPE_SIZE[data_type] * total);
-
-		backend->variables[i] = tensor;
-		connx_Tensor_dump(hal, tensor);
+		backend->variables[i] = connx_Tensor_create_from_buffer(hal, info);
 	}
 
 	hal->unload(hal, index);
@@ -475,82 +538,151 @@ connx_Backend* connx_Backend_create(connx_HAL* hal) {
 }
 
 void connx_Backend_delete(connx_Backend* backend) {
+	connx_HAL* hal = backend->hal;
+
 	if(backend->cleans != NULL) {
-		backend->hal->free(backend->hal, backend->cleans);
+		hal->free(hal, backend->cleans);
 	}
 
 	if(backend->stops != NULL) {
-		backend->hal->free(backend->hal, backend->stops);
+		hal->free(hal, backend->stops);
 	}
 
 	if(backend->starts != NULL) {
-		backend->hal->free(backend->hal, backend->starts);
+		hal->free(hal, backend->starts);
 	}
 
 	if(backend->attributes != NULL) {
-		backend->hal->unload(backend->hal, backend->attributes);
+		hal->unload(hal, backend->attributes);
 	}
 
 	if(backend->attribute_index != NULL) {
-		backend->hal->unload(backend->hal, backend->attribute_index);
+		hal->unload(hal, backend->attribute_index);
 	}
 
 	if(backend->variables != NULL) {
 		for(uint32_t i = 0; i < backend->variable_count; i++) {
 			if(backend->variables[i] != NULL) {
-				connx_Tensor_delete(backend->hal, backend->variables[i]);
+				connx_Tensor_delete(hal, backend->variables[i]);
 			}
 		}
 
-		backend->hal->free(backend->hal, backend->variables);
+		hal->free(hal, backend->variables);
 	}
 
 	if(backend->paths != NULL) {
 		for(uint32_t i = 0; i < backend->path_count; i++) {
 			if(backend->paths[i] != NULL) {
-				connx_Path_delete(backend->hal, backend->paths[i]);
+				connx_Path_delete(hal, backend->paths[i]);
 			}
 		}
 
-		backend->hal->free(backend->hal, backend->paths);
+		hal->free(hal, backend->paths);
 	}
 
-	backend->hal->free(backend->hal, backend);
+	hal->free(hal, backend);
 }
 
 connx_Tensor** connx_Backend_run(connx_Backend* backend, connx_Tensor** inputs) {
-	return NULL;
+	// Check output count exceeds
+	if(backend->clean_count >= CONNX_MAX_BACKEND_OUTPUT_COUNT - 1) {
+		snprintf(_message, MESSAGE_SIZE, "Output tensor count exceeds: %u > %u", backend->clean_count, CONNX_MAX_BACKEND_OUTPUT_COUNT - 1);
+		return NULL;
+	}
+
+	// input
+	uint32_t index_count = backend->paths[0]->output_count;
+	uint32_t* index = backend->paths[0]->outputs;
+
+	for(uint32_t i = 0; i < index_count && inputs[i] != NULL; i++) {
+		connx_Backend_set_variable(backend, index[i], inputs[i]);
+	}
+
+	// run
+	for(uint32_t i = 0; i < backend->path_count; i++) {
+		connx_Path* path = backend->paths[i];
+
+		if(!connx_Path_run(path, backend)) {
+			return NULL;
+		}
+	}
+
+	// clean variables
+	for(uint32_t i = backend->initializer_count; i < backend->variable_count; i++) {
+		connx_Backend_delete_variable(backend, i);
+	}
+
+	// set outputs
+	for(uint32_t i = 0; i < backend->clean_count && i < CONNX_MAX_BACKEND_OUTPUT_COUNT; i++) {
+		backend->outputs[i] = backend->variables[backend->cleans[i]];
+	}
+
+	backend->outputs[backend->clean_count] = NULL;
+	printf("output ptr: %p\n", backend->outputs);
+
+	return backend->outputs;
+}
+
+void connx_Backend_clean(connx_Backend* backend) {
+	for(uint32_t i = 0; i < backend->clean_count; i++) {
+		connx_Backend_delete_variable(backend, backend->cleans[i]);
+	}
+}
+
+connx_Tensor* connx_Backend_load_tensor(connx_Backend* backend, const char* name) {
+	connx_HAL* hal = backend->hal;
+
+	void* data = hal->load(hal, name);
+	if(data == NULL) {
+		snprintf(_message, MESSAGE_SIZE, "Cannot load tensor: '%s'", name);
+		backend->hal->error(hal, _message);
+		return NULL;
+	}
+
+	connx_Tensor* tensor = connx_Tensor_create_from_buffer(hal, data);
+
+	hal->unload(hal, data);
+
+	return tensor;
 }
 
 bool connx_Backend_has_variable(connx_Backend* backend, uint32_t id) {
-	return false;
+	return id < backend->variable_count && backend->variables[id] != NULL;
 }
 
 connx_Tensor* connx_Backend_get_variable(connx_Backend* backend, uint32_t id) {
-	return NULL;
+	if(id < backend->variable_count)
+		return backend->variables[id];
+	else
+		return NULL;
 }
 
 bool connx_Backend_set_variable(connx_Backend* backend, uint32_t id, connx_Tensor* tensor) {
-	return false;
+	if(id >= backend->variable_count)
+		return false;
+
+	if(backend->variables[id] != NULL) {
+		connx_Tensor_delete(backend->hal, backend->variables[id]);
+	}
+
+	backend->variables[id] = tensor;
+
+	return true;
 }
 
 bool connx_Backend_delete_variable(connx_Backend* backend, uint32_t id) {
-	return false;
-}
+	if(id >= backend->variable_count)
+		return false;
 
-bool connx_Backend_has_attribute(connx_Backend* backend, uint32_t id) {
-	return false;
+	if(backend->variables[id] != NULL) {
+		connx_Tensor_delete(backend->hal, backend->variables[id]);
+		return true;
+	} else {
+		return true;
+	}
 }
 
 void* connx_Backend_get_attribute(connx_Backend* backend, uint32_t id) {
-	return NULL;
+	uint32_t offset = backend->attribute_index[id];
+	return backend->attributes + offset;
 }
-
-bool connx_Backend_set_attribute(connx_Backend* backend, uint32_t id, void* attribute) {
-	return false;
-}
-
-bool connx_Backend_delete_attribute(connx_Backend* backend, uint32_t id, void* attribute) {
-	return false;
-}
-

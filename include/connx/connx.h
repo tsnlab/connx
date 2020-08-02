@@ -24,6 +24,8 @@ typedef enum _connx_DataType {
 	connx_UINT64	= 13,
 } connx_DataType;
 
+uint32_t connx_DataType_size(connx_DataType type);
+
 // Tensor
 typedef struct _connx_Tensor {
 	connx_DataType		type;
@@ -37,7 +39,11 @@ typedef struct _connx_Tensor {
 typedef struct _connx_HAL connx_HAL;
 
 connx_Tensor* connx_Tensor_create(connx_HAL* hal, connx_DataType type, uint32_t dimension, uint32_t* lengths);
+connx_Tensor* connx_Tensor_create_from_buffer(connx_HAL* hal, void* buf);
 void connx_Tensor_delete(connx_HAL* hal, connx_Tensor* tensor);
+
+bool connx_Tensor_is_shape_equals(connx_Tensor* x, connx_Tensor* y);
+uint32_t connx_Tensor_total(connx_Tensor* tensor);
 
 // Backend
 typedef struct _connx_Backend connx_Backend;
@@ -46,6 +52,9 @@ connx_Backend* connx_Backend_create(connx_HAL* hal);
 void connx_Backend_delete(connx_Backend* backend);
 
 connx_Tensor** connx_Backend_run(connx_Backend* backend, connx_Tensor** inputs);
+void connx_Backend_clean(connx_Backend* backend);
+
+connx_Tensor* connx_Backend_load_tensor(connx_Backend* backend, const char* name);
 
 // Hardware Abstraction Layer
 typedef void* connx_Thread;
