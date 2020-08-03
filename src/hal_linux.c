@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 #include <stdarg.h>
 #include <dirent.h> 
 #include <malloc.h>
@@ -35,7 +36,7 @@ static void* load(connx_HAL* hal, const char* name) {
 
 	void* buf = malloc(size);
 	if(buf == NULL) {
-		fprintf(stderr, "HAL ERROR: Cannot allocate memory: %ld bytes", size);
+		fprintf(stderr, "HAL ERROR: Cannot allocate memory: %" PRIdPTR " bytes", size);
 		fclose(file);
 		return NULL;
 	}

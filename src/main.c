@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <inttypes.h>
 #include <strings.h>
 #include <sys/time.h>
 #include <connx/connx.h>
@@ -56,7 +57,7 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 		}
 	}
 
-	printf("Time: %lu us\n", get_us() - base);
+	printf("Time: %" PRIu64 " us\n", get_us() - base);
 
 	for(uint32_t i = 0; i < output_count; i++) {
 		connx_Tensor_dump(hal, outputs[i]);
