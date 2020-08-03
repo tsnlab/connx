@@ -1,7 +1,15 @@
 #include <stdio.h>
 #include <strings.h>
+#include <sys/time.h>
 #include <connx/connx.h>
 #include <connx/dump.h>
+
+static uint64_t get_us() {
+	struct timeval  tv;
+	gettimeofday(&tv, NULL);
+
+	return (tv.tv_sec) * 1000000 + (tv.tv_usec);
+}
 
 extern connx_HAL* hal_create(char* path);
 extern void hal_delete(connx_HAL* hal);
@@ -20,12 +28,18 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 	connx_Tensor* inputs[input_count];
 	for(uint32_t i = 0; i < input_count; i++) {
 		inputs[i] = connx_Backend_load_tensor(backend, argv[1 + i]);
+		if(inputs[i] == NULL) {
+			return -1;
+		}
 	}
 
 	// run
 	uint32_t output_count = 16;
 	connx_Tensor* outputs[output_count];
 	bzero(outputs, sizeof(connx_Tensor*) * output_count);
+
+	uint64_t base = get_us();
+
 	for(uint32_t i = 0; i < 1000; i++) {
 		output_count = 16;
 
@@ -41,6 +55,8 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 			return -1;
 		}
 	}
+
+	printf("Time: %lu us\n", get_us() - base);
 
 	for(uint32_t i = 0; i < output_count; i++) {
 		connx_Tensor_dump(hal, outputs[i]);
