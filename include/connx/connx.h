@@ -25,6 +25,7 @@ typedef enum _connx_DataType {
 } connx_DataType;
 
 uint32_t connx_DataType_size(connx_DataType type);
+const char* connx_DataType_name(connx_DataType type);
 
 // Tensor
 typedef struct _connx_Tensor {
@@ -51,8 +52,7 @@ typedef struct _connx_Backend connx_Backend;
 connx_Backend* connx_Backend_create(connx_HAL* hal);
 void connx_Backend_delete(connx_Backend* backend);
 
-connx_Tensor** connx_Backend_run(connx_Backend* backend, connx_Tensor** inputs);
-void connx_Backend_clean(connx_Backend* backend);
+bool connx_Backend_run(connx_Backend* backend, uint32_t* output_count, connx_Tensor** outputs, uint32_t input_count, connx_Tensor** inputs);
 
 connx_Tensor* connx_Backend_load_tensor(connx_Backend* backend, const char* name);
 
@@ -74,9 +74,12 @@ struct _connx_HAL {
 	connx_Thread* (*join)(connx_HAL* hal, connx_Thread* thread);
 
 	// error
-	void (*info)(connx_HAL* hal, const char* msg);
-	void (*error)(connx_HAL* hal, const char* msg);
-	void (*debug)(connx_HAL* hal, const char* msg);
+	uint32_t debug_tab;
+	void (*debug)(connx_HAL* hal, const char* format, ...);
+	uint32_t info_tab;
+	void (*info)(connx_HAL* hal, const char* format, ...);
+	uint32_t error_tab;
+	void (*error)(connx_HAL* hal, const char* format, ...);
 
 	uint8_t priv[0];
 };

@@ -37,8 +37,6 @@ void connx_Path_delete(connx_HAL* hal, connx_Path* call);
 
 bool connx_Path_run(connx_Path* path, connx_Backend* backend);
 
-#define CONNX_MAX_BACKEND_OUTPUT_COUNT 16
-
 struct _connx_Backend {
 	connx_HAL*		hal;
 	uint32_t		opset;
@@ -61,8 +59,6 @@ struct _connx_Backend {
 
 	uint32_t		clean_count;
 	uint32_t*		cleans;
-
-	connx_Tensor*	outputs[CONNX_MAX_BACKEND_OUTPUT_COUNT];
 };
 
 bool connx_Backend_has_variable(connx_Backend* backend, uint32_t id);

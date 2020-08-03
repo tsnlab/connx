@@ -1,4 +1,5 @@
 #include <string.h>
+#include <strings.h>
 #include <connx/operator.h>
 #include <connx/backend.h>
 #include <connx/dump.h>
@@ -154,27 +155,27 @@ bool opset_Conv(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_AttributeInts* pads = CONNX_GET_ATTRIBUTE(4);
 	connx_AttributeInts* strides = CONNX_GET_ATTRIBUTE(5);
 
-	connx_AttributeString_dump(backend->hal, "auto_pad", auto_pad);
-	connx_AttributeInts_dump(backend->hal, "dilations", dilations);
-	connx_AttributeInt_dump(backend->hal, "group", group);
-	connx_AttributeInts_dump(backend->hal, "kernel_shape", kernel_shape);
-	connx_AttributeInts_dump(backend->hal, "pads", pads);
-	connx_AttributeInts_dump(backend->hal, "strides", strides);
+	int32_t pad_values[kernel_shape->length * 2];
+	bzero(pad_values, sizeof(int32_t) * kernel_shape->length * 2);
 
 	if(auto_pad->value[0] == 'S') {
 		for(uint32_t i = 0; i < kernel_shape->length; i++) {
 			uint32_t input_shape = X->lengths[X->dimension - kernel_shape->length + i];
 			uint32_t output_shape = input_shape / strides->values[i] + (input_shape % strides->values[i] > 0 ? 1 : 0);
 			uint32_t pad = (output_shape - 1) * strides->values[i] + ((kernel_shape->values[i] - 1) * dilations->values[i] + 1) - input_shape;
-			pads->values[i] = pads->values[i + kernel_shape->length] = pad / 2;
+			pad_values[i] = pad_values[i + kernel_shape->length] = pad / 2;
 			if(pad % 2 == 1) {
 				if(auto_pad->value[5] == 'U') {	// SAME_UPPER
-					pads->values[i + kernel_shape->length]++;
+					pad_values[i + kernel_shape->length]++;
 				} else {						// SAME_LOWER
-					pads->values[i]++;
+					pad_values[i]++;
 				}
 			}
 		}
+	} else if(auto_pad->value[0] == 'V') {
+		bzero(pad_values, sizeof(int32_t) * kernel_shape->length * 2);
+	} else {
+		memcpy(pad_values, pads->values, sizeof(int32_t) * kernel_shape->length * 2);
 	}
 
 	if(Y == NULL) {
@@ -184,7 +185,7 @@ bool opset_Conv(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 		lengths[1] = X->lengths[1] * W->lengths[0] / group->value / W->lengths[1];
 
 		for(uint32_t i = 0; i < kernel_shape->length; i++) {
-			lengths[i + 2] = (X->lengths[i + 2] - kernel_shape->values[i] + pads->values[i] + pads->values[i + kernel_shape->length]) / strides->values[i] + 1;
+			lengths[i + 2] = (X->lengths[i + 2] - kernel_shape->values[i] + pad_values[i] + pad_values[i + kernel_shape->length]) / strides->values[i] + 1;
 		}
 
 		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, lengths);
@@ -253,7 +254,7 @@ bool opset_Conv(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					.batch_unit = batch_unit,
                                                      
 					.kernel_shape = kernel_shape->values,
-					.pads = pads->values,
+					.pads = pad_values,
 					.strides = strides->values,
 				};
 
@@ -294,8 +295,6 @@ bool opset_Conv(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 		default:
 			;
 	}
-
-	connx_Tensor_dump(backend->hal, Y);
 
 	return true;
 }

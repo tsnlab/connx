@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <strings.h>
 #include <connx/connx.h>
 #include <connx/dump.h>
 
@@ -15,24 +16,44 @@ int main(__attribute__((unused)) int argc, __attribute__((unused)) char** argv) 
 	}
 
 	// Load input tensors
-	connx_Tensor* inputs[16] = { NULL, };
-	for(int i = 0; i < 15 && i + 1 < argc; i++) {
+	uint32_t input_count = argc - 1;
+	connx_Tensor* inputs[input_count];
+	for(uint32_t i = 0; i < input_count; i++) {
 		inputs[i] = connx_Backend_load_tensor(backend, argv[1 + i]);
 	}
 
 	// run
-	connx_Tensor** outputs = connx_Backend_run(backend, inputs);
-	if(outputs == NULL) {
-		return -1;
+	uint32_t output_count = 16;
+	connx_Tensor* outputs[output_count];
+	bzero(outputs, sizeof(connx_Tensor*) * output_count);
+	for(uint32_t i = 0; i < 1000; i++) {
+		output_count = 16;
+
+		for(uint32_t j = 0; j < output_count; j++) {
+			if(outputs[j] != NULL) {
+				connx_Tensor_delete(hal, outputs[j]);
+			}
+		}
+
+		if(!connx_Backend_run(backend, &output_count, outputs, input_count, inputs)) {
+			connx_Backend_delete(backend);
+			hal_delete(hal);
+			return -1;
+		}
 	}
 
-	printf("output in main: %p\n", outputs);
-	for(uint32_t i = 0; outputs[i] != NULL; i++) {
+	for(uint32_t i = 0; i < output_count; i++) {
 		connx_Tensor_dump(hal, outputs[i]);
+		connx_Tensor_delete(hal, outputs[i]);
 	}
+
+	connx_Tensor* exptected = connx_Backend_load_tensor(backend, "output_0.tensor");
+	connx_Tensor_dump(hal, exptected);
+	connx_Tensor_delete(backend->hal, exptected);
 
 	// clean
-	connx_Backend_clean(backend);
+	for(uint32_t i = 0; i < input_count; i++)
+		connx_Tensor_delete(backend->hal, inputs[i]);
 	connx_Backend_delete(backend);
 
 	hal_delete(hal);

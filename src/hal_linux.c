@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 #include <dirent.h> 
 #include <malloc.h>
 #include <connx/connx.h>
@@ -29,21 +30,27 @@ static void* load(connx_HAL* hal, const char* name) {
 	}
 
 	fseek(file, 0L, SEEK_END);
-	size_t len = ftell(file);
+	size_t size = ftell(file);
 	fseek(file, 0L, SEEK_SET);
 
-	void* buf = malloc(len);
+	void* buf = malloc(size);
 	if(buf == NULL) {
-		fprintf(stderr, "HAL ERROR: Cannot allocate memory: %ld bytes", len);
+		fprintf(stderr, "HAL ERROR: Cannot allocate memory: %ld bytes", size);
 		fclose(file);
 		return NULL;
 	}
 
-	len -= fread(buf, 1, len, file);
 	void* p = buf;
-	while(len > 0) {
+	while(size > 0) {
+		int len = fread(p, 1, size, file);
+		if(len < 0) {
+			fprintf(stderr, "HAL ERROR: Cannot read file: '%s'", path);
+			fclose(file);
+			return NULL;
+		}
+
 		p += len;
-		len -= fread(p, 1, len, file);
+		size -= len;
 	}
 	fclose(file);
 
@@ -66,16 +73,74 @@ static connx_Thread* join(connx_HAL* hal, connx_Thread* thread) {
 	return NULL;
 }
 
-static void info(connx_HAL* hal, const char* msg) {
-	fprintf(stdout, "INFO: %s\n", msg);
+static bool ends_with(const char* text, char ch) {
+	for(int i = 0; text[i] != '\0'; i++) {
+		if(text[i] == ch && text[i + 1] == '\0') {
+			return true;
+		}
+	}
+
+	return false;
 }
 
-static void error(connx_HAL* hal, const char* msg) {
-	fprintf(stderr, "ERROR: %s\n", msg);
+static void debug(__attribute__((unused)) connx_HAL* hal, const char* format, ...) {
+	static bool is_head = true;
+
+	va_list args;
+	va_start(args, format);
+
+	if(is_head) {
+		fprintf(stdout, "DEBUG: ");
+
+		for(uint32_t i = 0; i < hal->debug_tab; i++)
+			fprintf(stdout, "\t");
+	}
+
+	vfprintf(stdout, format, args);
+
+	va_end(args);
+
+	is_head = ends_with(format, '\n');
 }
 
-static void debug(connx_HAL* hal, const char* msg) {
-	fprintf(stdout, "DEBUG: %s\n", msg);
+static void info(__attribute__((unused)) connx_HAL* hal, const char* format, ...) {
+	static bool is_head = true;
+
+	va_list args;
+	va_start(args, format);
+
+	if(is_head) {
+		fprintf(stdout, "INFO: ");
+
+		for(uint32_t i = 0; i < hal->info_tab; i++)
+			fprintf(stdout, "\t");
+	}
+
+	vfprintf(stdout, format, args);
+
+	va_end(args);
+
+	is_head = ends_with(format, '\n');
+}
+
+static void error(__attribute__((unused)) connx_HAL* hal, const char* format, ...) {
+	static bool is_head = true;
+
+	va_list args;
+	va_start(args, format);
+
+	if(is_head) {
+		fprintf(stderr, "ERROR: ");
+
+		for(uint32_t i = 0; i < hal->error_tab; i++)
+			fprintf(stdout, "\t");
+	}
+
+	vfprintf(stderr, format, args);
+
+	va_end(args);
+
+	is_head = ends_with(format, '\n');
 }
 
 connx_HAL* hal_create(char* path) {
@@ -87,9 +152,9 @@ connx_HAL* hal_create(char* path) {
 	hal->alloc_threads = alloc_threads;
 	hal->free_thread = free_thread;
 	hal->join = join;
+	hal->debug = debug;
 	hal->info = info;
 	hal->error = error;
-	hal->debug = debug;
 
 	HALPriv* priv = (HALPriv*)hal->priv;
 	snprintf(priv->path, 128, "%s", path);

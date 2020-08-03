@@ -33,7 +33,7 @@
 			array1##_idx = (array1##_idx + 1) % array1##_length,		\
 			array2##_idx = (array2##_idx + 1) % array2##_length)
 
-static bool Add_normal(connx_DataType type, uint32_t total, void* C, void* A, void* B) {
+static bool Add_normal(connx_Backend* backend, connx_DataType type, uint32_t total, void* C, void* A, void* B) {
 	switch(type) {
 		case connx_UINT32:
 			{
@@ -113,13 +113,15 @@ static bool Add_normal(connx_DataType type, uint32_t total, void* C, void* A, vo
 			}
 			break;
 		default:
-			return false;
+			{
+				backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
+			}
 	}
 
 	return true;
 }
 
-static bool Add_leaf(connx_DataType type, uint32_t C_length, void* C, uint32_t A_length, void* A, uint32_t B_length, void* B) {
+static bool Add_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_length, void* C, uint32_t A_length, void* A, uint32_t B_length, void* B) {
 	switch(type) {
 		case connx_UINT32:
 			{
@@ -199,13 +201,15 @@ static bool Add_leaf(connx_DataType type, uint32_t C_length, void* C, uint32_t A
 			}
 			break;
 		default:
-			return false;
+			{
+				backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
+			}
 	}
 
 	return true;
 }
 
-static bool Add_broadcast(connx_DataType type, uint32_t C_dimension, uint32_t* C_lengths, void* C, uint32_t A_dimension, uint32_t* A_lengths, void* A, uint32_t B_dimension, uint32_t* B_lengths, void* B) {
+static bool Add_broadcast(connx_Backend* backend, connx_DataType type, uint32_t C_dimension, uint32_t* C_lengths, void* C, uint32_t A_dimension, uint32_t* A_lengths, void* A, uint32_t B_dimension, uint32_t* B_lengths, void* B) {
 	if(A_dimension == B_dimension) {
 		uint32_t total = 1;
 		for(uint32_t i = 0; i < A_dimension; i++) {
@@ -216,13 +220,13 @@ static bool Add_broadcast(connx_DataType type, uint32_t C_dimension, uint32_t* C
 			total *= A_lengths[i];
 		}
 
-		return Add_normal(type, total, C, A, B);
+		return Add_normal(backend, type, total, C, A, B);
 	}
 
 broadcast:
 
 	if(A_dimension == 1 && B_dimension == 1) {
-		return Add_leaf(type, C_lengths[0], C, A_lengths[0], A, B_lengths[0], B);
+		return Add_leaf(backend, type, C_lengths[0], C, A_lengths[0], A, B_lengths[0], B);
 	}
 
 	INIT(A, type)
@@ -231,7 +235,7 @@ broadcast:
 
 	if(A_dimension == B_dimension) {
 		FOR(C, A, B) {
-			bool result = Add_broadcast(type, 
+			bool result = Add_broadcast(backend, type, 
 					C_dimension - 1, C_lengths + 1, BASE(C, C_idx), 
 					A_dimension - 1, A_lengths + 1, BASE(A, A_idx), 
 					B_dimension - 1, B_lengths + 1, BASE(B, B_idx));
@@ -241,7 +245,7 @@ broadcast:
 		}
 	} else if(A_dimension > B_dimension) {
 		for(uint32_t i = 0; i < C_length; i++) {
-			bool result = Add_broadcast(type, 
+			bool result = Add_broadcast(backend, type, 
 					C_dimension - 1, C_lengths + 1, BASE(C, i), 
 					A_dimension - 1, A_lengths + 1, BASE(A, i), 
 					B_dimension, B_lengths, B);
@@ -251,7 +255,7 @@ broadcast:
 		}
 	} else {
 		for(uint32_t i = 0; i < C_length; i++) {
-			bool result = Add_broadcast(type, 
+			bool result = Add_broadcast(backend, type, 
 					C_dimension - 1, C_lengths + 1, BASE(C, i), 
 					A_dimension, A_lengths, A, 
 					B_dimension - 1, B_lengths + 1, BASE(B, i));
@@ -291,8 +295,8 @@ bool opset_Add(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	}
 
 	if(connx_Tensor_is_shape_equals(A, B)) {
-		return Add_normal(C->type, connx_Tensor_total(C), C->base, A->base, B->base);
+		return Add_normal(backend, C->type, connx_Tensor_total(C), C->base, A->base, B->base);
 	} else {
-		return Add_broadcast(C->type, C->dimension, C->lengths, C->base, A->dimension, A->lengths, A->base, B->dimension, B->lengths, B->base);
+		return Add_broadcast(backend, C->type, C->dimension, C->lengths, C->base, A->dimension, A->lengths, A->base, B->dimension, B->lengths, B->base);
 	}
 }

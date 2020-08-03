@@ -4,15 +4,20 @@
 #include <connx/connx.h>
 #include <connx/backend.h>
 
-#define MESSAGE_SIZE 256
-static char _message[MESSAGE_SIZE];
+#define DEBUG 0
+
+#if DEBUG
+#include <connx/dump.h>
+#endif /* DEBUG */
 
 // Delete operator
-static bool opset_delete(connx_Backend* backend, uint32_t counts, uint32_t* params) {
+bool opset_delete(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	uint32_t input_count = CONNX_INPUT_COUNT(counts);
 
 	for(uint32_t i = 0; i < input_count; i++) {
-		connx_Backend_delete_variable(backend, params[i]);
+		if(params[i] >= backend->initializer_count) {
+			connx_Backend_delete_variable(backend, params[i]);
+		}
 	}
 
 	return true;
@@ -20,9 +25,26 @@ static bool opset_delete(connx_Backend* backend, uint32_t counts, uint32_t* para
 
 // DataType
 uint32_t connx_DataType_size(connx_DataType type) {
-	const static uint32_t DATA_TYPE_SIZE[] = { 0, 4, 1, 1, 2, 2, 4, 8, 0, 1, 2, 8, 4, 4 };
+	static const uint32_t DATA_TYPE_SIZE[] = { 0, 4, 1, 1, 2, 2, 4, 8, 0, 1, 2, 8, 4, 4 };
 
-	return DATA_TYPE_SIZE[type];
+	if(type < 0 || type >= sizeof(DATA_TYPE_SIZE))
+		return 0;
+	else
+		return DATA_TYPE_SIZE[type];
+}
+
+const char* connx_DataType_name(connx_DataType type) {
+	static const char* DATA_TYPE_NAME[] = {
+		"void", "float32", "uint8", "int8",
+		"uint16", "int16", "int32", "int64",
+		"string", "bool", "float16", "float64",
+		"uint32", "uint64",
+	};
+
+	if(type < 0 || type >= sizeof(DATA_TYPE_NAME))
+		return "unknown";
+	else
+		return DATA_TYPE_NAME[type];
 }
 
 // Tensor
@@ -55,6 +77,9 @@ connx_Tensor* connx_Tensor_create(connx_HAL* hal, connx_DataType type, uint32_t 
 
 connx_Tensor* connx_Tensor_create_from_buffer(connx_HAL* hal, void* buf) {
 	uint32_t data_type = *(uint32_t*)buf;
+	if(data_type == 0)	// null tensor
+		return NULL;
+
 	buf += sizeof(uint32_t);
 
 	uint32_t dimension = *(uint32_t*)buf;
@@ -161,9 +186,27 @@ void connx_Path_delete(connx_HAL* hal, connx_Path* path) {
 bool connx_Path_run(connx_Path* path, connx_Backend* backend) {
 	for(uint32_t i = 0; i < path->call_count; i++) {
 		connx_Call* call = path->calls[i];
+
+#if DEBUG
+		connx_Call_dump(backend->hal, call);
+		backend->hal->debug_tab++;
+#endif /* DEBUG */
+
 		if(!call->op(backend, call->counts, call->params)) {
 			return false;
 		}
+
+#if DEBUG
+		uint32_t output_count = CONNX_OUTPUT_COUNT(call->counts);
+		for(uint32_t i = 0; i < output_count; i++) {
+			backend->hal->debug(backend->hal, "output[%u] = ", call->params[i]);
+			if(backend->variables[call->params[i]] == NULL)
+				backend->hal->debug(backend->hal, "null\n");
+			else
+				connx_Tensor_dump(backend->hal, backend->variables[call->params[i]]);
+		}
+		backend->hal->debug_tab--;
+#endif /* DEBUG */
 	}
 
 	return true;
@@ -264,8 +307,7 @@ static bool parse_script(connx_Backend* backend) {
 		if(status == 0) {
 			if(strncmp(tokens[0], "opset", 5) == 0) {
 				if(count < 2) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for opset: %u", 2);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for opset: %u\n", 2);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -273,8 +315,7 @@ static bool parse_script(connx_Backend* backend) {
 				backend->opset = strtoul(tokens[1], NULL, 0);
 			} else if(strncmp(tokens[0], "paths", 6) == 0) {
 				if(count < 2) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for paths: %u", 2);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for paths: %u\n", 2);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -283,15 +324,13 @@ static bool parse_script(connx_Backend* backend) {
 				backend->paths = hal->alloc(hal, sizeof(connx_Path) * backend->path_count);
 
 				if(backend->paths == NULL) {
-					snprintf(_message, MESSAGE_SIZE, "Out of memory");
-					hal->error(hal, _message);
+					hal->error(hal, "Out of memory\n");
 					hal->unload(hal, orig_script);
 					return false;
 				}
 			} else if(strncmp(tokens[0], "initializers", 13) == 0) {
 				if(count < 2) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for initializers: %u", 2);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for initializers: %u\n", 2);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -299,8 +338,7 @@ static bool parse_script(connx_Backend* backend) {
 				backend->initializer_count = strtoul(tokens[1], NULL, 0);
 			} else if(strncmp(tokens[0], "variables", 10) == 0) {
 				if(count < 2) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for variables: %u", 2);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for variables: %u\n", 2);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -310,15 +348,13 @@ static bool parse_script(connx_Backend* backend) {
 				backend->variables = hal->alloc(hal, sizeof(connx_Tensor*) * backend->variable_count);
 
 				if(backend->variables == NULL) {
-					snprintf(_message, MESSAGE_SIZE, "Out of memory");
-					hal->error(hal, _message);
+					hal->error(hal, "Out of memory\n");
 					hal->unload(hal, orig_script);
 					return false;
 				}
 			} else if(strncmp(tokens[0], "path", 5) == 0) {
 				if(count < 2) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for initializers: %u", 2);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for initializers: %u\n", 2);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -352,8 +388,7 @@ static bool parse_script(connx_Backend* backend) {
 					backend->cleans[i] = strtoul(tokens[1 + i], NULL, 0);
 				}
 			} else {
-				snprintf(_message, MESSAGE_SIZE, "Not supported command: '%s'", tokens[0]);
-				hal->error(hal, _message);
+				hal->error(hal, "Not supported command: '%s'\n", tokens[0]);
 				hal->unload(hal, orig_script);
 				return false;
 			}
@@ -372,8 +407,7 @@ static bool parse_script(connx_Backend* backend) {
 				}
 			} else if(strncmp(tokens[0], "calls", 6) == 0) {
 				if(count < 2) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for calls: %u", 2);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for calls: %u\n", 2);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -382,8 +416,7 @@ static bool parse_script(connx_Backend* backend) {
 				path->calls = hal->alloc(hal, sizeof(connx_Call) * path->call_count);
 			} else if(strncmp(tokens[0], "call", 5) == 0) {
 				if(count < 5) {
-					snprintf(_message, MESSAGE_SIZE, "Unexpected parameter number for call: %u", 5);
-					hal->error(hal, _message);
+					hal->error(hal, "Unexpected parameter number for call: %u\n", 5);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -398,8 +431,7 @@ static bool parse_script(connx_Backend* backend) {
 				}
 
 				if(op == NULL) {
-					snprintf(_message, MESSAGE_SIZE, "Cannot find operator %s", op_name);
-					hal->error(hal, _message);
+					hal->error(hal, "Cannot find operator %s\n", op_name);
 					hal->unload(hal, orig_script);
 					return false;
 				}
@@ -439,14 +471,12 @@ static bool parse_script(connx_Backend* backend) {
 
 				status = 0;
 			} else {
-				snprintf(_message, MESSAGE_SIZE, "Not supported command: %s", tokens[0]);
-				hal->error(hal, _message);
+				hal->error(hal, "Not supported command: %s\n", tokens[0]);
 				hal->unload(hal, orig_script);
 				return false;
 			}
 		} else {
-			snprintf(_message, MESSAGE_SIZE, "Illegal script parser status: %d", status);
-			hal->error(hal, _message);
+			hal->error(hal, "Illegal script parser status: %d\n", status);
 			hal->unload(hal, orig_script);
 			return false;
 		}
@@ -463,16 +493,14 @@ static bool load_initializers(connx_Backend* backend) {
 
 	uint32_t* index = hal->load(hal, "init.idx");
 	if(index == NULL) {
-		snprintf(_message, MESSAGE_SIZE, "Cannot load init.idx");
-		backend->hal->error(hal, _message);
+		backend->hal->error(hal, "Cannot load init.idx\n");
 		return false;
 	}
 
 	void* db = hal->load(hal, "init.db");
 	if(db == NULL) {
 		hal->unload(hal, index);
-		snprintf(_message, MESSAGE_SIZE, "Cannot load init.db");
-		backend->hal->error(hal, _message);
+		backend->hal->error(hal, "Cannot load init.db\n");
 		return false;
 	}
 
@@ -493,16 +521,14 @@ static bool load_attributes(connx_Backend* backend) {
 
 	uint32_t* index = hal->load(hal, "attr.idx");
 	if(index == NULL) {
-		snprintf(_message, MESSAGE_SIZE, "Cannot load attr.idx");
-		backend->hal->error(hal, _message);
+		backend->hal->error(hal, "Cannot load attr.idx\n");
 		return false;
 	}
 
 	void* db = hal->load(hal, "attr.db");
 	if(index == NULL) {
 		hal->unload(hal, index);
-		snprintf(_message, MESSAGE_SIZE, "Cannot load attr.db");
-		backend->hal->error(hal, _message);
+		backend->hal->error(hal, "Cannot load attr.db\n");
 		return false;
 	}
 
@@ -583,16 +609,15 @@ void connx_Backend_delete(connx_Backend* backend) {
 	hal->free(hal, backend);
 }
 
-connx_Tensor** connx_Backend_run(connx_Backend* backend, connx_Tensor** inputs) {
-	// Check output count exceeds
-	if(backend->clean_count >= CONNX_MAX_BACKEND_OUTPUT_COUNT - 1) {
-		snprintf(_message, MESSAGE_SIZE, "Output tensor count exceeds: %u > %u", backend->clean_count, CONNX_MAX_BACKEND_OUTPUT_COUNT - 1);
-		return NULL;
-	}
-
+bool connx_Backend_run(connx_Backend* backend, uint32_t* output_count, connx_Tensor** outputs, uint32_t input_count, connx_Tensor** inputs) {
 	// input
 	uint32_t index_count = backend->paths[0]->output_count;
 	uint32_t* index = backend->paths[0]->outputs;
+
+	if(input_count != index_count) {
+		backend->hal->error(backend->hal, "Input parameter mismatch: %u, expected: %u\n", input_count, index_count);
+		return false;
+	}
 
 	for(uint32_t i = 0; i < index_count && inputs[i] != NULL; i++) {
 		connx_Backend_set_variable(backend, index[i], inputs[i]);
@@ -603,30 +628,32 @@ connx_Tensor** connx_Backend_run(connx_Backend* backend, connx_Tensor** inputs) 
 		connx_Path* path = backend->paths[i];
 
 		if(!connx_Path_run(path, backend)) {
-			return NULL;
+			return false;
 		}
 	}
 
-	// clean variables
-	for(uint32_t i = backend->initializer_count; i < backend->variable_count; i++) {
-		connx_Backend_delete_variable(backend, i);
+	// forget inputs: User is responsible to manage inputs
+	for(uint32_t i = 0; i <  index_count; i++) {
+		backend->variables[index[i]] = NULL;
 	}
 
-	// set outputs
-	for(uint32_t i = 0; i < backend->clean_count && i < CONNX_MAX_BACKEND_OUTPUT_COUNT; i++) {
-		backend->outputs[i] = backend->variables[backend->cleans[i]];
+	// output
+	index_count = backend->paths[backend->path_count - 1]->output_count;
+	index = backend->paths[backend->path_count - 1]->outputs;
+
+	if(index_count < *output_count)
+		*output_count = index_count;
+
+	for(uint32_t i = 0; i < index_count; i++) {
+		if(i < *output_count) {
+			outputs[i] = backend->variables[index[i]];
+			backend->variables[index[i]] = NULL;	// forget outputs: user is responsible to manage outputs
+		} else {
+			connx_Backend_delete_variable(backend, index[i]);
+		}
 	}
 
-	backend->outputs[backend->clean_count] = NULL;
-	printf("output ptr: %p\n", backend->outputs);
-
-	return backend->outputs;
-}
-
-void connx_Backend_clean(connx_Backend* backend) {
-	for(uint32_t i = 0; i < backend->clean_count; i++) {
-		connx_Backend_delete_variable(backend, backend->cleans[i]);
-	}
+	return true;
 }
 
 connx_Tensor* connx_Backend_load_tensor(connx_Backend* backend, const char* name) {
@@ -634,8 +661,7 @@ connx_Tensor* connx_Backend_load_tensor(connx_Backend* backend, const char* name
 
 	void* data = hal->load(hal, name);
 	if(data == NULL) {
-		snprintf(_message, MESSAGE_SIZE, "Cannot load tensor: '%s'", name);
-		backend->hal->error(hal, _message);
+		backend->hal->error(hal, "Cannot load tensor: '%s'\n", name);
 		return NULL;
 	}
 
@@ -676,6 +702,7 @@ bool connx_Backend_delete_variable(connx_Backend* backend, uint32_t id) {
 
 	if(backend->variables[id] != NULL) {
 		connx_Tensor_delete(backend->hal, backend->variables[id]);
+		backend->variables[id] = NULL;
 		return true;
 	} else {
 		return true;
