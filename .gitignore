@@ -1,5 +1,5 @@
 src/ver.h
 src/opset.c
 obj
-./connx
+connx
 *.swp

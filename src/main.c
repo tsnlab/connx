@@ -122,30 +122,40 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	connx_HAL* hal = hal_create(model);
+	int ret = 1;
+
+	uint32_t output_count = 16;
+
+	connx_HAL* hal = NULL;
+	connx_Backend* backend = NULL;
+
+	connx_Tensor* inputs[input_count];
+	connx_Tensor* outputs[output_count];
+	connx_Tensor* targets[target_count];
+
+	bzero(inputs, sizeof(connx_Tensor*) * input_count);
+	bzero(outputs, sizeof(connx_Tensor*) * output_count);
+	bzero(targets, sizeof(connx_Tensor*) * target_count);
+
+
+	hal = hal_create(model);
 
 	// Make CONNX backend
-	connx_Backend* backend = connx_Backend_create(hal);
+	backend = connx_Backend_create(hal);
 	if(backend == NULL) {
-		return -1;
+		goto done;
 	}
 
 	// Load input tensors
-	connx_Tensor* inputs[input_count];
 	for(uint32_t i = 0; i < input_count; i++) {
 		inputs[i] = connx_Backend_load_tensor(backend, input_names[i]);
-		free(input_names[i]);
 		if(inputs[i] == NULL) {
 			fprintf(stderr, "Cannot load input tensor: '%s'\n", input_names[i]);
-			return 1;
+			goto done;
 		}
 	}
 
 	// run
-	uint32_t output_count = 16;
-	connx_Tensor* outputs[output_count];
-	bzero(outputs, sizeof(connx_Tensor*) * output_count);
-
 	uint64_t time_start = get_us();
 
 	for(uint32_t i = 0; i < loop_count; i++) {
@@ -158,9 +168,7 @@ int main(int argc, char** argv) {
 		output_count = 16;
 
 		if(!connx_Backend_run(backend, &output_count, outputs, input_count, inputs)) {
-			connx_Backend_delete(backend);
-			hal_delete(hal);
-			return -1;
+			goto done;
 		}
 	}
 
@@ -172,13 +180,11 @@ int main(int argc, char** argv) {
 	printf("Time: %s us\n", buf);
 
 	// Load target tensors
-	connx_Tensor* targets[target_count];
 	for(uint32_t i = 0; i < target_count; i++) {
 		targets[i] = connx_Backend_load_tensor(backend, target_names[i]);
-		free(target_names[i]);
 		if(targets[i] == NULL) {
 			fprintf(stderr, "Cannot load target tensor: '%s'\n", target_names[i]);
-			return 1;
+			goto done;
 		}
 	}
 
@@ -208,19 +214,43 @@ int main(int argc, char** argv) {
 
 	printf("Result: %s\n", is_succeed ? "SUCCEED" : "FAILED");
 
+	ret = 0;
+
 	// clean
-	for(uint32_t i = 0; i < target_count; i++)
-		connx_Tensor_delete(hal, targets[i]);
+done:
+	for(uint32_t i = 0; i < output_count; i++) {
+		if(outputs[i] != NULL) {
+			connx_Tensor_delete(hal, outputs[i]);
+		}
+	}
 
-	for(uint32_t i = 0; i < output_count; i++)
-		connx_Tensor_delete(hal, outputs[i]);
+	for(uint32_t i = 0; i < target_count; i++) {
+		if(targets[i] != NULL) {
+			connx_Tensor_delete(hal, targets[i]);
+		}
 
-	for(uint32_t i = 0; i < input_count; i++)
-		connx_Tensor_delete(hal, inputs[i]);
+		if(target_names[i] != NULL) {
+			free(target_names[i]);
+		}
+	}
 
-	connx_Backend_delete(backend);
+	for(uint32_t i = 0; i < input_count; i++) {
+		if(inputs[i] != NULL) {
+			connx_Tensor_delete(hal, inputs[i]);
+		}
 
-	hal_delete(hal);
+		if(input_names[i] != NULL) {
+			free(input_names[i]);
+		}
+	}
 
-	return 0;
+	if(backend != NULL) {
+		connx_Backend_delete(backend);
+	}
+
+	if(hal != NULL) {
+		hal_delete(hal);
+	}
+
+	return ret;
 }

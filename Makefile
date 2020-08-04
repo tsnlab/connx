@@ -1,4 +1,4 @@
-.PHONY: all clean run mnist
+.PHONY: all clean run mnist mobilenet
 
 RELEASE ?= 0
 CC := gcc
@@ -18,7 +18,10 @@ all: connx
 run: mnist
 
 mnist: all
-	./connx examples/mnist-8 -i input_0.tensor -t output_0.tensor -l 1000
+	./connx examples/mnist -i input_0.tensor -t output_0.tensor -l 1000
+
+mobilenet: all
+	./connx examples/mobilenet -i input_0.tensor -t output_0.tensor -l 1000
 
 clean:
 	rm -f src/ver.h
