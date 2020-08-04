@@ -149,13 +149,13 @@ int main(int argc, char** argv) {
 	uint64_t time_start = get_us();
 
 	for(uint32_t i = 0; i < loop_count; i++) {
-		output_count = 16;
-
 		for(uint32_t j = 0; j < output_count; j++) {
 			if(outputs[j] != NULL) {
 				connx_Tensor_delete(hal, outputs[j]);
 			}
 		}
+
+		output_count = 16;
 
 		if(!connx_Backend_run(backend, &output_count, outputs, input_count, inputs)) {
 			connx_Backend_delete(backend);
