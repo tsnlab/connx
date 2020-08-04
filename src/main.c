@@ -13,13 +13,6 @@
 #define TITLE				"CONNX - C implementation of Open Neural Network Exchange Runtime"
 #define COPYRIGHT_HOLDER	"Semih Kim"
 
-static uint64_t get_us() {
-	struct timeval  tv;
-	gettimeofday(&tv, NULL);
-
-	return (tv.tv_sec) * 1000000 + (tv.tv_usec);
-}
-
 /**
  * Consider there is enough space to enlarge
  */
@@ -70,6 +63,13 @@ static void print_help() {
     //printf("\t-c\tNumber of CPU cores to parallel processing\n");
 	printf("\t-l\tLoop count (default is 1)\n");
 	printf("\t-h\tDisplay this help message\n");
+}
+
+static uint64_t get_us() {
+	struct timeval  tv;
+	gettimeofday(&tv, NULL);
+
+	return (tv.tv_sec) * 1000000 + (tv.tv_usec);
 }
 
 extern connx_HAL* hal_create(char* path);
