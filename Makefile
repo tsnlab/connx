@@ -1,4 +1,4 @@
-.PHONY: all test clean mnist
+.PHONY: all clean run mnist
 
 RELEASE ?= 0
 CC := gcc
@@ -15,14 +15,16 @@ OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o
 
 all: connx
 
+run: mnist
+
+mnist: all
+	./connx examples/mnist-8 -i input_0.tensor -t output_0.tensor
+
 clean:
 	rm -f src/ver.h
 	rm -f src/opset.c
 	rm -rf obj
 	rm -f connx
-
-test: all
-	$(MAKE) -C test run
 
 connx: src/ver.h $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)

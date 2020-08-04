@@ -173,7 +173,7 @@ int32_t connx_Tensor_accuracy(connx_Tensor* x, connx_Tensor* y) {
 				float* base = (float*)x->base;
 				float* base2 = (float*)y->base;
 
-				for(int32_t precision = 6; precision >= 0; precision--) {
+				for(int32_t precision = 6; precision > 0; precision--) {
 					float epsilon = powf(10, -precision);
 
 					for(uint32_t i = 0; i < count; i++) {
@@ -202,7 +202,7 @@ next_float32:
 				double* base = (double*)x->base;
 				double* base2 = (double*)y->base;
 
-				for(int32_t precision = 15; precision >= 0; precision--) {
+				for(int32_t precision = 15; precision > 0; precision--) {
 					double epsilon = 10^-precision;
 
 					for(uint32_t i = 0; i < count; i++) {
