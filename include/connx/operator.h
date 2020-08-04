@@ -21,30 +21,30 @@
 
 typedef struct _connx_AttributeInt {
 	int32_t		value;
-} __attribute__((packed)) connx_AttributeInt;
+} connx_AttributeInt;
 
 typedef struct _connx_AttributeFloat {
 	float		value;
-} __attribute__((packed)) connx_AttributeFloat;
+} connx_AttributeFloat;
 
 typedef struct _connx_AttributeString {
 	char		value[0];
-} __attribute__((packed)) connx_AttributeString;
+} connx_AttributeString;
 
 typedef struct _connx_AttributeInts {
 	uint32_t	length;
 	int32_t		values[0];
-} __attribute__((packed)) connx_AttributeInts;
+} connx_AttributeInts;
 
 typedef struct _connx_AttributeFloats {
 	uint32_t	length;
 	float		values[0];
-} __attribute__((packed)) connx_AttributeFloats;
+} connx_AttributeFloats;
 
 typedef struct _connx_AttributeStrings {
 	uint32_t	length;
 	uint32_t	offsets[0];
-} __attribute__((packed)) connx_AttributeStrings;
+} connx_AttributeStrings;
 
 typedef bool (*connx_Operator)(connx_Backend* backend, uint32_t counts, uint32_t* params);
 

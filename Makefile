@@ -18,7 +18,7 @@ all: connx
 run: mnist
 
 mnist: all
-	./connx examples/mnist-8 -i input_0.tensor -t output_0.tensor
+	./connx examples/mnist-8 -i input_0.tensor -t output_0.tensor -l 1000
 
 clean:
 	rm -f src/ver.h
