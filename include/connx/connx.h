@@ -46,6 +46,11 @@ void connx_Tensor_delete(connx_HAL* hal, connx_Tensor* tensor);
 bool connx_Tensor_is_shape_equals(connx_Tensor* x, connx_Tensor* y);
 uint32_t connx_Tensor_total(connx_Tensor* tensor);
 
+/**
+ * @return 0 to MAX(int32) - 10^-n precision, -2 - shape is not equals, -1 - value is not equals
+ */
+int32_t connx_Tensor_accuracy(connx_Tensor* x, connx_Tensor* y);
+
 // Backend
 typedef struct _connx_Backend connx_Backend;
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <connx/connx.h>
 #include <connx/backend.h>
 
@@ -127,6 +128,120 @@ uint32_t connx_Tensor_total(connx_Tensor* tensor) {
 	}
 
 	return total;
+}
+
+int32_t connx_Tensor_accuracy(connx_Tensor* x, connx_Tensor* y) {
+	if(!connx_Tensor_is_shape_equals(x, y))
+		return -2;
+
+	uint32_t count = connx_Tensor_total(x);
+
+	switch(x->type) {
+		case connx_UINT8:
+		case connx_UINT16:
+		case connx_UINT32:
+		case connx_UINT64:
+		case connx_INT8:
+		case connx_INT16:
+		case connx_INT32:
+		case connx_INT64:
+		case connx_BOOL:
+		case connx_FLOAT16:
+			return memcmp(x->base, y->base, connx_DataType_size(x->type) * count) == 0;
+			/* float16
+			{
+				uint16_t* base = (uint16_t*)x->base;
+				uint16_t* base2 = (uint16_t*)y->base;
+				float e = epsilon;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(base[i] == base2[i])
+						continue;
+
+					float diff = connx_float16_to_float32(base[i]) - connx_float16_to_float32(base2[i]);
+					if(diff >= -e && diff <= e)
+						continue;
+
+					return false;
+				}
+
+				return true;
+			}
+			*/
+		case connx_FLOAT32:
+			{
+				float* base = (float*)x->base;
+				float* base2 = (float*)y->base;
+
+				for(int32_t precision = 6; precision >= 0; precision--) {
+					float epsilon = powf(10, -precision);
+
+					for(uint32_t i = 0; i < count; i++) {
+						if(base[i] == base2[i])
+							continue;
+
+						if(isnan(base[i]) && isnan(base2[i]))
+							continue;
+
+						float diff = base[i] - base2[i];
+						if(diff >= -epsilon && diff <= epsilon)
+							continue;
+
+						goto next_float32;
+					}
+
+					return precision;
+next_float32:
+					;
+				}
+
+				return -1;
+			}
+		case connx_FLOAT64:
+			{
+				double* base = (double*)x->base;
+				double* base2 = (double*)y->base;
+
+				for(int32_t precision = 15; precision >= 0; precision--) {
+					double epsilon = 10^-precision;
+
+					for(uint32_t i = 0; i < count; i++) {
+						if(base[i] == base2[i])
+							continue;
+
+						if(isnan(base[i]) && isnan(base2[i]))
+							continue;
+
+						double diff = base[i] - base2[i];
+						if(diff >= -epsilon && diff <= epsilon)
+							continue;
+
+						goto next_float64;
+					}
+
+					return precision;
+next_float64:
+					;
+				}
+
+				return -1;
+			}
+		case connx_STRING:
+			{
+				char** base = (char**)x->base;
+				char** base2 = (char**)y->base;
+
+				for(uint32_t i = 0; i < count; i++) {
+					if(strcmp(base[i], base2[i]) != 0) {
+						return 0;
+					}
+				}
+				return -1;
+			}
+		default:
+			;
+			return -1;
+	}
 }
 
 // Backend
