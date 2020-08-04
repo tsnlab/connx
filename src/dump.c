@@ -159,9 +159,10 @@ void connx_Tensor_dump(connx_HAL* hal, connx_Tensor* tensor) {
 	}
 
 	if(total > MAX_ELEMENT_COUNT) {
+		hal->debug(hal, "\n");
 		hal->debug(hal, "... (%u remains)\n", total - MAX_ELEMENT_COUNT);
 	} else {
-		hal->debug(hal, "\n", total - MAX_ELEMENT_COUNT);
+		hal->debug(hal, "\n");
 	}
 
 	hal->debug(hal, "}\n");

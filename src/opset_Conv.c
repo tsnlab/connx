@@ -2,7 +2,6 @@
 #include <strings.h>
 #include <connx/operator.h>
 #include <connx/backend.h>
-#include <connx/dump.h>
 
 static void _conv2d_float(__attribute__((unused)) uint32_t* Y_lengths, float* Y, uint32_t* X_lengths, float* X, uint32_t* W_lengths, float* W, int32_t* kernels, int32_t* pads, int32_t* strides, float bias) {
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

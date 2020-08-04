@@ -1,12 +1,19 @@
 .PHONY: all clean run mnist mobilenet
 
 RELEASE ?= 0
+DEBUG ?= 0
 CC := gcc
+
 override CFLAGS += -Iinclude -Wall -std=c99
+
 ifeq ($(RELEASE), 1)
 	override CFLAGS += -O3
 else
 	override CFLAGS += -O0 -g -fsanitize=address
+endif
+
+ifeq ($(DEBUG), 1)
+	override CFLAGS += -DDEBUG=1
 endif
 
 LIBS := -lm -pthread
@@ -15,13 +22,13 @@ OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c)) obj/opset.o
 
 all: connx
 
-run: mnist
+run: mnist mobilenet
 
 mnist: all
 	./connx examples/mnist -i input_0.tensor -t output_0.tensor -l 1000
 
 mobilenet: all
-	./connx examples/mobilenet -i input_0.tensor -t output_0.tensor -l 1000
+	./connx examples/mobilenet -i input_0.tensor -t output_0.tensor -l 10
 
 clean:
 	rm -f src/ver.h

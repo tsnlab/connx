@@ -19,6 +19,14 @@
 #define CONNX_GET_INPUT(idx)			connx_Backend_get_variable(backend, params[CONNX_OUTPUT_COUNT(counts) + (idx)])
 #define CONNX_GET_ATTRIBUTE(idx)		connx_Backend_get_attribute(backend, params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)])
 
+#define CONNX_GET_OUTPUT_INDEX(idx)			params[(idx)]
+#define CONNX_GET_INPUT_INDEX(idx)			params[CONNX_OUTPUT_COUNT(counts) + (idx)]
+#define CONNX_GET_ATTRIBUTE_INDEX(idx)		params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)]
+
+#define CONNX_GET_OUTPUT_OFFSET(idx)		backend->attribute_index[params[(idx)]]
+#define CONNX_GET_INPUT_OFFSET(idx)			backend->attribute_index[params[CONNX_OUTPUT_COUNT(counts) + (idx)]]
+#define CONNX_GET_ATTRIBUTE_OFFSET(idx)		backend->attribute_index[params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)]]
+
 typedef struct _connx_AttributeInt {
 	int32_t		value;
 } connx_AttributeInt;

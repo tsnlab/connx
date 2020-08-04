@@ -5,8 +5,6 @@
 #include <connx/connx.h>
 #include <connx/backend.h>
 
-#define DEBUG 0
-
 #if DEBUG
 #include <connx/dump.h>
 #endif /* DEBUG */
