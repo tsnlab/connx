@@ -7,3 +7,4 @@ Most of models are converted from ONNX model zoo using onnx-connx tool.
 # Original model license
  * MNIST - MIT
  * Mobilenet - Apache 2.0
+ * Tiny YOLO v3 - MIT

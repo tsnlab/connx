@@ -1,4 +1,4 @@
-.PHONY: all clean run mnist mobilenet
+.PHONY: all clean run mnist mobilenet yolo-tiny
 
 RELEASE ?= 0
 DEBUG ?= 0
@@ -29,6 +29,9 @@ mnist: all
 
 mobilenet: all
 	./connx examples/mobilenet -i input_0.tensor -t output_0.tensor -l 10
+
+yolo-tiny: all
+	./connx examples/yolo-tiny -i input_0.tensor -t output_0.tensor -l 10
 
 clean:
 	rm -f src/ver.h
