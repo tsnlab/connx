@@ -2,7 +2,15 @@
 #include <connx/operator.h>
 #include <connx/backend.h>
 
-bool opset_Ceil(connx_Backend* backend, uint32_t counts, uint32_t* params) {
+static float sigmoidf(float x) {
+	return 1 / (1 + expf(-x));
+}
+
+static double sigmoid(double x) {
+	return 1 / (1 + exp(-x));
+}
+
+bool opset_Sigmoid(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_Tensor* Y = CONNX_GET_OUTPUT(0);
 	connx_Tensor* X = CONNX_GET_INPUT(0);
 
@@ -14,7 +22,7 @@ bool opset_Ceil(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				float* y = (float*)Y->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					y[i] = ceilf(x[i]);
+					y[i] = sigmoidf(x[i]);
 				}
 			}
 			break;
@@ -23,7 +31,7 @@ bool opset_Ceil(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				float* y = (float*)Y->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					y[i] = ceilf(x[i]);
+					y[i] = sigmoidf(x[i]);
 				}
 			}
 			break;
@@ -32,7 +40,7 @@ bool opset_Ceil(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				double* y = (double*)Y->base;
 
 				for(uint32_t i = 0; i < total; i++) {
-					y[i] = ceil(x[i]);
+					y[i] = sigmoid(x[i]);
 				}
 			}
 			break;
