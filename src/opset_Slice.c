@@ -1,6 +1,4 @@
-#include <inttypes.h>
 #include <string.h>
-#include <strings.h>
 #include <connx/operator.h>
 #include <connx/backend.h>
 
