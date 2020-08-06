@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <connx/operator.h>
 #include <connx/backend.h>
 
@@ -45,10 +44,8 @@ bool opset_Relu(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 			break;
 		default:
-			{
-				backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(X->type));
-				return false;
-			}
+			backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(X->type));
+			return false;
 	}
 
 	return true;

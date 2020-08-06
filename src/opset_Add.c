@@ -113,9 +113,7 @@ static bool Add_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 			}
 			break;
 		default:
-			{
-				backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
-			}
+			backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
 	}
 
 	return true;
@@ -201,9 +199,7 @@ static bool Add_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 			}
 			break;
 		default:
-			{
-				backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
-			}
+			backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
 	}
 
 	return true;

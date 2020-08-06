@@ -33,7 +33,7 @@
 			array1##_idx = (array1##_idx + 1) % array1##_length,		\
 			array2##_idx = (array2##_idx + 1) % array2##_length)
 
-static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t total, void* C, void* A, void* B) {
+static bool Mul_normal(connx_Backend* backend, connx_DataType type, uint32_t total, void* C, void* A, void* B) {
 	switch(type) {
 		case connx_UINT32:
 			{
@@ -42,7 +42,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				uint32_t* c = (uint32_t*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -53,7 +53,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				uint64_t* c = (uint64_t*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -64,7 +64,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				int32_t* c = (int32_t*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -75,7 +75,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				int64_t* c = (int64_t*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -86,7 +86,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				float* c = (float*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -97,7 +97,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				float* c = (float*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -108,7 +108,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 				double* c = (double*)C;
 
 				for(uint32_t i = 0; i < total; i++) {
-					c[i] = a[i] - b[i];
+					c[i] = a[i] * b[i];
 				}
 			}
 			break;
@@ -119,7 +119,7 @@ static bool Sub_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 	return true;
 }
 
-static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_length, void* C, uint32_t A_length, void* A, uint32_t B_length, void* B) {
+static bool Mul_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_length, void* C, uint32_t A_length, void* A, uint32_t B_length, void* B) {
 	switch(type) {
 		case connx_UINT32:
 			{
@@ -128,7 +128,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				uint32_t* c = (uint32_t*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -139,7 +139,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				uint64_t* c = (uint64_t*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -150,7 +150,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				int32_t* c = (int32_t*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -161,7 +161,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				int64_t* c = (int64_t*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -172,7 +172,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				float* c = (float*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -183,7 +183,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				float* c = (float*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -194,7 +194,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 				double* c = (double*)C;
 
 				FOR(C, A, B) {
-					c[C_idx] = a[A_idx] - b[B_idx];
+					c[C_idx] = a[A_idx] * b[B_idx];
 				}
 			}
 			break;
@@ -205,7 +205,7 @@ static bool Sub_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 	return true;
 }
 
-static bool Sub_broadcast(connx_Backend* backend, connx_DataType type, uint32_t C_dimension, uint32_t* C_lengths, void* C, uint32_t A_dimension, uint32_t* A_lengths, void* A, uint32_t B_dimension, uint32_t* B_lengths, void* B) {
+static bool Mul_broadcast(connx_Backend* backend, connx_DataType type, uint32_t C_dimension, uint32_t* C_lengths, void* C, uint32_t A_dimension, uint32_t* A_lengths, void* A, uint32_t B_dimension, uint32_t* B_lengths, void* B) {
 	if(A_dimension == B_dimension) {
 		uint32_t total = 1;
 		for(uint32_t i = 0; i < A_dimension; i++) {
@@ -216,13 +216,13 @@ static bool Sub_broadcast(connx_Backend* backend, connx_DataType type, uint32_t 
 			total *= A_lengths[i];
 		}
 
-		return Sub_normal(backend, type, total, C, A, B);
+		return Mul_normal(backend, type, total, C, A, B);
 	}
 
 broadcast:
 
 	if(A_dimension == 1 && B_dimension == 1) {
-		return Sub_leaf(backend, type, C_lengths[0], C, A_lengths[0], A, B_lengths[0], B);
+		return Mul_leaf(backend, type, C_lengths[0], C, A_lengths[0], A, B_lengths[0], B);
 	}
 
 	INIT(A, type)
@@ -231,7 +231,7 @@ broadcast:
 
 	if(A_dimension == B_dimension) {
 		FOR(C, A, B) {
-			bool result = Sub_broadcast(backend, type, 
+			bool result = Mul_broadcast(backend, type, 
 					C_dimension - 1, C_lengths + 1, BASE(C, C_idx), 
 					A_dimension - 1, A_lengths + 1, BASE(A, A_idx), 
 					B_dimension - 1, B_lengths + 1, BASE(B, B_idx));
@@ -241,7 +241,7 @@ broadcast:
 		}
 	} else if(A_dimension > B_dimension) {
 		for(uint32_t i = 0; i < C_length; i++) {
-			bool result = Sub_broadcast(backend, type, 
+			bool result = Mul_broadcast(backend, type, 
 					C_dimension - 1, C_lengths + 1, BASE(C, i), 
 					A_dimension - 1, A_lengths + 1, BASE(A, i), 
 					B_dimension, B_lengths, B);
@@ -251,7 +251,7 @@ broadcast:
 		}
 	} else {
 		for(uint32_t i = 0; i < C_length; i++) {
-			bool result = Sub_broadcast(backend, type, 
+			bool result = Mul_broadcast(backend, type, 
 					C_dimension - 1, C_lengths + 1, BASE(C, i), 
 					A_dimension, A_lengths, A, 
 					B_dimension - 1, B_lengths + 1, BASE(B, i));
@@ -264,7 +264,7 @@ broadcast:
 	return true;
 }
 
-bool opset_Sub(connx_Backend* backend, uint32_t counts, uint32_t* params) {
+bool opset_Mul(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_Tensor* C = CONNX_GET_OUTPUT(0);
 	connx_Tensor* A = CONNX_GET_INPUT(0);
 	connx_Tensor* B = CONNX_GET_INPUT(1);
@@ -291,8 +291,8 @@ bool opset_Sub(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	}
 
 	if(connx_Tensor_is_shape_equals(A, B)) {
-		return Sub_normal(backend, C->type, connx_Tensor_total(C), C->base, A->base, B->base);
+		return Mul_normal(backend, C->type, connx_Tensor_total(C), C->base, A->base, B->base);
 	} else {
-		return Sub_broadcast(backend, C->type, C->dimension, C->lengths, C->base, A->dimension, A->lengths, A->base, B->dimension, B->lengths, B->base);
+		return Mul_broadcast(backend, C->type, C->dimension, C->lengths, C->base, A->dimension, A->lengths, A->base, B->dimension, B->lengths, B->base);
 	}
 }

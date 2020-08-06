@@ -7,10 +7,10 @@ bool opset_Squeeze(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_Tensor* data = CONNX_GET_INPUT(0);
 	connx_AttributeInts* axes  = CONNX_GET_ATTRIBUTE(0);
 
+	// Normalize axes
 	uint32_t axes_length = axes->length;
 	uint32_t axes_base[axes_length];
 
-	// Normalize axes
 	for(uint32_t i = 0; i < axes_length; i++) {
 		if(axes->values[i] < 0)
 			axes_base[i] = (uint32_t)(axes->values[i] + data->dimension);
