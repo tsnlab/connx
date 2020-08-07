@@ -14,6 +14,11 @@ bool opset_Sigmoid(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_Tensor* Y = CONNX_GET_OUTPUT(0);
 	connx_Tensor* X = CONNX_GET_INPUT(0);
 
+	if(Y == NULL) {
+		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, X->lengths);
+		CONNX_SET_OUTPUT(0, Y);
+	}
+
 	uint32_t total = connx_Tensor_total(X);
 
 	switch(X->type) {
