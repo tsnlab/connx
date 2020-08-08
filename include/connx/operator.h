@@ -14,18 +14,18 @@
 #define CONNX_INPUT_COUNT(counts) (((counts) >> 16) & 0xff)
 #define CONNX_ATTRIBUTE_COUNT(counts) (((counts) >> 24) & 0xff)
 
-#define CONNX_GET_OUTPUT(idx)			connx_Backend_get_variable(backend, params[(idx)])
+#define CONNX_GET_OUTPUT(idx)			(idx < CONNX_OUTPUT_COUNT(counts) ? connx_Backend_get_variable(backend, params[(idx)]) : NULL)
 #define CONNX_SET_OUTPUT(idx, tensor)	connx_Backend_set_variable(backend, params[(idx)], (tensor))
-#define CONNX_GET_INPUT(idx)			connx_Backend_get_variable(backend, params[CONNX_OUTPUT_COUNT(counts) + (idx)])
-#define CONNX_GET_ATTRIBUTE(idx)		connx_Backend_get_attribute(backend, params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)])
+#define CONNX_GET_INPUT(idx)			(idx < CONNX_INPUT_COUNT(counts) ? connx_Backend_get_variable(backend, params[CONNX_OUTPUT_COUNT(counts) + (idx)]) : NULL)
+#define CONNX_GET_ATTRIBUTE(idx)		(idx < CONNX_ATTRIBUTE_COUNT(counts) ? connx_Backend_get_attribute(backend, params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)]) : NULL)
 
-#define CONNX_GET_OUTPUT_INDEX(idx)			params[(idx)]
-#define CONNX_GET_INPUT_INDEX(idx)			params[CONNX_OUTPUT_COUNT(counts) + (idx)]
-#define CONNX_GET_ATTRIBUTE_INDEX(idx)		params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)]
+#define CONNX_GET_OUTPUT_INDEX(idx)			(idx < CONNX_OUTPUT_COUNT(counts) ? params[(idx)] : 0)
+#define CONNX_GET_INPUT_INDEX(idx)			(idx < CONNX_INPUT_COUNT(counts) ? params[CONNX_OUTPUT_COUNT(counts) + (idx)] : 0)
+#define CONNX_GET_ATTRIBUTE_INDEX(idx)		(idx < CONNX_ATTRIBUTE_COUNT(counts) ? params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)] : 0)
 
-#define CONNX_GET_OUTPUT_OFFSET(idx)		backend->attribute_index[params[(idx)]]
-#define CONNX_GET_INPUT_OFFSET(idx)			backend->attribute_index[params[CONNX_OUTPUT_COUNT(counts) + (idx)]]
-#define CONNX_GET_ATTRIBUTE_OFFSET(idx)		backend->attribute_index[params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)]]
+#define CONNX_GET_OUTPUT_OFFSET(idx)		(idx < CONNX_OUTPUT_COUNT(counts) ? backend->attribute_index[params[(idx)]] : 0)
+#define CONNX_GET_INPUT_OFFSET(idx)			(idx < CONNX_INPUT_COUNT(counts) ? backend->attribute_index[params[CONNX_OUTPUT_COUNT(counts) + (idx)]] : 0)
+#define CONNX_GET_ATTRIBUTE_OFFSET(idx)		(idx < CONNX_ATTRIBUTE_COUNT(counts) ? backend->attribute_index[params[CONNX_OUTPUT_COUNT(counts) + CONNX_INPUT_COUNT(counts) + (idx)]] : 0)
 
 typedef struct _connx_AttributeInt {
 	int32_t		value;
