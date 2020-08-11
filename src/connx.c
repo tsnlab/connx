@@ -498,6 +498,8 @@ static bool parse_script(connx_Backend* backend) {
 				for(uint32_t i = 0; i < backend->stop_count; i++) {
 					backend->stops[i] = strtoul(tokens[1 + i], NULL, 0);
 				}
+
+				break;	// end of file
 			} else {
 				hal->error(hal, "Not supported command: '%s'\n", tokens[0]);
 				hal->unload(hal, orig_script);
@@ -690,6 +692,27 @@ void connx_Backend_delete(connx_Backend* backend) {
 	}
 
 	if(backend->variables != NULL) {
+		// ignore inputs and outputs: user has responsible to manage inputs and outputs
+		if(backend->paths != NULL) {
+			connx_Path* input_path = backend->paths[0];
+			connx_Call* input_call = input_path->calls[0];
+			uint32_t index_count = CONNX_OUTPUT_COUNT(input_call->counts);
+			uint32_t* index = input_call->params;
+
+			for(uint32_t i = 0; i < index_count; i++) {
+				backend->variables[index[i]] = NULL;
+			}
+
+			connx_Path* output_path = backend->paths[backend->path_count - 1];
+			connx_Call* output_call = output_path->calls[output_path->call_count - 1];
+			index_count = CONNX_INPUT_COUNT(output_call->counts);
+			index = output_call->params + CONNX_OUTPUT_COUNT(output_call->counts);
+
+			for(uint32_t i = 0; i < index_count; i++) {
+				backend->variables[index[i]] = NULL;
+			}
+		}
+
 		for(uint32_t i = 0; i < backend->variable_count; i++) {
 			if(backend->variables[i] != NULL) {
 				connx_Tensor_delete(hal, backend->variables[i]);

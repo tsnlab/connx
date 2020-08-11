@@ -1300,6 +1300,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return uint8_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1332,6 +1333,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return uint16_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1364,6 +1366,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return uint32_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1396,6 +1399,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return uint64_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1428,6 +1432,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return int8_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1460,6 +1465,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return int16_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1492,6 +1498,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return int32_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1524,6 +1531,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return int64_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1556,6 +1564,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return float16_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1588,6 +1597,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return float32_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1620,6 +1630,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return float64_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1652,6 +1663,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return bool_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1684,10 +1696,12 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_STRING:
 					return string_to_string(backend->hal, input, output);
 				default:
+					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
 		default:
+			backend->hal->error(backend->hal, "Not supported input type: %u\n", input->type);
 			return false;
 	}
 

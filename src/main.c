@@ -143,6 +143,7 @@ int main(int argc, char** argv) {
 	// Make CONNX backend
 	backend = connx_Backend_create(hal);
 	if(backend == NULL) {
+		fprintf(stderr, "Cannot create backend\n");
 		goto done;
 	}
 
@@ -168,6 +169,7 @@ int main(int argc, char** argv) {
 		output_count = 16;
 
 		if(!connx_Backend_run(backend, &output_count, outputs, input_count, inputs)) {
+			fprintf(stderr, "Cannot run backend\n");
 			goto done;
 		}
 	}
