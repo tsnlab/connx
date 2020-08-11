@@ -9,16 +9,29 @@
 #include <connx/dump.h>
 #endif /* DEBUG */
 
-// Delete operator
+// internal functions
 bool opset_delete(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	uint32_t input_count = CONNX_INPUT_COUNT(counts);
 
 	for(uint32_t i = 0; i < input_count; i++) {
 		if(params[i] >= backend->initializer_count) {
-			connx_Backend_delete_variable(backend, params[i]);
+#if DEBUG
+			printf("DEBUG: delete: %u\n", CONNX_GET_INPUT_INDEX(i));
+#endif /* DEBUG */
+			connx_Backend_delete_variable(backend, CONNX_GET_INPUT_INDEX(i));
 		}
 	}
 
+	return true;
+}
+
+bool opset_input(connx_Backend* backend, uint32_t counts, uint32_t* params) {
+	// Do nothing
+	return true;
+}
+
+bool opset_output(connx_Backend* backend, uint32_t counts, uint32_t* params) {
+	// Do nothing
 	return true;
 }
 
@@ -285,14 +298,6 @@ void connx_Path_delete(connx_HAL* hal, connx_Path* path) {
 		hal->free(hal, path->input_paths);
 	}
 
-	if(path->outputs != NULL) {
-		hal->free(hal, path->outputs);
-	}
-
-	if(path->inputs != NULL) {
-		hal->free(hal, path->inputs);
-	}
-
 	hal->free(hal, path);
 }
 
@@ -426,21 +431,6 @@ static bool parse_script(connx_Backend* backend) {
 				}
 
 				backend->opset = strtoul(tokens[1], NULL, 0);
-			} else if(strncmp(tokens[0], "paths", 6) == 0) {
-				if(count < 2) {
-					hal->error(hal, "Unexpected parameter number for paths: %u\n", 2);
-					hal->unload(hal, orig_script);
-					return false;
-				}
-
-				backend->path_count = strtoul(tokens[1], NULL, 0);
-				backend->paths = hal->alloc(hal, sizeof(connx_Path) * backend->path_count);
-
-				if(backend->paths == NULL) {
-					hal->error(hal, "Out of memory\n");
-					hal->unload(hal, orig_script);
-					return false;
-				}
 			} else if(strncmp(tokens[0], "initializers", 13) == 0) {
 				if(count < 2) {
 					hal->error(hal, "Unexpected parameter number for initializers: %u\n", 2);
@@ -461,6 +451,21 @@ static bool parse_script(connx_Backend* backend) {
 				backend->variables = hal->alloc(hal, sizeof(connx_Tensor*) * backend->variable_count);
 
 				if(backend->variables == NULL) {
+					hal->error(hal, "Out of memory\n");
+					hal->unload(hal, orig_script);
+					return false;
+				}
+			} else if(strncmp(tokens[0], "paths", 6) == 0) {
+				if(count < 2) {
+					hal->error(hal, "Unexpected parameter number for paths: %u\n", 2);
+					hal->unload(hal, orig_script);
+					return false;
+				}
+
+				backend->path_count = strtoul(tokens[1], NULL, 0);
+				backend->paths = hal->alloc(hal, sizeof(connx_Path) * backend->path_count);
+
+				if(backend->paths == NULL) {
 					hal->error(hal, "Out of memory\n");
 					hal->unload(hal, orig_script);
 					return false;
@@ -493,13 +498,6 @@ static bool parse_script(connx_Backend* backend) {
 				for(uint32_t i = 0; i < backend->stop_count; i++) {
 					backend->stops[i] = strtoul(tokens[1 + i], NULL, 0);
 				}
-			} else if(strncmp(tokens[0], "clean", 6) == 0) {
-				backend->clean_count = count - 1;
-
-				backend->cleans = hal->alloc(hal, sizeof(uint32_t) * backend->clean_count);
-				for(uint32_t i = 0; i < backend->clean_count; i++) {
-					backend->cleans[i] = strtoul(tokens[1 + i], NULL, 0);
-				}
 			} else {
 				hal->error(hal, "Not supported command: '%s'\n", tokens[0]);
 				hal->unload(hal, orig_script);
@@ -525,7 +523,7 @@ static bool parse_script(connx_Backend* backend) {
 					return false;
 				}
 
-				path->call_count = strtoul(tokens[1], NULL, 0) * 2;	// call + delete => call_count * 2
+				path->call_count = strtoul(tokens[1], NULL, 0);
 				path->calls = hal->alloc(hal, sizeof(connx_Call) * path->call_count);
 			} else if(strncmp(tokens[0], "call", 5) == 0) {
 				if(count < 5) {
@@ -536,10 +534,18 @@ static bool parse_script(connx_Backend* backend) {
 
 				char* op_name = tokens[1];
 				connx_Operator op = NULL;
-				for(uint32_t i = 0; connx_operator_names[i] != NULL; i++) {
-					if(strcmp(op_name, connx_operator_names[i]) == 0) {
-						op = connx_operators[i];
-						break;
+				if(strcmp(op_name, "delete") == 0) {
+					op = opset_delete;
+				} else if(strcmp(op_name, "input") == 0) {
+					op = opset_input;
+				} else if(strcmp(op_name, "output") == 0) {
+					op = opset_output;
+				} else {
+					for(uint32_t i = 0; connx_operator_names[i] != NULL; i++) {
+						if(strcmp(op_name, connx_operator_names[i]) == 0) {
+							op = connx_operators[i];
+							break;
+						}
 					}
 				}
 
@@ -560,6 +566,10 @@ static bool parse_script(connx_Backend* backend) {
 				}
 
 				path->calls[path_call_idx++] = call;
+
+				if(path_call_idx >= path->call_count) {
+					status = 0;
+				}
 			} else if(strncmp(tokens[0], "delete", 7) == 0) {
 				connx_Call* call = connx_Call_create(hal, opset_delete, CONNX_COUNTS(0, count - 1, 0));
 				for(uint32_t i = 0; i < count - 1; i++) {
@@ -567,22 +577,6 @@ static bool parse_script(connx_Backend* backend) {
 				}
 
 				path->calls[path_call_idx++] = call;
-			} else if(strncmp(tokens[0], "inputs", 7) == 0) {
-				path->input_count = count - 1;
-
-				path->inputs = hal->alloc(hal, sizeof(uint32_t) * path->input_count);
-				for(uint32_t i = 0; i < count - 1; i++) {
-					path->inputs[i] = strtoul(tokens[1 + i], NULL, 0);
-				}
-			} else if(strncmp(tokens[0], "outputs", 8) == 0) {
-				path->output_count = count - 1;
-
-				path->outputs = hal->alloc(hal, sizeof(uint32_t) * path->output_count);
-				for(uint32_t i = 0; i < count - 1; i++) {
-					path->outputs[i] = strtoul(tokens[1 + i], NULL, 0);
-				}
-
-				status = 0;
 			} else {
 				hal->error(hal, "Not supported command: %s\n", tokens[0]);
 				hal->unload(hal, orig_script);
@@ -679,10 +673,6 @@ connx_Backend* connx_Backend_create(connx_HAL* hal) {
 void connx_Backend_delete(connx_Backend* backend) {
 	connx_HAL* hal = backend->hal;
 
-	if(backend->cleans != NULL) {
-		hal->free(hal, backend->cleans);
-	}
-
 	if(backend->stops != NULL) {
 		hal->free(hal, backend->stops);
 	}
@@ -724,8 +714,10 @@ void connx_Backend_delete(connx_Backend* backend) {
 
 bool connx_Backend_run(connx_Backend* backend, uint32_t* output_count, connx_Tensor** outputs, uint32_t input_count, connx_Tensor** inputs) {
 	// input
-	uint32_t index_count = backend->paths[0]->output_count;
-	uint32_t* index = backend->paths[0]->outputs;
+	connx_Path* input_path = backend->paths[0];
+	connx_Call* input_call = input_path->calls[0];
+	uint32_t index_count = CONNX_OUTPUT_COUNT(input_call->counts);
+	uint32_t* index = input_call->params;
 
 	if(input_count != index_count) {
 		backend->hal->error(backend->hal, "Input parameter mismatch: %u, expected: %u\n", input_count, index_count);
@@ -751,8 +743,10 @@ bool connx_Backend_run(connx_Backend* backend, uint32_t* output_count, connx_Ten
 	}
 
 	// output
-	index_count = backend->paths[backend->path_count - 1]->output_count;
-	index = backend->paths[backend->path_count - 1]->outputs;
+	connx_Path* output_path = backend->paths[backend->path_count - 1];
+	connx_Call* output_call = output_path->calls[output_path->call_count - 1];
+	index_count = CONNX_INPUT_COUNT(output_call->counts);
+	index = output_call->params + CONNX_OUTPUT_COUNT(output_call->counts);
 
 	if(index_count < *output_count)
 		*output_count = index_count;

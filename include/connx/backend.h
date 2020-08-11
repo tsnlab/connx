@@ -16,12 +16,6 @@ void connx_Call_delete(connx_HAL* hal, connx_Call* call);
 typedef struct _connx_Path connx_Path;
 
 struct _connx_Path {
-	uint32_t		input_count;
-	uint32_t*		inputs;
-
-	uint32_t		output_count;
-	uint32_t*		outputs;
-
 	uint32_t		input_path_count;
 	uint32_t*		input_paths;
 
@@ -56,9 +50,6 @@ struct _connx_Backend {
 
 	uint32_t		stop_count;
 	uint32_t*		stops;
-
-	uint32_t		clean_count;
-	uint32_t*		cleans;
 };
 
 bool connx_Backend_has_variable(connx_Backend* backend, uint32_t id);

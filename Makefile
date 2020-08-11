@@ -31,7 +31,7 @@ mobilenet: all
 	./connx examples/mobilenet -i input_0.tensor -t output_0.tensor -l 10
 
 yolo-tiny: all
-	./connx examples/yolo-tiny -i input_0.tensor -t output_0.tensor -l 10
+	./connx examples/yolo-tiny -i input_0.tensor -i input_1.tensor -t output_0.tensor -t output_1.tensor -l 10
 
 clean:
 	rm -f src/ver.h
