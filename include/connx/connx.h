@@ -37,11 +37,11 @@ typedef struct _connx_Tensor {
 	uint8_t				base[0] __attribute__((aligned(16)));		// Align 16 bytes for vector operation
 } connx_Tensor;
 
-typedef struct _connx_HAL connx_HAL;
+typedef struct _connx_PAL connx_PAL;
 
-connx_Tensor* connx_Tensor_create(connx_HAL* hal, connx_DataType type, uint32_t dimension, uint32_t* lengths);
-connx_Tensor* connx_Tensor_create_from_buffer(connx_HAL* hal, void* buf);
-void connx_Tensor_delete(connx_HAL* hal, connx_Tensor* tensor);
+connx_Tensor* connx_Tensor_create(connx_PAL* pal, connx_DataType type, uint32_t dimension, uint32_t* lengths);
+connx_Tensor* connx_Tensor_create_from_buffer(connx_PAL* pal, void* buf);
+void connx_Tensor_delete(connx_PAL* pal, connx_Tensor* tensor);
 
 bool connx_Tensor_is_shape_equals(connx_Tensor* x, connx_Tensor* y);
 uint32_t connx_Tensor_total(connx_Tensor* tensor);
@@ -54,7 +54,7 @@ int32_t connx_Tensor_accuracy(connx_Tensor* x, connx_Tensor* y);
 // Backend
 typedef struct _connx_Backend connx_Backend;
 
-connx_Backend* connx_Backend_create(connx_HAL* hal);
+connx_Backend* connx_Backend_create(connx_PAL* pal);
 void connx_Backend_delete(connx_Backend* backend);
 
 bool connx_Backend_run(connx_Backend* backend, uint32_t* output_count, connx_Tensor** outputs, uint32_t input_count, connx_Tensor** inputs);
@@ -64,27 +64,27 @@ connx_Tensor* connx_Backend_load_tensor(connx_Backend* backend, const char* name
 // Hardware Abstraction Layer
 typedef void* connx_Thread;
 
-struct _connx_HAL {
+struct _connx_PAL {
 	// Memory management
-	void* (*alloc)(connx_HAL* hal, size_t size);
-	void (*free)(connx_HAL* hal, void* ptr);
+	void* (*alloc)(connx_PAL* pal, size_t size);
+	void (*free)(connx_PAL* pal, void* ptr);
 
 	// Model loader
-	void* (*load)(connx_HAL* hal, const char* name);
-	void (*unload)(connx_HAL* hal, void* buf);
+	void* (*load)(connx_PAL* pal, const char* name);
+	void (*unload)(connx_PAL* pal, void* buf);
 
 	// Thread pool
-	connx_Thread* (*alloc_threads)(connx_HAL* hal, uint32_t count);
-	void (*free_thread)(connx_HAL* hal, connx_Thread* thread);
-	connx_Thread* (*join)(connx_HAL* hal, connx_Thread* thread);
+	connx_Thread* (*alloc_threads)(connx_PAL* pal, uint32_t count);
+	void (*free_thread)(connx_PAL* pal, connx_Thread* thread);
+	connx_Thread* (*join)(connx_PAL* pal, connx_Thread* thread);
 
 	// error
 	uint32_t debug_tab;
-	void (*debug)(connx_HAL* hal, const char* format, ...);
+	void (*debug)(connx_PAL* pal, const char* format, ...);
 	uint32_t info_tab;
-	void (*info)(connx_HAL* hal, const char* format, ...);
+	void (*info)(connx_PAL* pal, const char* format, ...);
 	uint32_t error_tab;
-	void (*error)(connx_HAL* hal, const char* format, ...);
+	void (*error)(connx_PAL* pal, const char* format, ...);
 
 	uint8_t priv[0];
 };

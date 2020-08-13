@@ -23,7 +23,7 @@ bool opset_MatMul(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 		lengths[A->dimension - 2] = A->lengths[A->dimension - 2];
 		lengths[A->dimension - 1] = B->lengths[B->dimension - 1];
 
-		C = connx_Tensor_create(backend->hal, A->type, A->dimension, lengths);
+		C = connx_Tensor_create(backend->pal, A->type, A->dimension, lengths);
 		CONNX_SET_OUTPUT(0, C);
 	}
 
@@ -191,7 +191,7 @@ bool opset_MatMul(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			break;
 		default:
 			{
-				backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(A->type));
+				backend->pal->error(backend->pal, "Not supported element type: %s\n", connx_DataType_name(A->type));
 				return false;
 			}
 	}

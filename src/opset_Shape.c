@@ -11,7 +11,7 @@ bool opset_Shape(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	if(shape == NULL) {
 		uint32_t lengths[1] = { data->dimension };
 
-		shape = connx_Tensor_create(backend->hal, connx_INT64, 1, lengths);
+		shape = connx_Tensor_create(backend->pal, connx_INT64, 1, lengths);
 		CONNX_SET_OUTPUT(0, shape);
 	}
 

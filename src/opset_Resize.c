@@ -255,7 +255,7 @@ bool opset_Resize(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 		}
 
-		Y = connx_Tensor_create(backend->hal, X->type, dimension, lengths);
+		Y = connx_Tensor_create(backend->pal, X->type, dimension, lengths);
 		CONNX_SET_OUTPUT(0, Y);
 	}
 
@@ -292,7 +292,7 @@ not_all_zero:
 					}
 					break;
 				default:
-					backend->hal->error(backend->hal, "Illegal roi type: %" PRIu32, roi->type);
+					backend->pal->error(backend->pal, "Illegal roi type: %" PRIu32, roi->type);
 					return false;
 			}
 		}
@@ -303,7 +303,7 @@ not_all_zero:
 			roi_base[i * 2 + 1] = roi_normalized_base[i + dimension];
 		}
 	} else {
-		backend->hal->error(backend->hal, "Illegal coordinate_transformation_mode: '%s'", coordinate_transformation_mode->value);
+		backend->pal->error(backend->pal, "Illegal coordinate_transformation_mode: '%s'", coordinate_transformation_mode->value);
 		return false;
 	}
 
@@ -350,7 +350,7 @@ next_float32:
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported type: %u\n", X->type);
+			backend->pal->error(backend->pal, "Not supported type: %u\n", X->type);
 			return false;
 	}
 

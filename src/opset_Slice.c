@@ -27,7 +27,7 @@ bool opset_Slice(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Illegal starts type: %d\n", starts->type);
+			backend->pal->error(backend->pal, "Illegal starts type: %d\n", starts->type);
 			return false;
 	}
 
@@ -46,7 +46,7 @@ bool opset_Slice(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Illegal ends type: %d\n", ends->type);
+			backend->pal->error(backend->pal, "Illegal ends type: %d\n", ends->type);
 			return false;
 	}
 
@@ -66,7 +66,7 @@ bool opset_Slice(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				}
 				break;
 			default:
-				backend->hal->error(backend->hal, "Illegal steps type: %d\n", steps->type);
+				backend->pal->error(backend->pal, "Illegal steps type: %d\n", steps->type);
 				return false;
 		}
 	} else {
@@ -99,7 +99,7 @@ bool opset_Slice(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					index = axes64_base[i];
 					break;
 				default:
-					backend->hal->error(backend->hal, "Illegal axes type: %d\n", axes->type);
+					backend->pal->error(backend->pal, "Illegal axes type: %d\n", axes->type);
 					return false;
 			}
 
@@ -125,7 +125,7 @@ bool opset_Slice(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			lengths[i] = len;
 		}
 
-		output = connx_Tensor_create(backend->hal, data->type, data->dimension, lengths);
+		output = connx_Tensor_create(backend->pal, data->type, data->dimension, lengths);
 		CONNX_SET_OUTPUT(0, output);
 	}
 

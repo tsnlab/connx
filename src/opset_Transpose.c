@@ -69,7 +69,7 @@ bool opset_Transpose(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 			lengths[i] = input->lengths[perm_values[i]];
 		}
 
-		output = connx_Tensor_create(backend->hal, input->type, input->dimension, lengths);
+		output = connx_Tensor_create(backend->pal, input->type, input->dimension, lengths);
 		CONNX_SET_OUTPUT(0, output);
 	}
 
@@ -158,7 +158,7 @@ bool opset_Transpose(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Illegal element size: %" PRIu32 ", type: %" PRIu32, connx_DataType_size(output->type), output->type);
+			backend->pal->error(backend->pal, "Illegal element size: %" PRIu32 ", type: %" PRIu32, connx_DataType_size(output->type), output->type);
 			return false;
 	}
 

@@ -72,8 +72,8 @@ static uint64_t get_us() {
 	return (tv.tv_sec) * 1000000 + (tv.tv_usec);
 }
 
-extern connx_HAL* hal_create(char* path);
-extern void hal_delete(connx_HAL* hal);
+extern connx_PAL* pal_create(char* path);
+extern void pal_delete(connx_PAL* pal);
 
 int main(int argc, char** argv) {
 	if(argc < 2) {
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
 
 	uint32_t output_count = 16;
 
-	connx_HAL* hal = NULL;
+	connx_PAL* pal = NULL;
 	connx_Backend* backend = NULL;
 
 	connx_Tensor* inputs[input_count];
@@ -138,10 +138,10 @@ int main(int argc, char** argv) {
 	bzero(targets, sizeof(connx_Tensor*) * target_count);
 
 
-	hal = hal_create(model);
+	pal = pal_create(model);
 
 	// Make CONNX backend
-	backend = connx_Backend_create(hal);
+	backend = connx_Backend_create(pal);
 	if(backend == NULL) {
 		fprintf(stderr, "Cannot create backend\n");
 		goto done;
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
 	for(uint32_t i = 0; i < loop_count; i++) {
 		for(uint32_t j = 0; j < output_count; j++) {
 			if(outputs[j] != NULL) {
-				connx_Tensor_delete(hal, outputs[j]);
+				connx_Tensor_delete(pal, outputs[j]);
 			}
 		}
 
@@ -201,9 +201,9 @@ int main(int argc, char** argv) {
 			} else {
 				printf("output[%u] is incorrect\n", i);
 				printf("output[%u]\n", i);
-				connx_Tensor_dump(hal, outputs[i]);
+				connx_Tensor_dump(pal, outputs[i]);
 				printf("target[%u]\n", i);
-				connx_Tensor_dump(hal, targets[i]);
+				connx_Tensor_dump(pal, targets[i]);
 				is_succeed = false;
 			}
 		} else if(i >= target_count) {
@@ -223,13 +223,13 @@ int main(int argc, char** argv) {
 done:
 	for(uint32_t i = 0; i < output_count; i++) {
 		if(outputs[i] != NULL) {
-			connx_Tensor_delete(hal, outputs[i]);
+			connx_Tensor_delete(pal, outputs[i]);
 		}
 	}
 
 	for(uint32_t i = 0; i < target_count; i++) {
 		if(targets[i] != NULL) {
-			connx_Tensor_delete(hal, targets[i]);
+			connx_Tensor_delete(pal, targets[i]);
 		}
 
 		if(target_names[i] != NULL) {
@@ -239,7 +239,7 @@ done:
 
 	for(uint32_t i = 0; i < input_count; i++) {
 		if(inputs[i] != NULL) {
-			connx_Tensor_delete(hal, inputs[i]);
+			connx_Tensor_delete(pal, inputs[i]);
 		}
 
 		if(input_names[i] != NULL) {
@@ -251,8 +251,8 @@ done:
 		connx_Backend_delete(backend);
 	}
 
-	if(hal != NULL) {
-		hal_delete(hal);
+	if(pal != NULL) {
+		pal_delete(pal);
 	}
 
 	return ret;

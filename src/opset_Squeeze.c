@@ -34,7 +34,7 @@ bool opset_Squeeze(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				lengths[idx++] = data->lengths[i];
 		}
 
-		squeezed = connx_Tensor_create(backend->hal, data->type, data->dimension - axes_length, lengths);
+		squeezed = connx_Tensor_create(backend->pal, data->type, data->dimension - axes_length, lengths);
 		CONNX_SET_OUTPUT(0, squeezed);
 	}
 

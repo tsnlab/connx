@@ -23,7 +23,7 @@ bool opset_Reshape(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			if(i < data->dimension) {
 				lengths[i] = data->lengths[i];
 			} else {
-				backend->hal->error(backend->hal, "zero index cannot be set out of bounds: %" PRIu32 " >= %" PRIu32 "\n", i, data->dimension);
+				backend->pal->error(backend->pal, "zero index cannot be set out of bounds: %" PRIu32 " >= %" PRIu32 "\n", i, data->dimension);
 				return false;
 			}
 			len *= lengths[i];
@@ -31,7 +31,7 @@ bool opset_Reshape(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			if(guess == -1) {
 				guess = i;
 			} else {
-				backend->hal->error(backend->hal, "-1 index cannot be repeated more than once: %" PRIu32 "\n", i);
+				backend->pal->error(backend->pal, "-1 index cannot be repeated more than once: %" PRIu32 "\n", i);
 				return false;
 			}
 		} else {
@@ -48,17 +48,17 @@ bool opset_Reshape(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	}
 
 	if(total != len) {
-		backend->hal->error(backend->hal, "shape is not maching: data(%" PRIu32 ") vs shape(%" PRIu32 ")\n", total, len);
+		backend->pal->error(backend->pal, "shape is not maching: data(%" PRIu32 ") vs shape(%" PRIu32 ")\n", total, len);
 		return false;
 	}
 
 	if(reshaped == NULL) {
-		reshaped = connx_Tensor_create(backend->hal, data->type, dimension, lengths);
+		reshaped = connx_Tensor_create(backend->pal, data->type, dimension, lengths);
 		CONNX_SET_OUTPUT(0, reshaped);
 	} else {
-		backend->hal->free(backend->hal, reshaped->lengths);
+		backend->pal->free(backend->pal, reshaped->lengths);
 		reshaped->dimension = dimension;
-		reshaped->lengths = backend->hal->alloc(backend->hal, sizeof(uint32_t) * dimension);
+		reshaped->lengths = backend->pal->alloc(backend->pal, sizeof(uint32_t) * dimension);
 		memcpy(reshaped->lengths, lengths, sizeof(uint32_t) * dimension);
 	}
 

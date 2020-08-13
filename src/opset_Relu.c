@@ -6,7 +6,7 @@ bool opset_Relu(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_Tensor* X = CONNX_GET_INPUT(0);
 
 	if(Y == NULL) {
-		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, X->lengths);
+		Y = connx_Tensor_create(backend->pal, X->type, X->dimension, X->lengths);
 		CONNX_SET_OUTPUT(0, Y);
 	}
 
@@ -44,7 +44,7 @@ bool opset_Relu(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(X->type));
+			backend->pal->error(backend->pal, "Not supported element type: %s\n", connx_DataType_name(X->type));
 			return false;
 	}
 

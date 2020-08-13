@@ -154,6 +154,28 @@ bool opset_Conv(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_AttributeInts* pads = CONNX_GET_ATTRIBUTE(4);
 	connx_AttributeInts* strides = CONNX_GET_ATTRIBUTE(5);
 
+	/*
+	printf("*****\n");
+	printf("autopad: %s\n", auto_pad->value);
+	printf("dilations: (%u) ", dilations->length);
+	for(uint32_t i = 0; i < dilations->length; i++)
+		printf("%d ", dilations->values[i]);
+	printf("\n");
+	printf("group: %d\n", group->value);
+	printf("kernel_shape: (%u) ", kernel_shape->length);
+	for(uint32_t i = 0; i < kernel_shape->length; i++)
+		printf("%d ", kernel_shape->values[i]);
+	printf("\n");
+	printf("pads: (%u) ", pads->length);
+	for(uint32_t i = 0; i < pads->length; i++)
+		printf("%d ", pads->values[i]);
+	printf("\n");
+	printf("strides: (%u) ", strides->length);
+	for(uint32_t i = 0; i < strides->length; i++)
+		printf("%d ", strides->values[i]);
+	printf("\n");
+	*/
+
 	int32_t pad_values[kernel_shape->length * 2];
 	bzero(pad_values, sizeof(int32_t) * kernel_shape->length * 2);
 
@@ -187,7 +209,7 @@ bool opset_Conv(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			lengths[i + 2] = (X->lengths[i + 2] - kernel_shape->values[i] + pad_values[i] + pad_values[i + kernel_shape->length]) / strides->values[i] + 1;
 		}
 
-		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, lengths);
+		Y = connx_Tensor_create(backend->pal, X->type, X->dimension, lengths);
 
 		CONNX_SET_OUTPUT(0, Y);
 	}

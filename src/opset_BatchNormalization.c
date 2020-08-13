@@ -18,7 +18,7 @@ bool opset_BatchNormalization(connx_Backend* backend, uint32_t counts, uint32_t*
 	__attribute__((unused)) connx_AttributeFloat* momentum = CONNX_GET_ATTRIBUTE(1);
 
 	if(Y == NULL) {
-		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, X->lengths);
+		Y = connx_Tensor_create(backend->pal, X->type, X->dimension, X->lengths);
 		CONNX_SET_OUTPUT(0, Y);
 	}
 
@@ -85,7 +85,7 @@ bool opset_BatchNormalization(connx_Backend* backend, uint32_t counts, uint32_t*
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Unsupported type: %d\n", X->type);
+			backend->pal->error(backend->pal, "Unsupported type: %d\n", X->type);
 			return false;
 	}
 

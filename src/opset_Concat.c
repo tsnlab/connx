@@ -27,7 +27,7 @@ bool opset_Concat(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			lengths[i] += inputs[i]->lengths[axis_value];
 		}
 
-		concat_result = connx_Tensor_create(backend->hal, inputs[0]->type, inputs[0]->dimension, lengths);
+		concat_result = connx_Tensor_create(backend->pal, inputs[0]->type, inputs[0]->dimension, lengths);
 		CONNX_SET_OUTPUT(0, concat_result);
 	}
 

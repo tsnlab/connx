@@ -113,7 +113,7 @@ static bool Div_normal(connx_Backend* backend, connx_DataType type, uint32_t tot
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
+			backend->pal->error(backend->pal, "Not supported element type: %s\n", connx_DataType_name(type));
 	}
 
 	return true;
@@ -199,7 +199,7 @@ static bool Div_leaf(connx_Backend* backend, connx_DataType type, uint32_t C_len
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported element type: %s\n", connx_DataType_name(type));
+			backend->pal->error(backend->pal, "Not supported element type: %s\n", connx_DataType_name(type));
 	}
 
 	return true;
@@ -286,7 +286,7 @@ bool opset_Div(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			lengths[i] = max;
 		}
 
-		C = connx_Tensor_create(backend->hal, A->type, C_dimension, lengths);
+		C = connx_Tensor_create(backend->pal, A->type, C_dimension, lengths);
 		CONNX_SET_OUTPUT(0, C);
 	}
 

@@ -419,7 +419,7 @@ bool opset_NonMaxSuppression(connx_Backend* backend, uint32_t counts, uint32_t* 
 				}
 				break;
 			default:
-				backend->hal->error(backend->hal, "Not supported type: %u\n", boxes->type);
+				backend->pal->error(backend->pal, "Not supported type: %u\n", boxes->type);
 				return false;
 		}
 	} else {	// convert flipped coordinates
@@ -465,7 +465,7 @@ bool opset_NonMaxSuppression(connx_Backend* backend, uint32_t counts, uint32_t* 
 				}
 				break;
 			default:
-				backend->hal->error(backend->hal, "Not supported type: %u\n", boxes->type);
+				backend->pal->error(backend->pal, "Not supported type: %u\n", boxes->type);
 				return false;
 		}
 	}
@@ -486,7 +486,7 @@ bool opset_NonMaxSuppression(connx_Backend* backend, uint32_t counts, uint32_t* 
 					center_point_box->value);
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported type: %u\n", boxes->type);
+			backend->pal->error(backend->pal, "Not supported type: %u\n", boxes->type);
 			return false;
 	}
 

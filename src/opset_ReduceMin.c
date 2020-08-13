@@ -212,14 +212,14 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 							input = (uint32_t*)data->base;
 						} else {
 							if(input != (uint32_t*)data->base)
-								backend->hal->free(backend->hal, input);
+								backend->pal->free(backend->pal, input);
 							input = output;
 						}
 
 						if(dim + 1 >= data->dimension) {
 							output = (uint32_t*)reduced->base;
 						} else {
-							output = backend->hal->alloc(backend->hal, sizeof(uint32_t) * total);
+							output = backend->pal->alloc(backend->pal, sizeof(uint32_t) * total);
 						}
 
 						for(uint32_t i = 0; i < total; i++) {
@@ -238,11 +238,11 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 				}
 
 				if(input != (uint32_t*)data->base)
-					backend->hal->free(backend->hal, input);
+					backend->pal->free(backend->pal, input);
 
 				if(output != (uint32_t*)reduced->base) {
 					memcpy(reduced->base, output, connx_Tensor_total(reduced) * sizeof(uint32_t));
-					backend->hal->free(backend->hal, output);
+					backend->pal->free(backend->pal, output);
 				}
 			}
 			break;
@@ -259,14 +259,14 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 							input = (int32_t*)data->base;
 						} else {
 							if(input != (int32_t*)data->base)
-								backend->hal->free(backend->hal, input);
+								backend->pal->free(backend->pal, input);
 							input = output;
 						}
 
 						if(dim + 1 >= data->dimension) {
 							output = (int32_t*)reduced->base;
 						} else {
-							output = backend->hal->alloc(backend->hal, sizeof(int32_t) * total);
+							output = backend->pal->alloc(backend->pal, sizeof(int32_t) * total);
 						}
 
 						for(uint32_t i = 0; i < total; i++) {
@@ -285,11 +285,11 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 				}
 
 				if(input != (int32_t*)data->base)
-					backend->hal->free(backend->hal, input);
+					backend->pal->free(backend->pal, input);
 
 				if(output != (int32_t*)reduced->base) {
 					memcpy(reduced->base, output, connx_Tensor_total(reduced) * sizeof(int32_t));
-					backend->hal->free(backend->hal, output);
+					backend->pal->free(backend->pal, output);
 				}
 			}
 			break;
@@ -306,14 +306,14 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 							input = (uint64_t*)data->base;
 						} else {
 							if(input != (uint64_t*)data->base)
-								backend->hal->free(backend->hal, input);
+								backend->pal->free(backend->pal, input);
 							input = output;
 						}
 
 						if(dim + 1 >= data->dimension) {
 							output = (uint64_t*)reduced->base;
 						} else {
-							output = backend->hal->alloc(backend->hal, sizeof(uint64_t) * total);
+							output = backend->pal->alloc(backend->pal, sizeof(uint64_t) * total);
 						}
 
 						for(uint32_t i = 0; i < total; i++) {
@@ -332,11 +332,11 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 				}
 
 				if(input != (uint64_t*)data->base)
-					backend->hal->free(backend->hal, input);
+					backend->pal->free(backend->pal, input);
 
 				if(output != (uint64_t*)reduced->base) {
 					memcpy(reduced->base, output, connx_Tensor_total(reduced) * sizeof(uint64_t));
-					backend->hal->free(backend->hal, output);
+					backend->pal->free(backend->pal, output);
 				}
 			}
 			break;
@@ -353,14 +353,14 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 							input = (int64_t*)data->base;
 						} else {
 							if(input != (int64_t*)data->base)
-								backend->hal->free(backend->hal, input);
+								backend->pal->free(backend->pal, input);
 							input = output;
 						}
 
 						if(dim + 1 >= data->dimension) {
 							output = (int64_t*)reduced->base;
 						} else {
-							output = backend->hal->alloc(backend->hal, sizeof(int64_t) * total);
+							output = backend->pal->alloc(backend->pal, sizeof(int64_t) * total);
 						}
 
 						for(uint32_t i = 0; i < total; i++) {
@@ -379,11 +379,11 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 				}
 
 				if(input != (int64_t*)data->base)
-					backend->hal->free(backend->hal, input);
+					backend->pal->free(backend->pal, input);
 
 				if(output != (int64_t*)reduced->base) {
 					memcpy(reduced->base, output, connx_Tensor_total(reduced) * sizeof(int64_t));
-					backend->hal->free(backend->hal, output);
+					backend->pal->free(backend->pal, output);
 				}
 			}
 			break;
@@ -400,14 +400,14 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 							input = (float*)data->base;
 						} else {
 							if(input != (float*)data->base)
-								backend->hal->free(backend->hal, input);
+								backend->pal->free(backend->pal, input);
 							input = output;
 						}
 
 						if(dim + 1 >= data->dimension) {
 							output = (float*)reduced->base;
 						} else {
-							output = backend->hal->alloc(backend->hal, sizeof(float) * total);
+							output = backend->pal->alloc(backend->pal, sizeof(float) * total);
 						}
 
 						for(uint32_t i = 0; i < total; i++) {
@@ -426,11 +426,11 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 				}
 
 				if(input != (float*)data->base)
-					backend->hal->free(backend->hal, input);
+					backend->pal->free(backend->pal, input);
 
 				if(output != (float*)reduced->base) {
 					memcpy(reduced->base, output, connx_Tensor_total(reduced) * sizeof(float));
-					backend->hal->free(backend->hal, output);
+					backend->pal->free(backend->pal, output);
 				}
 			}
 			break;
@@ -447,14 +447,14 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 							input = (double*)data->base;
 						} else {
 							if(input != (double*)data->base)
-								backend->hal->free(backend->hal, input);
+								backend->pal->free(backend->pal, input);
 							input = output;
 						}
 
 						if(dim + 1 >= data->dimension) {
 							output = (double*)reduced->base;
 						} else {
-							output = backend->hal->alloc(backend->hal, sizeof(double) * total);
+							output = backend->pal->alloc(backend->pal, sizeof(double) * total);
 						}
 
 						for(uint32_t i = 0; i < total; i++) {
@@ -473,16 +473,16 @@ bool opset_ReduceMin(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 				}
 
 				if(input != (double*)data->base)
-					backend->hal->free(backend->hal, input);
+					backend->pal->free(backend->pal, input);
 
 				if(output != (double*)reduced->base) {
 					memcpy(reduced->base, output, connx_Tensor_total(reduced) * sizeof(double));
-					backend->hal->free(backend->hal, output);
+					backend->pal->free(backend->pal, output);
 				}
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Illegal elemType: %" PRIu32, reduced->type);
+			backend->pal->error(backend->pal, "Illegal elemType: %" PRIu32, reduced->type);
 			return false;
 	}
 

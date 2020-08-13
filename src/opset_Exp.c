@@ -7,7 +7,7 @@ bool opset_Exp(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 	connx_Tensor* X = CONNX_GET_INPUT(0);
 
 	if(Y == NULL) {
-		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, X->lengths);
+		Y = connx_Tensor_create(backend->pal, X->type, X->dimension, X->lengths);
 		CONNX_SET_OUTPUT(0, Y);
 	}
 
@@ -45,7 +45,7 @@ bool opset_Exp(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported type: %u\n", X->type);
+			backend->pal->error(backend->pal, "Not supported type: %u\n", X->type);
 			return false;
 	}
 

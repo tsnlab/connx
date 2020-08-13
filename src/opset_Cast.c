@@ -168,7 +168,7 @@ static bool uint8_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool uint8_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool uint8_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -178,7 +178,7 @@ static bool uint8_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* o
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -251,7 +251,7 @@ static bool uint16_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool uint16_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool uint16_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -261,7 +261,7 @@ static bool uint16_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* 
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -334,7 +334,7 @@ static bool uint32_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool uint32_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool uint32_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -344,7 +344,7 @@ static bool uint32_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* 
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -417,7 +417,7 @@ static bool uint64_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool uint64_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool uint64_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -427,7 +427,7 @@ static bool uint64_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* 
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu64, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -500,7 +500,7 @@ static bool int8_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool int8_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool int8_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	int32_t output_total = connx_Tensor_total(output);
 	int32_t input_total = connx_Tensor_total(input);
 	int32_t total = output_total < input_total ? output_total : input_total;
@@ -510,7 +510,7 @@ static bool int8_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* ou
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -583,7 +583,7 @@ static bool int16_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool int16_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool int16_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	int32_t output_total = connx_Tensor_total(output);
 	int32_t input_total = connx_Tensor_total(input);
 	int32_t total = output_total < input_total ? output_total : input_total;
@@ -593,7 +593,7 @@ static bool int16_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* o
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -666,7 +666,7 @@ static bool int32_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool int32_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool int32_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	int32_t output_total = connx_Tensor_total(output);
 	int32_t input_total = connx_Tensor_total(input);
 	int32_t total = output_total < input_total ? output_total : input_total;
@@ -676,7 +676,7 @@ static bool int32_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* o
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu32, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -749,7 +749,7 @@ static bool int64_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool int64_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool int64_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	int32_t output_total = connx_Tensor_total(output);
 	int32_t input_total = connx_Tensor_total(input);
 	int32_t total = output_total < input_total ? output_total : input_total;
@@ -759,7 +759,7 @@ static bool int64_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* o
 	char buf[32];
 	for(int32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%" PRIu64, *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -835,7 +835,7 @@ static bool float16_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool float16_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool float16_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -845,7 +845,7 @@ static bool float16_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor*
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%f", connx_float16_to_float32(*input_base++));
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -918,7 +918,7 @@ static bool float32_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool float32_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool float32_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -928,7 +928,7 @@ static bool float32_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor*
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%.9f", *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		buf2[len] = '\0';
 		*output_base++ = buf2;
@@ -1002,7 +1002,7 @@ static bool float64_to_bool(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool float64_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool float64_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -1012,7 +1012,7 @@ static bool float64_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor*
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%.17f", *input_base++);
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -1088,7 +1088,7 @@ static bool bool_to_float64(connx_Tensor* input, connx_Tensor* output) {
 	CAST_BOOL(double)
 }
 
-static bool bool_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool bool_to_string(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -1098,7 +1098,7 @@ static bool bool_to_string(connx_HAL* hal, connx_Tensor* input, connx_Tensor* ou
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%s", *input_base++ ? "true" : "false");
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -1221,7 +1221,7 @@ static bool string_to_float64(connx_Tensor* input, connx_Tensor* output) {
 	return true;
 }
 
-static bool string_to_bool(connx_HAL* hal, connx_Tensor* input, connx_Tensor* output) {
+static bool string_to_bool(connx_PAL* pal, connx_Tensor* input, connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -1231,7 +1231,7 @@ static bool string_to_bool(connx_HAL* hal, connx_Tensor* input, connx_Tensor* ou
 	char buf[32];
 	for(uint32_t i = 0; i < total; i++) {
 		int len = snprintf(buf, 32, "%s", *input_base++ ? "true" : "false");
-		char* buf2 = hal->alloc(hal, len);
+		char* buf2 = pal->alloc(pal, len);
 		memcpy(buf2, buf, len);
 		*output_base++ = buf2;
 	}
@@ -1239,7 +1239,7 @@ static bool string_to_bool(connx_HAL* hal, connx_Tensor* input, connx_Tensor* ou
 	return true;
 }
 
-static bool string_to_string(connx_HAL* hal, connx_Tensor* input, __attribute__((unused)) connx_Tensor* output) {
+static bool string_to_string(connx_PAL* pal, connx_Tensor* input, __attribute__((unused)) connx_Tensor* output) {
 	uint32_t output_total = connx_Tensor_total(output);
 	uint32_t input_total = connx_Tensor_total(input);
 	uint32_t total = output_total < input_total ? output_total : input_total;
@@ -1249,7 +1249,7 @@ static bool string_to_string(connx_HAL* hal, connx_Tensor* input, __attribute__(
 	for(uint32_t i = 0; i < total; i++) {
 		char* input = input_base[i];
 		int len = strlen(input) + 1;
-		char* buf = hal->alloc(hal, len);
+		char* buf = pal->alloc(pal, len);
 		memcpy(buf, input, len);
 		*output_base++ = buf;
 	}
@@ -1265,7 +1265,7 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 
 	// Create output if null
 	if(output == NULL) {
-		output = connx_Tensor_create(backend->hal, to->value, input->dimension, input->lengths);
+		output = connx_Tensor_create(backend->pal, to->value, input->dimension, input->lengths);
 		CONNX_SET_OUTPUT(0, output);
 	}
 
@@ -1298,9 +1298,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return uint8_to_bool(input, output);
 				case connx_STRING:
-					return uint8_to_string(backend->hal, input, output);
+					return uint8_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1331,9 +1331,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return uint16_to_bool(input, output);
 				case connx_STRING:
-					return uint16_to_string(backend->hal, input, output);
+					return uint16_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1364,9 +1364,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return uint32_to_bool(input, output);
 				case connx_STRING:
-					return uint32_to_string(backend->hal, input, output);
+					return uint32_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1397,9 +1397,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return uint64_to_bool(input, output);
 				case connx_STRING:
-					return uint64_to_string(backend->hal, input, output);
+					return uint64_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1430,9 +1430,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return int8_to_bool(input, output);
 				case connx_STRING:
-					return int8_to_string(backend->hal, input, output);
+					return int8_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1463,9 +1463,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return int16_to_bool(input, output);
 				case connx_STRING:
-					return int16_to_string(backend->hal, input, output);
+					return int16_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1496,9 +1496,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return int32_to_bool(input, output);
 				case connx_STRING:
-					return int32_to_string(backend->hal, input, output);
+					return int32_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1529,9 +1529,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return int64_to_bool(input, output);
 				case connx_STRING:
-					return int64_to_string(backend->hal, input, output);
+					return int64_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1562,9 +1562,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return float16_to_bool(input, output);
 				case connx_STRING:
-					return float16_to_string(backend->hal, input, output);
+					return float16_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1595,9 +1595,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return float32_to_bool(input, output);
 				case connx_STRING:
-					return float32_to_string(backend->hal, input, output);
+					return float32_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1628,9 +1628,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return float64_to_bool(input, output);
 				case connx_STRING:
-					return float64_to_string(backend->hal, input, output);
+					return float64_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1661,9 +1661,9 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_BOOL:
 					return copy(input, output);
 				case connx_STRING:
-					return bool_to_string(backend->hal, input, output);
+					return bool_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
@@ -1692,16 +1692,16 @@ bool opset_Cast(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 				case connx_FLOAT64:
 					return string_to_float64(input, output);
 				case connx_BOOL:
-					return string_to_bool(backend->hal, input, output);
+					return string_to_bool(backend->pal, input, output);
 				case connx_STRING:
-					return string_to_string(backend->hal, input, output);
+					return string_to_string(backend->pal, input, output);
 				default:
-					backend->hal->error(backend->hal, "Not supported output type: %u\n", output->type);
+					backend->pal->error(backend->pal, "Not supported output type: %u\n", output->type);
 					return false;
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Not supported input type: %u\n", input->type);
+			backend->pal->error(backend->pal, "Not supported input type: %u\n", input->type);
 			return false;
 	}
 

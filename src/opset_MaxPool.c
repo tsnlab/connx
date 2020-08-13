@@ -530,7 +530,7 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 			}
 		}
 
-		Y = connx_Tensor_create(backend->hal, X->type, X->dimension, lengths);
+		Y = connx_Tensor_create(backend->pal, X->type, X->dimension, lengths);
 		CONNX_SET_OUTPUT(0, Y);
 	}
 
@@ -568,7 +568,7 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					X_base += unit;
 				}
 			} else {
-				backend->hal->error(backend->hal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
+				backend->pal->error(backend->pal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
 				return false;
 			}
 			break;
@@ -589,7 +589,7 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					X_base += unit;
 				}
 			} else {
-				backend->hal->error(backend->hal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
+				backend->pal->error(backend->pal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
 				return false;
 			}
 			break;
@@ -610,7 +610,7 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					X_base += unit;
 				}
 			} else {
-				backend->hal->error(backend->hal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
+				backend->pal->error(backend->pal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
 				return false;
 			}
 			break;
@@ -631,7 +631,7 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					X_base += unit;
 				}
 			} else {
-				backend->hal->error(backend->hal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
+				backend->pal->error(backend->pal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
 				return false;
 			}
 			break;
@@ -653,7 +653,7 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					X_base += unit;
 				}
 			} else {
-				backend->hal->error(backend->hal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
+				backend->pal->error(backend->pal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
 				return false;
 			}
 			break;
@@ -674,12 +674,12 @@ bool opset_MaxPool(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 					X_base += unit;
 				}
 			} else {
-				backend->hal->error(backend->hal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
+				backend->pal->error(backend->pal, "Kernel shape not supported: %" PRIu32 "\n", kernel_shape->length);
 				return false;
 			}
 			break;
 		default:
-			backend->hal->error(backend->hal, "Unsupported type: %u\n", X->type);
+			backend->pal->error(backend->pal, "Unsupported type: %u\n", X->type);
 			return false;
 	}
 

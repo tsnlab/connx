@@ -42,7 +42,7 @@ bool opset_Unsqueeze(connx_Backend* backend, uint32_t counts, uint32_t* params) 
 			}
 		}
 
-		expanded = connx_Tensor_create(backend->hal, data->type, len, lengths);
+		expanded = connx_Tensor_create(backend->pal, data->type, len, lengths);
 		CONNX_SET_OUTPUT(0, expanded);
 	}
 

@@ -8,7 +8,7 @@ bool opset_Identity(connx_Backend* backend, uint32_t counts, uint32_t* params) {
 
 	// Create output if NULL
 	if(output == NULL) {
-		output = connx_Tensor_create(backend->hal, input->type, input->dimension, input->lengths);
+		output = connx_Tensor_create(backend->pal, input->type, input->dimension, input->lengths);
 		CONNX_SET_OUTPUT(0, output);
 	}
 

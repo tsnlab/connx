@@ -10,8 +10,8 @@ typedef struct _connx_Call {
 	uint32_t*		params;
 } connx_Call;
 
-connx_Call* connx_Call_create(connx_HAL* hal, connx_Operator op, uint32_t counts);
-void connx_Call_delete(connx_HAL* hal, connx_Call* call);
+connx_Call* connx_Call_create(connx_PAL* pal, connx_Operator op, uint32_t counts);
+void connx_Call_delete(connx_PAL* pal, connx_Call* call);
 
 typedef struct _connx_Path connx_Path;
 
@@ -26,13 +26,13 @@ struct _connx_Path {
 	connx_Call**	calls;
 };
 
-connx_Path* connx_Path_create(connx_HAL* hal);
-void connx_Path_delete(connx_HAL* hal, connx_Path* call);
+connx_Path* connx_Path_create(connx_PAL* pal);
+void connx_Path_delete(connx_PAL* pal, connx_Path* call);
 
 bool connx_Path_run(connx_Path* path, connx_Backend* backend);
 
 struct _connx_Backend {
-	connx_HAL*		hal;
+	connx_PAL*		pal;
 	uint32_t		opset;
 
 	uint32_t		path_count;
