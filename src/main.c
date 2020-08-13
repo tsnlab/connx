@@ -204,6 +204,7 @@ int main(int argc, char** argv) {
 				connx_Tensor_dump(hal, outputs[i]);
 				printf("target[%u]\n", i);
 				connx_Tensor_dump(hal, targets[i]);
+				is_succeed = false;
 			}
 		} else if(i >= target_count) {
 			printf("Lack of output[%u]\n", i);

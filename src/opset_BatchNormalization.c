@@ -40,12 +40,14 @@ bool opset_BatchNormalization(connx_Backend* backend, uint32_t counts, uint32_t*
 				float* means = (float*)mean->base;
 				float* vars = (float*)var->base;
 
+				float epsilon_value = epsilon->value;
+
 				for(uint32_t b = 0; b < batch_count; b++) {
 					for(uint32_t c = 0; c < channel_count; c++) {
 						float scale_value = scales[c];
 						float B_value = Bs[c];
 						float mean_value = means[c];// * *momentum + means[c] * (1 - *momentum); // momentum is only applied on trainning
-						float sqrt_value = sqrtf(vars[c] + epsilon->value);
+						float sqrt_value = sqrtf(vars[c] + epsilon_value);
 						float scale_div_sqrt_value = scale_value / sqrt_value;
 
 						for(uint32_t u = 0; u < unit_count; u++) {
@@ -65,12 +67,14 @@ bool opset_BatchNormalization(connx_Backend* backend, uint32_t counts, uint32_t*
 				double* means = (double*)mean->base;
 				double* vars = (double*)var->base;
 
+				double epsilon_value = epsilon->value;
+
 				for(uint32_t b = 0; b < batch_count; b++) {
 					for(uint32_t c = 0; c < channel_count; c++) {
 						double scale_value = scales[c];
 						double B_value = Bs[c];
 						double mean_value = means[c];// * *momentum + means[c] * (1 - *momentum); // momentum is only applied on trainning
-						double sqrt_value = sqrt(vars[c] + epsilon->value);
+						double sqrt_value = sqrt(vars[c] + epsilon_value);
 						double scale_div_sqrt_value = scale_value / sqrt_value;
 
 						for(uint32_t u = 0; u < unit_count; u++) {
