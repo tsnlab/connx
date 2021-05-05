@@ -1,7 +1,9 @@
-#include <malloc.h>
 #include "hal.h"
 
 #ifdef __linux__
+#include <inttypes.h>
+#include <string.h>
+#include <malloc.h>
 #include <stdarg.h>
 #endif /* __linux__ */
 
@@ -15,11 +17,61 @@ void connx_free(void* ptr) {
 }
 
 // Model loader
-void* connx_load(__attribute__((unused)) const char* name) {
+static char _location[128];
+
+void connx_set_location(const char* path) {
+    snprintf(_location, 128, "%s", path);
+}
+
+void* connx_load(const char* name) {
+#ifdef __linux__
+    char path[256];
+    snprintf(path, 256, "%s/%s", _location, name);
+
+	FILE* file = fopen(path, "r");
+	if(file == NULL) {
+		fprintf(stderr, "HAL ERROR: There is no such file: '%s'\n", path);
+		return NULL;
+	}
+
+	fseek(file, 0L, SEEK_END);
+	size_t size = ftell(file);
+	fseek(file, 0L, SEEK_SET);
+
+	void* buf = malloc(size + 1); // including EOF
+	if(buf == NULL) {
+		fprintf(stderr, "HAL ERROR: Cannot allocate memory: %" PRIdPTR " bytes", size);
+		fclose(file);
+		return NULL;
+	}
+
+	void* p = buf;
+    size_t remain = size;
+	while(remain > 0) {
+		int len = fread(p, 1, remain, file);
+		if(len < 0) {
+			fprintf(stderr, "HAL ERROR: Cannot read file: '%s'", path);
+			fclose(file);
+			return NULL;
+		}
+
+		p += len;
+		remain -= len;
+	}
+	fclose(file);
+
+    ((uint8_t*)buf)[size] = 0; // EOF
+
+	return buf;
+#else /* __linux__ */
     return NULL;
+#endif
 }
 
 void connx_unload(__attribute__((unused)) void* buf) {
+#ifdef __linux__
+    free(buf);
+#endif /* __linux__ */
 }
 
 // Lock

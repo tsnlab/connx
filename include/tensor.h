@@ -1,6 +1,7 @@
 #ifndef __CONNX_TENSOR_H__
 #define __CONNX_TENSOR_H__
 
+#include "connx.h"
 #include "types.h"
 #include "hal.h"
 
@@ -51,12 +52,6 @@ typedef struct _connx_Tensor {
     int32_t         ref_count;  // Reference count
     connx_Lock      lock;       // Reference lock
 } connx_Tensor;
-
-typedef enum _connx_ErrorCode {
-    OK                          = 0,
-    DATA_TYPE_NOT_MATCHING      = 1,
-    TENSOR_SHAPE_NOT_MATCHING   = 2,
-} connx_ErrorCode;
 
 int32_t connx_Iterator_size(connx_Tensor* tensor);
 

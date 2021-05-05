@@ -14,6 +14,9 @@ void* connx_alloc(uint32_t size);
 void connx_free(void* ptr);
 
 // Model loader
+#ifdef __linux__
+void connx_set_location(const char* path);
+#endif
 void* connx_load(const char* name);
 void connx_unload(void* buf);
 

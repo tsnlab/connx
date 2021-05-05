@@ -1,14 +1,14 @@
 .PHONY: all run test clean
 
 CC := gcc
-DEBUG ?= 0
+DEBUG ?= 1
 
 override CFLAGS += -Iinclude -Wall -std=c99
-RELEASE_CFLAGS = ${CFLAGS} -O3
-TEST_CFLAGS = ${CFLAGS} -O0 -g -fsanitize=address
 
 ifeq ($(DEBUG), 1)
-	override CFLAGS += -DDEBUG=1
+	override CFLAGS += -O0 -g -DDEBUG=1 -fsanitize=address
+else
+	override CFLAGS += -O3
 endif
 
 LIBS := -lm -pthread
@@ -21,7 +21,7 @@ run: all
 	./connx
 
 test: src/ver.h $(filter-out obj/main.o, $(OBJS))
-	$(CC) $(TEST_CFLAGS) -o $@ $(filter %.o, $^) $(LIBS) -lcmocka
+	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS) -lcmocka
 	./test
 
 clean:
@@ -31,7 +31,7 @@ clean:
 	rm -f connx
 
 connx: src/ver.h $(filter-out obj/test.o, $(OBJS))
-	$(CC) $(RELEASE_CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
 
 src/ver.h:
 	bin/ver.sh
