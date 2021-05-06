@@ -128,7 +128,7 @@ int32_t connx_Iterator_offset(int32_t* iterator, int32_t* shape) {
 }
 
 int32_t connx_Iterator_size(connx_Tensor* tensor) {
-    return 1 + tensor->ndim * 3;
+    return 1 + tensor->ndim * 4;
 }
 
 void connx_Iterator_dump(int32_t* iterator) {
@@ -206,7 +206,7 @@ void connx_Tensor_unref(connx_Tensor* tensor) {
     connx_Lock_unlock(&tensor->lock);
 }
 
-connx_ErrorCode connx_Tensor_get(connx_Tensor* tensor, int32_t* iterator, void* data) {
+int connx_Tensor_get(connx_Tensor* tensor, int32_t* iterator, void* data) {
     int32_t offset = connx_Iterator_offset(iterator, tensor->shape);
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(data, tensor->buffer + offset * data_size, data_size);
@@ -214,7 +214,7 @@ connx_ErrorCode connx_Tensor_get(connx_Tensor* tensor, int32_t* iterator, void* 
     return OK;
 }
 
-connx_ErrorCode connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
+int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
     int32_t offset = connx_Iterator_offset(iterator, tensor->shape);
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(tensor->buffer + offset * data_size, data, data_size);
@@ -393,6 +393,6 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     }
 }
 
-connx_ErrorCode connx_Tensor_add(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b) {
+int connx_Tensor_add(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b) {
     return OK;
 }

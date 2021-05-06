@@ -1,7 +1,6 @@
 #ifndef __CONNX_TENSOR_H__
 #define __CONNX_TENSOR_H__
 
-#include "connx.h"
 #include "types.h"
 #include "hal.h"
 
@@ -60,19 +59,19 @@ connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 void connx_Tensor_ref(connx_Tensor* tensor);
 void connx_Tensor_unref(connx_Tensor* tensor);
 
-connx_ErrorCode connx_Tensor_get(connx_Tensor* tensor, int32_t* idx, void* data);
-connx_ErrorCode connx_Tensor_set(connx_Tensor* tensor, int32_t* idx, void* data);
+int connx_Tensor_get(connx_Tensor* tensor, int32_t* idx, void* data);
+int connx_Tensor_set(connx_Tensor* tensor, int32_t* idx, void* data);
 void connx_Tensor_dump(connx_Tensor* tensor);
 
-connx_ErrorCode connx_Tensor_add(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
-connx_ErrorCode connx_Tensor_sub(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
-connx_ErrorCode connx_Tensor_mul(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
-connx_ErrorCode connx_Tensor_matmul(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
-connx_ErrorCode connx_Tensor_and(connx_Tensor* y, connx_Tensor* x);
-connx_ErrorCode connx_Tensor_abs(connx_Tensor* y, connx_Tensor* x);
-connx_ErrorCode connx_Tensor_acos(connx_Tensor* y, connx_Tensor* x);
-connx_ErrorCode connx_Tensor_acosh(connx_Tensor* y, connx_Tensor* x);
-connx_ErrorCode connx_Tensor_argmax(int32_t ndim, int32_t* idx, connx_Tensor* x);
-connx_ErrorCode connx_Tensor_argmin(int32_t ndim, int32_t* idx, connx_Tensor* x);
+int connx_Tensor_add(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
+int connx_Tensor_sub(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
+int connx_Tensor_mul(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
+int connx_Tensor_matmul(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b);
+int connx_Tensor_and(connx_Tensor* y, connx_Tensor* x);
+int connx_Tensor_abs(connx_Tensor* y, connx_Tensor* x);
+int connx_Tensor_acos(connx_Tensor* y, connx_Tensor* x);
+int connx_Tensor_acosh(connx_Tensor* y, connx_Tensor* x);
+int connx_Tensor_argmax(int32_t ndim, int32_t* idx, connx_Tensor* x);
+int connx_Tensor_argmin(int32_t ndim, int32_t* idx, connx_Tensor* x);
 
 #endif /* __CONNX_TENSOR_H__ */

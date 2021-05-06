@@ -18,7 +18,7 @@ OBJS := $(patsubst src/%.c, obj/%.o, $(wildcard src/*.c))
 all: connx
 
 run: all
-	./connx
+	./connx examples/mnist
 
 test: src/ver.h $(filter-out obj/main.o, $(OBJS))
 	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS) -lcmocka

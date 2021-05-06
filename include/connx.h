@@ -1,27 +1,58 @@
 #ifndef __CONNX_H__
 #define __CONNX_H__
 
-#include <stdint.h>
+#include "tensor.h"
 
-typedef enum _connx_ErrorCode {
-    OK                          = 0,
-    DATA_TYPE_NOT_MATCHING      = 1,
-    TENSOR_SHAPE_NOT_MATCHING   = 2,
-    ILLEGAL_SYNTAX              = 3,
-    NOT_SUPPORTED_CONNX_VERSION = 4,
-    NOT_SUPPORTED_OPERATOR      = 5,
-    NOT_ENOUGH_MEMORY           = 6,
-} connx_ErrorCode;
+typedef struct _connx_Graph connx_Graph;
 
 typedef struct _connx_Model {
-    int32_t     version;
-    uint32_t    opset_count;
-    char**      opset_names;
-    uint32_t*   opset_versions;
-    uint32_t    graph_count;
+    int32_t         version;
+
+    uint32_t        opset_count;
+    char**          opset_names;
+    uint32_t*       opset_versions;
+
+    uint32_t        graph_count;
+    connx_Graph**   graphs;
 } connx_Model;
+
+typedef int(*CONNX_OPERATOR)(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attributes);
+
+typedef struct _connx_Node {
+    uint32_t        output_count;
+    uint32_t*       outputs;
+    uint32_t        input_count;
+    uint32_t*       inputs;
+    uint32_t        attribute_count;
+    void**          attributes;
+    char*           op_type;
+    CONNX_OPERATOR  op;
+} connx_Node;
+
+struct _connx_Graph {
+    connx_Model*    model;
+    uint32_t        id;
+
+    uint32_t        initializer_count;
+    connx_Tensor**  initializers;
+
+    uint32_t        input_count;
+    uint32_t*       inputs;
+
+    uint32_t        output_count;
+    uint32_t*       outputs;
+
+    uint32_t        value_info_count;
+    connx_Tensor**  value_infos;
+
+    uint32_t        node_count;
+    connx_Node**    nodes;
+};
 
 int connx_Model_init(connx_Model* model);
 int connx_Model_destroy(connx_Model* model);
+
+int connx_Graph_init(connx_Graph* graph, connx_Model* model, uint32_t graph_id);
+int connx_Graph_destroy(connx_Graph* graph);
 
 #endif /* __CONNX_H__ */

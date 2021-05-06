@@ -21,7 +21,7 @@ static void test_iterator(__attribute__((unused)) void** state) {
     connx_Tensor* tensor = connx_Tensor_alloc(FLOAT32, 3, shape);
 
     int32_t iter_size = connx_Iterator_size(tensor);
-    assert_true(iter_size == 1 + 3 * 3);
+    assert_true(iter_size == 1 + 4 * 3);
 
     connx_Tensor_unref(tensor);
 
