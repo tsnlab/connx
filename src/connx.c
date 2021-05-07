@@ -1,8 +1,10 @@
+#include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
 #include "connx.h"
+#include "opset.h"
 #include "hal.h"
 
 static char* _strdup(char* str) {
@@ -16,29 +18,6 @@ static char* _strdup(char* str) {
     return str2;
 }
 
-/*
-static char* next_token(char* text) {
-    char* start = text;
-
-    while(true) {
-        if(*text == ' ' || *text == '\n') {
-            *text = '\0';
-            return start;
-        } else if(*text == '\0') {
-            text = start = text + 1;
-
-            if(*start == '\0') // EOF
-                return NULL;
-        }
-
-        text++;
-    }
-
-    return start;
-}
-*/
-
-#include <stdio.h>
 #define next_token(token)                       \
     ({                                          \
         char* start = token;                    \
@@ -118,8 +97,6 @@ static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
     check_keyword(token, "graph");
     model->graph_count = next_integer(token);
 
-    // TODO: Parse graphs
-
     return OK;
 }
 
@@ -133,7 +110,8 @@ int connx_Model_init(connx_Model* model) {
         return ret;
     }
 
-    model->graphs = connx_alloc(sizeof(connx_Graph) * model->graph_count);
+    // Parse graph
+    model->graphs = connx_alloc(sizeof(connx_Graph*) * model->graph_count);
     if(model->graphs == NULL) {
         return NOT_ENOUGH_MEMORY;
     }
@@ -182,6 +160,10 @@ int connx_Model_destroy(connx_Model* model) {
     return OK;
 }
 
+int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count, connx_Tensor** outputs) {
+    return connx_Graph_run(model->graphs[0], input_count, inputs, output_count, outputs);
+}
+
 static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     char* token = text;
 
@@ -189,7 +171,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     check_keyword(token, "value_info");
 
     graph->value_info_count = next_integer(token);
-    graph->value_infos = connx_alloc(sizeof(connx_Tensor*) * graph->value_info_count);
+    graph->value_infos = connx_alloc(sizeof(connx_Tensor*) * (graph->value_info_count + 1)); // 0 is null
     if(graph->value_infos == NULL) {
         return NOT_ENOUGH_MEMORY;
     }
@@ -245,6 +227,18 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
         node->op_type = _strdup(op_type);
         if(node->op_type == NULL) {
             return NOT_ENOUGH_MEMORY;
+        }
+
+        // Find operator for op_type
+        for(uint32_t i = 0; connx_opset_names[i] != NULL; i++) {
+            if(strcmp(node->op_type, connx_opset_names[i]) == 0) {
+                node->op = connx_opset_ops[i];
+                break;
+            }
+        }
+
+        if(node->op == NULL) {
+            return NOT_SUPPORTED_OPERATOR;
         }
 
         node->output_count = next_integer(token);
@@ -396,8 +390,9 @@ int connx_Graph_destroy(connx_Graph* graph) {
 
     if(graph->value_infos != NULL) {
         for(uint32_t i = 0; i < graph->value_info_count; i++) {
-            if(graph->value_infos[i] != NULL)
+            if(graph->value_infos[i] != NULL) {
                 connx_Tensor_unref(graph->value_infos[i]);
+            }
         }
         connx_free(graph->value_infos);
     }
@@ -412,12 +407,72 @@ int connx_Graph_destroy(connx_Graph* graph) {
 
     if(graph->initializers != NULL) {
         for(uint32_t i = 0; i < graph->initializer_count; i++) {
-            if(graph->initializers[i] != NULL)
+            if(graph->initializers[i] != NULL) {
                 connx_Tensor_unref(graph->initializers[i]);
+            }
         }
         connx_free(graph->initializers);
     }
 
     return OK;
+}
+
+int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count, connx_Tensor** outputs) {
+    // Set inputs
+    input_count = input_count < graph->input_count ? input_count : graph->input_count;
+
+    for(uint32_t i = 0; i < input_count; i++) {
+        uint32_t id = graph->inputs[i];
+        graph->value_infos[id] = inputs[i];
+    }
+
+    // Initialize value_infos
+    for(uint32_t i = 0; i < graph->initializer_count; i++) {
+        if(graph->value_infos[i + 1] != NULL) {
+            graph->value_infos[i + 1] = connx_Tensor_copy(graph->initializers[i]);
+        }
+    }
+
+    // Execute operators
+    for(uint32_t i = 0; i < graph->node_count; i++) {
+        connx_Node* node = graph->nodes[i];
+        int ret = node->op(graph, node->outputs, node->inputs, node->attributes);
+        if(ret != OK) {
+            return ret;
+        }
+    }
+
+    // Set outputs
+    *output_count = *output_count < graph->output_count ? *output_count : graph->output_count;
+    for(uint32_t i = 0; i < *output_count; i++) {
+        uint32_t id = graph->outputs[i];
+        outputs[i] = graph->value_infos[id];
+        graph->value_infos[id] = NULL;
+    }
+
+    // Clean value_infos
+    for(uint32_t i = 0; i < graph->value_info_count; i++) {
+        if(graph->value_infos[i] != NULL) {
+            connx_Tensor_unref(graph->value_infos[i]);
+            graph->value_infos[i] = NULL;
+        }
+    }
+
+    return OK;
+}
+
+connx_Tensor* connx_Graph_get(connx_Graph* graph, uint32_t id) {
+    return graph->value_infos[id];
+}
+
+void connx_Graph_set(connx_Graph* graph, uint32_t id, connx_Tensor* tensor) {
+    if(graph->value_infos[id] == tensor)
+        return;
+
+    if(graph->value_infos[id] != NULL) {
+        connx_Tensor_unref(graph->value_infos[id]);
+    }
+
+    graph->value_infos[id] = tensor;
 }
 

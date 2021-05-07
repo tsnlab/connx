@@ -58,6 +58,32 @@ int main(__attribute__((unused)) int argc, char** argv) {
         printf("node[%u].attribute_count = %u\n", i, node->attribute_count);
     }
 
+    connx_Tensor* input = connx_Tensor_load(argv[2]);
+
+    connx_Tensor* inputs[4] = { input, NULL, };
+    connx_Tensor* outputs[4] = { NULL, };
+    uint32_t input_count = 1;
+    uint32_t output_count = 4;
+
+    for(uint32_t i = 0; i < input_count; i++) {
+        printf("***** input[%u]\n", i);
+        connx_Tensor_dump(inputs[i]);
+    }
+
+    ret = connx_Model_run(&model, input_count, inputs, &output_count, outputs);
+    if(ret != OK) {
+        printf("Model_run failed: %u\n", ret);
+        return ret;
+    }
+
+    for(uint32_t i = 0; i < output_count; i++) {
+        printf("***** output[%u]\n", i);
+        connx_Tensor_dump(outputs[i]);
+    }
+
+    for(uint32_t i = 0; i < output_count; i++)
+        connx_Tensor_unref(outputs[i]);
+
     connx_Model_destroy(&model);
 
     return 0;

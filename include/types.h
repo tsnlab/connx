@@ -17,7 +17,9 @@ typedef enum _connx_ErrorCode {
     NOT_SUPPORTED_CONNX_VERSION = 4,
     NOT_SUPPORTED_OPERATOR      = 5,
     NOT_SUPPORTED_ATTRIBUTE     = 6,
-    NOT_ENOUGH_MEMORY           = 7,
+    NOT_SUPPORTED_DATATYPE      = 7,
+    NOT_ENOUGH_MEMORY           = 8,
+    RESOURCE_NOT_FOUND          = 9,
 } connx_ErrorCode;
 
 #endif /* __TYPES_H__ */

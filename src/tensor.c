@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h> // strtol
 #include <string.h> // memcpy
 #include <math.h> // sin, cos, ...
 #include "hal.h"
@@ -34,26 +35,6 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
 }
 
 // Iterator
-/*
-static int32_t _int32_sum(int32_t ndim, int32_t* array) {
-    int32_t result = 0;
-
-    for(int32_t i = 0; i < ndim; i++)
-        result += array[i];
-
-    return result;
-}
-*/
-
-static int32_t _int32_product(int32_t ndim, int32_t* array) {
-    int32_t result = 1;
-
-    for(int32_t i = 0; i < ndim; i++)
-        result *= array[i];
-
-    return result;
-}
-
 #define ITER_NDIM(iter) (iter)
 #define ITER_START(iter) (iter + 1)
 #define ITER_STOP(iter) (iter + 1 + iter[0])
@@ -154,6 +135,25 @@ void connx_Iterator_dump(int32_t* iterator) {
 #endif /* __linux__ */
 }
 
+// Array utilities
+int32_t connx_Int32_sum(int32_t length, int32_t* array) {
+    int32_t result = 0;
+
+    for(int32_t i = 0; i < length; i++)
+        result += array[i];
+
+    return result;
+}
+
+int32_t connx_Int32_product(int32_t length, int32_t* array) {
+    int32_t result = 1;
+
+    for(int32_t i = 0; i < length; i++)
+        result *= array[i];
+
+    return result;
+}
+
 /**
  * Tensor payload: [connx_Tensor] [shape] [buffer]
  * All the elements are aligned by CONNX_ALIGNMENT
@@ -161,7 +161,7 @@ void connx_Iterator_dump(int32_t* iterator) {
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape) {
     uint32_t header_size = CONNX_ALIGN(sizeof(connx_Tensor));
     uint32_t dim_size = CONNX_ALIGN(sizeof(int32_t) * ndim);
-    int32_t total = _int32_product(ndim, shape);
+    int32_t total =connx_Int32_product(ndim, shape);
     uint32_t buffer_size = CONNX_ALIGN(connx_DataType_size(dtype) * total);
 
     void* ptr = connx_alloc(header_size + dim_size + buffer_size);
@@ -182,6 +182,79 @@ connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* sh
 
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor) {
     return connx_Tensor_alloc(tensor->dtype, tensor->ndim, tensor->shape);
+}
+
+#define next_token(token)                       \
+    ({                                          \
+        char* start = token;                    \
+        while(*token != '_' && *token != '.') { \
+            token++;                            \
+        }                                       \
+        *token++ = '\0';                        \
+        start;                                  \
+    })
+
+#define next_integer(token)                     \
+    ({                                          \
+        char* number = next_token(token);       \
+        if(number == NULL)                      \
+            return NULL;                        \
+        strtol(number, NULL, 0);                \
+    })
+
+connx_Tensor* connx_Tensor_load(const char* path) {
+    int len = strlen(path);
+    char path2[len + 1];
+    memcpy(path2, path, len + 1);
+
+    // Get basename
+    char* token = path2 + len - 1;
+    while(*token != '/')
+        token--;
+    token++;
+
+    // Parse name
+    next_token(token); // drop name
+    int32_t data_type = next_integer(token);
+    int32_t ndim = next_integer(token);
+    int32_t shape[ndim];
+
+    for(int32_t i = 0; i < ndim; i++) {
+        shape[i] = next_integer(token);
+    }
+
+    // Create tensor
+    int32_t total = connx_Int32_product(ndim, shape);
+    int32_t data_size = connx_DataType_size(data_type);
+
+    connx_Tensor* tensor = connx_Tensor_alloc(data_type, ndim, shape);
+    if(tensor == NULL) {
+        return NULL;
+    }
+
+    // Load data
+    void* buf = connx_load(path);
+    if(buf == NULL) {
+        return NULL;
+    }
+
+    // Copy data
+    memcpy(tensor->buffer, buf, total * data_size);
+    connx_unload(buf);
+
+    return tensor;
+}
+
+connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor) {
+    connx_Tensor* tensor2 = connx_Tensor_alloc_like(tensor);
+    if(tensor2 == NULL)
+        return NULL;
+
+    int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
+    int32_t data_size = connx_DataType_size(tensor->dtype);
+    memcpy(tensor2->buffer, tensor->buffer, total * data_size);
+
+    return tensor2;
 }
 
 void connx_Tensor_ref(connx_Tensor* tensor) {
@@ -228,12 +301,12 @@ int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
 void connx_Tensor_dump(connx_Tensor* tensor) {
 #define UNIT 8
 
-    printf("tensor <");
+    printf("tensor < ");
     for(int32_t i = 0; i < tensor->ndim; i++) {
         printf("%u ", tensor->shape[i]);
     }
 
-    int32_t total = _int32_product(tensor->ndim, tensor->shape);
+    int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
     printf("> = %u\n", total);
 
     switch(tensor->dtype) {

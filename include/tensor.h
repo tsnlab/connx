@@ -40,6 +40,10 @@ int32_t* connx_Iterator_index(int32_t* iterator);
 int32_t connx_Iterator_offset(int32_t* iterator, int32_t* shape);
 void connx_Iterator_dump(int32_t* iterator);
 
+// Array utilities
+int32_t connx_Int32_sum(int32_t length, int32_t* array);
+int32_t connx_Int32_product(int32_t length, int32_t* array);
+
 // tensor structure follow Numpy's ndarray
 typedef struct _connx_Tensor {
     connx_DataType  dtype;      // data type
@@ -56,6 +60,9 @@ int32_t connx_Iterator_size(connx_Tensor* tensor);
 
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
+connx_Tensor* connx_Tensor_load(const char* path);
+connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor);
+
 void connx_Tensor_ref(connx_Tensor* tensor);
 void connx_Tensor_unref(connx_Tensor* tensor);
 
