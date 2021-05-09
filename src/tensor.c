@@ -235,6 +235,7 @@ connx_Tensor* connx_Tensor_load(const char* path) {
     // Load data
     void* buf = connx_load(path);
     if(buf == NULL) {
+        connx_error("Cannot load model data from path: %s\n", path);
         return NULL;
     }
 

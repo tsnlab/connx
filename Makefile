@@ -23,9 +23,8 @@ run: all
 	./connx examples/mnist
 
 test: src/ver.h $(filter-out obj/main.o, $(OBJS))
-	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS) -lcmocka
-	./test
-	./connx testcase/data/node/test_asin/ test_data_set_0/input-0_1_3_3_4_5.data
+	#$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS) -lcmocka
+	python bin/run.py ./connx testcase/data/node/test_asin/ testcase/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
 
 clean:
 	rm -f src/ver.h

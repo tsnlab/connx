@@ -74,6 +74,47 @@ void connx_unload(__attribute__((unused)) void* buf) {
 #endif /* __linux__ */
 }
 
+// Tensor I/O
+int32_t connx_read(void* buf, int32_t size) {
+#ifdef __linux__
+	void* p = buf;
+    size_t remain = size;
+	while(remain > 0) {
+		int len = fread(p, 1, remain, stdin);
+		if(len < 0) {
+			fprintf(stderr, "HAL ERROR: Cannot read input data");
+			return -1;
+		}
+
+		p += len;
+		remain -= len;
+	}
+
+    return size;
+#endif /* __linux __ */
+}
+
+int32_t connx_write(void* buf, int32_t size) {
+#ifdef __linux__
+	void* p = buf;
+    size_t remain = size;
+	while(remain > 0) {
+		int len = fwrite(p, 1, remain, stdout);
+		if(len < 0) {
+			fprintf(stderr, "HAL ERROR: Cannot read input data");
+			return -1;
+		}
+
+		p += len;
+		remain -= len;
+	}
+
+    fflush(stdout);
+
+    return size;
+#endif /* __linux __ */
+}
+
 // Lock
 void connx_Lock_init(connx_Lock* lock) {
     pthread_mutex_init(lock, NULL);
@@ -127,8 +168,8 @@ void connx_error(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
 
-	fprintf(stdout, "ERROR: ");
-	vfprintf(stdout, format, args);
+	fprintf(stderr, "ERROR: ");
+	vfprintf(stderr, format, args);
 
 	va_end(args);
 }

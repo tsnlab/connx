@@ -2,6 +2,7 @@
 #define __CONNX_HAL_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #ifdef __linux__
 #include <pthread.h>
 #endif /* __linux__ */
@@ -19,6 +20,10 @@ void connx_set_location(const char* path);
 #endif
 void* connx_load(const char* name);
 void connx_unload(void* buf);
+
+// Tensor I/O
+int32_t connx_read(void* buf, int32_t size);
+int32_t connx_write(void* buf, int32_t size);
 
 // Lock
 #ifdef __linux__
