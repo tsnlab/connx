@@ -4,21 +4,39 @@ import subprocess
 import struct
 import numpy as np
 
-def get_datatype_size(dtype):
-    if dtype in [2, 3, 9]: # UINT8, INT8, BOOL
-        return 1
-    elif dtype in [4, 5, 10]: # UINT16, INT16, FLOAT16
-        return 2
-    elif dtype in [12, 6, 1]: # UINT32, INT32, FLOAT32
-        return 4
-    elif dtype in [13, 7, 11, 14]: # UINT64, INT64, FLOAT64, COMPLEX64
-        return 8
-    elif dtype == 15: # COMPLEX128
-        return 16
-    elif dtype == 8: # STRING (header length)
-        return 4
+def get_numpy_dtype(onnx_dtype):
+    if onnx_dtype == 1:
+        return np.float32
+    elif onnx_dtype == 2:
+        return np.uint8
+    elif onnx_dtype == 3:
+        return np.int8
+    elif onnx_dtype == 4:
+        return np.uint16
+    elif onnx_dtype == 5:
+        return np.int16
+    elif onnx_dtype == 6:
+        return np.int32
+    elif onnx_dtype == 7:
+        return np.int64
+    elif onnx_dtype == 8:
+        return str
+    elif onnx_dtype == 9:
+        return bool
+    elif onnx_dtype == 10:
+        return np.float16
+    elif onnx_dtype == 11:
+        return np.float64
+    elif onnx_dtype == 12:
+        return np.uint32
+    elif onnx_dtype == 13:
+        return np.uint64
+    elif onnx_dtype == 14:
+        return np.csingle
+    elif onnx_dtype == 15:
+        return np.cdouble
     else:
-        return 0
+        raise Exception('Not supported dtype: {}'.format(dtype))
 
 def product(shape):
     p = 1
@@ -28,6 +46,10 @@ def product(shape):
     return p
 
 def main(argv):
+    if len(argv) < 2:
+        print('Usage: python run.py [connx engine path] [connx model path] [[input path]...]')
+        return None
+
     connx_path = argv[1]
     model_path = argv[2]
     inputs = argv[3:]
@@ -72,39 +94,7 @@ def main(argv):
                 shape.append(struct.unpack('=I', proc.stdout.read(4))[0])
 
             # Parse data
-            if dtype == 2:
-                dtype = np.uint8
-            elif dtype == 3:
-                dtype = np.int8
-            elif dtype == 9:
-                dtype = bool
-            elif dtype == 4:
-                dtype = np.uint16
-            elif dtype == 5:
-                dtype = np.int16
-            elif dtype == 10:
-                dtype = np.float16
-            elif dtype == 12:
-                dtype = np.uint32
-            elif dtype == 6:
-                dtype = np.int32
-            elif dtype == 1:
-                dtype = np.float32
-            elif dtype == 13:
-                dtype = np.uint64
-            elif dtype == 7:
-                dtype = np.int64
-            elif dtype == 11:
-                dtype = np.float64
-            elif dtype == 14:
-                dtype = np.csingle
-            elif dtype == 15:
-                dtype = np.cdouble
-            elif dtype == 8:
-                dtype = str
-            else:
-                raise Exception('Not supported dtype: {}'.format(dtype))
-
+            dtype = get_numpy_dtype(dtype)
             itemsize = np.dtype(dtype).itemsize
             total = product(shape)
             output = np.frombuffer(proc.stdout.read(itemsize * total), dtype=dtype, count=product(shape)).reshape(shape)
@@ -119,3 +109,4 @@ if __name__ == '__main__':
     for i in range(len(outputs)):
         print('# output[{}]'.format(i))
         print(outputs[i])
+

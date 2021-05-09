@@ -20,19 +20,19 @@ DEPS := $(patsubst src/%.c, obj/%.d, $(SRCS))
 all: connx
 
 run: all
-	./connx examples/mnist
-
-test: src/ver.h $(filter-out obj/main.o, $(OBJS))
-	#$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS) -lcmocka
+	# Run Asin test case
 	python bin/run.py ./connx testcase/data/node/test_asin/ testcase/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
+
+test: connx
+	python bin/test.py
 
 clean:
 	rm -f src/ver.h
 	rm -f src/opset.c
 	rm -rf obj
-	rm -f connx test
+	rm -f connx
 
-connx: src/ver.h $(filter-out obj/test.o, $(OBJS))
+connx: src/ver.h $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
 
 src/ver.h:
