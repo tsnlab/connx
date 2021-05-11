@@ -28,13 +28,13 @@ static char* _strdup(char* str) {
         start;                                  \
     })
 
-#define check_keyword(token, keyword)       \
-    ({                                      \
-        char* name = next_token(token);     \
-        if(strcmp(name, keyword) != 0) {    \
+#define check_keyword(token, keyword)           \
+    ({                                          \
+        char* name = next_token(token);         \
+        if(strcmp(name, keyword) != 0) {        \
             connx_error("Illegal syntax: %s != %s\n", name, keyword); \
-            return ILLEGAL_SYNTAX;          \
-        }                                   \
+            return ILLEGAL_SYNTAX;              \
+        }                                       \
     })
 
 #define next_integer(token)                     \

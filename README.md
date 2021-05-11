@@ -5,7 +5,10 @@ C implementation of Open Neural Network Exchange Runtime
  * make # debugging
  * make RELEASE=1 # release
 
-# Tensor I/O protoco
+# Run
+ make run
+
+# Tensor I/O protocol
 ## To connx
 input_count: int32 - -1 means quit the engine
 for each input
@@ -23,9 +26,9 @@ for each output
     data: various - binary data dump
 
 # Test
-libcmocka-dev package is required.
+pthon3 with numpy is required
 
- * make run # run all test cases
+ * make test # run all test cases
 
 # License
  * CONNX is licensed under dual license GPLv3
