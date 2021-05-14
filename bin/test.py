@@ -46,7 +46,7 @@ for path in Path('testcase').rglob('*.connx'):
                     print(f'{FAIL}Failed{END}')
 
                 print('  data type of output[{}] is differ: inferenced: {}, reference: {}'
-                      .format(idx, str(output.dtype), str(dtype)), end='')
+                      .format(idx, str(output.dtype), str(dtype)))
 
                 is_passed = False
                 continue
@@ -58,7 +58,7 @@ for path in Path('testcase').rglob('*.connx'):
                     print(f'{FAIL}Failed{END}')
 
                 print('  ndim of output[{}] is differ: inferenced: {}, reference: {}'
-                      .format(idx, str(output.ndim), str(ndim)), end='')
+                      .format(idx, str(output.ndim), str(ndim)))
 
                 is_passed = False
                 continue
@@ -70,7 +70,7 @@ for path in Path('testcase').rglob('*.connx'):
                     print(f'{FAIL}Failed{END}')
 
                 print('  shape of output[{}] is differ: inferenced: {}, reference: {}'
-                      .format(idx, str(output.shape), str(shape)), end='')
+                      .format(idx, str(output.shape), str(shape)))
 
                 is_passed = False
                 continue
