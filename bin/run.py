@@ -45,21 +45,15 @@ def product(shape):
 
     return p
 
-def main(argv):
-    if len(argv) < 2:
-        print('Usage: python run.py [connx engine path] [connx model path] [[input path]...]')
-        return None
-
-    connx_path = argv[1]
-    model_path = argv[2]
-    inputs = argv[3:]
-
-    with subprocess.Popen([connx_path, model_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
+def run_direct(connx_path, model_path, input_paths):
+    with subprocess.Popen([connx_path, model_path], 
+                          stdin=subprocess.PIPE, 
+                          stdout=subprocess.PIPE) as proc:
         # Write number of inputs
-        proc.stdin.write(struct.pack('=I', len(inputs)))
+        proc.stdin.write(struct.pack('=I', len(input_paths)))
 
-        for input in inputs:
-            tokens = os.path.basename(input).strip('.data').split('_')
+        for input_path in input_paths:
+            tokens = os.path.basename(input_path).strip('.data').split('_')
             tokens.pop(0) # drop name
 
             # Write data type and ndim
@@ -73,7 +67,7 @@ def main(argv):
                 proc.stdin.write(struct.pack('=I', dim))
 
             # Write data
-            with open(input, 'rb') as file:
+            with open(input_path, 'rb') as file:
                 data = file.read()
                 proc.stdin.write(data)
 
@@ -103,10 +97,76 @@ def main(argv):
         proc.stdout.close()
 
         return outputs
+    
+def main(argv):
+    if len(argv) < 2:
+        print('Usage: python run.py [tensor in pipe] [tensor out pipe] [input path]...]')
+        return None
+
+    tensorin_path = argv[1]
+    tensorout_path = argv[2]
+
+    if len(argv) == 3: # Stop the engine
+        with open(tensorin_path, 'wb') as io:
+            io.write(struct.pack('=i', -1))
+            return None
+
+    inputs = argv[3:]
+
+    # Write input tensors
+    with open(tensorin_path, 'wb') as io:
+        # Write number of inputs
+        io.write(struct.pack('=I', len(inputs)))
+
+        for input in inputs:
+            tokens = os.path.basename(input).strip('.data').split('_')
+            tokens.pop(0) # drop name
+
+            # Write data type and ndim
+            dtype = int(tokens.pop(0))
+            ndim = int(tokens.pop(0))
+            io.write(struct.pack('=II', dtype, ndim))
+
+            # Write shape
+            shape = [ int(token) for token in tokens ]
+            for dim in shape:
+                io.write(struct.pack('=I', dim))
+
+            # Write data
+            with open(input, 'rb') as file:
+                data = file.read()
+                while len(data) != 0:
+                    io.write(data)
+                    data = file.read()
+
+    # Read output tensors
+    outputs = [ ]
+    with open(tensorout_path, 'rb') as io:
+        # Parse number of outputs
+        count = struct.unpack('=i', io.read(4))[0]
+
+        for i in range(count):
+            # Parse data type
+            dtype, ndim = struct.unpack('=II', io.read(8))
+
+            shape = []
+            for i in range(ndim):
+                shape.append(struct.unpack('=I', io.read(4))[0])
+
+            # Parse data
+            dtype = get_numpy_dtype(dtype)
+            itemsize = np.dtype(dtype).itemsize
+            total = product(shape)
+            output = np.frombuffer(io.read(itemsize * total), dtype=dtype, count=product(shape)).reshape(shape)
+            outputs.append(output)
+
+    return outputs
 
 if __name__ == '__main__':
     outputs = main(sys.argv)
-    for i in range(len(outputs)):
-        print('# output[{}]'.format(i))
-        print(outputs[i])
+
+    if outputs is not None:
+        for i in range(len(outputs)):
+            print('# output[{}]'.format(i))
+            print(outputs[i])
 

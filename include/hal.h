@@ -10,13 +10,19 @@
 #define CONNX_ALIGNMENT  16 // Data alignment
 #define CONNX_ALIGN(offset)     (((offset) + CONNX_ALIGNMENT - 1) & ~(CONNX_ALIGNMENT - 1))
 
+// Lifecycle
+void connx_init();
+void connx_destroy();
+
 // Memory management
 void* connx_alloc(uint32_t size);
 void connx_free(void* ptr);
 
 // Model loader
 #ifdef __linux__
-void connx_set_location(const char* path);
+int connx_set_model(const char* path);
+int connx_set_tensorin(const char* path);
+int connx_set_tensorout(const char* path);
 #endif
 void* connx_load(const char* name);
 void connx_unload(void* buf);

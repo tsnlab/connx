@@ -3,16 +3,33 @@
 #include "connx.h"
 
 int main(__attribute__((unused)) int argc, char** argv) {
-    if(argc != 2) {
-        connx_info("Usage: connx [connx model path]\n");
+    if(argc < 2) {
+        connx_info("Usage: connx [connx model path] [[tensor in pipe] [tensor out pipe]]\n");
         return 0;
     }
 
-    connx_set_location(argv[1]);
+    int ret;
+
+    ret = connx_set_model(argv[1]);
+    if(ret != 0) {
+        return ret;
+    }
+
+    if(argc > 3) {
+        ret = connx_set_tensorin(argv[2]);
+        if(ret != 0) {
+            return ret;
+        }
+
+        ret = connx_set_tensorout(argv[3]);
+        if(ret != 0) {
+            return ret;
+        }
+    }
 
     // Parse connx model
     connx_Model model;
-    int ret = connx_Model_init(&model);
+    ret = connx_Model_init(&model);
     if(ret != 0) {
         return ret;
     }

@@ -1,13 +1,13 @@
-.PHONY: all run test clean
+.PHONY: all run test perf clean
 
 CC := gcc
 DEBUG ?= 1
 OPSET ?= $(patsubst src/opset/%.c, %, $(wildcard src/opset/*))
 
-override CFLAGS += -Iinclude -Wall -std=c99
+override CFLAGS += -Iinclude -Wall -std=c99 -D_POSIX_C_SOURCE=200809
 
 ifeq ($(DEBUG), 1)
-	override CFLAGS += -O0 -g -DDEBUG=1 -fsanitize=address
+	override CFLAGS += -pg -O0 -g -DDEBUG=1 -fsanitize=address
 else
 	override CFLAGS += -O3
 endif
@@ -21,12 +21,30 @@ all: connx
 
 run: all
 	# Run Asin test case
-	python bin/run.py ./connx testcase/data/node/test_asin/ testcase/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
+	rm -f tensorin
+	rm -f tensorout
+	mkfifo tensorin
+	mkfifo tensorout
+	# Run connx as daemon
+	./connx  testcase/data/node/test_asin/ tensorin tensorout &
+	# Run the testcase
+	python bin/run.py tensorin tensorout testcase/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
+	# Shutdown the daemon
+	python bin/run.py tensorin tensorout
+	# Clean
+	rm -f tensorin
+	rm -f tensorout
 
 test: connx
 	python bin/test.py
 
+perf:
+	gprof ./connx gmon.out
+
 clean:
+	rm -f gmon.out
+	rm -f tensorin
+	rm -f tensorout
 	rm -f src/ver.h
 	rm -f src/opset.c
 	rm -rf obj
@@ -47,4 +65,6 @@ obj/%.d: src/ver.h $(SRCS)
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
+ifneq (clean,$(filter clean, $(MAKECMDGOALS)))
 -include $(DEPS)
+endif

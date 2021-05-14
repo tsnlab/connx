@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from glob import glob
 import numpy as np
-from run import main, get_numpy_dtype, product
+from run import run_direct, get_numpy_dtype, product
 
 PASS = '\033[92m'
 FAIL = '\033[91m'
@@ -20,8 +20,7 @@ for path in Path('testcase').rglob('*.connx'):
         print('# Test:', name, end=' ')
         model_path = os.path.join(path.parent)
 
-        argv = [sys.argv[0], './connx', model_path, *input_paths]
-        outputs = main(argv)
+        outputs = run_direct('./connx', model_path, input_paths)
 
         is_passed = True
 
