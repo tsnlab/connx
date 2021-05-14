@@ -161,8 +161,9 @@ int32_t connx_Int32_product(int32_t length, int32_t* array) {
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape) {
     uint32_t header_size = CONNX_ALIGN(sizeof(connx_Tensor));
     uint32_t dim_size = CONNX_ALIGN(sizeof(int32_t) * ndim);
-    int32_t total =connx_Int32_product(ndim, shape);
-    uint32_t buffer_size = CONNX_ALIGN(connx_DataType_size(dtype) * total);
+    int32_t total = connx_Int32_product(ndim, shape);
+    uint32_t data_size = connx_DataType_size(dtype) * total;
+    uint32_t buffer_size = CONNX_ALIGN(data_size);
 
     void* ptr = connx_alloc(header_size + dim_size + buffer_size);
 
@@ -172,8 +173,7 @@ connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* sh
     tensor->shape = ptr + header_size;
     memcpy(tensor->shape, shape, sizeof(int32_t) * ndim);
     tensor->buffer = ptr + header_size + dim_size;
-    tensor->size = buffer_size;
-    tensor->offset = 0;
+    tensor->size = data_size;
     tensor->ref_count = 1;
     connx_Lock_init(&tensor->lock);
 

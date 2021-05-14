@@ -180,8 +180,9 @@ int main(__attribute__((unused)) int argc, char** argv) {
             //connx_Tensor_dump(outputs[i]);
         }
 
-        for(uint32_t i = 0; i < output_count; i++)
+        for(uint32_t i = 0; i < output_count; i++) {
             connx_Tensor_unref(outputs[i]);
+        }
     }
 
     connx_Model_destroy(&model);

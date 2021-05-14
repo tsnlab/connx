@@ -2,14 +2,7 @@
 
 echo "opset: $@"
 
-LIST=()
-
-for NAME in $@
-do
-	LIST+=$NAME
-done
-
-COUNT=${#LIST[@]}
+COUNT=${#@}
 
 # Write header
 cat << EOF > src/opset.c
@@ -20,10 +13,10 @@ cat << EOF > src/opset.c
 EOF
 
 # Write prototypes
-for (( i = 0; i < $COUNT; i++))
+for NAME in $@
 do
 cat << EOF >> src/opset.c
-extern int ${LIST[$i]}(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attributes);
+extern int ${NAME}(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attributes);
 EOF
 done
 
@@ -33,10 +26,10 @@ cat << EOF >> src/opset.c
 char* connx_opset_names[] = {
 EOF
 
-for (( i = 0; i < $COUNT; i++))
+for NAME in $@
 do
 cat << EOF >> src/opset.c
-	"${LIST[$i]}",
+	"${NAME}",
 EOF
 done
 
@@ -52,10 +45,10 @@ cat << EOF >> src/opset.c
 CONNX_OPERATOR connx_opset_ops[] = {
 EOF
 
-for (( i = 0; i < $COUNT; i++))
+for NAME in $@
 do
 cat << EOF >> src/opset.c
-	${LIST[$i]},
+	${NAME},
 EOF
 done
 cat << EOF >> src/opset.c

@@ -51,7 +51,6 @@ typedef struct _connx_Tensor {
     int32_t*        shape;      // Shape array
     void*           buffer;     // Data buffer
     uint32_t        size;       // size of buffer
-    uint32_t        offset;     // offset in buffer
     int32_t         ref_count;  // Reference count
     connx_Lock      lock;       // Reference lock
 } connx_Tensor;
