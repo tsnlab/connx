@@ -30,5 +30,8 @@ pthon3 with numpy is required
 
  * make test # run all test cases
 
+# Performance report
+make perf
+
 # License
  * CONNX is licensed under dual license GPLv3
