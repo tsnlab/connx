@@ -1,6 +1,6 @@
 #include "connx.h"
 
-int Add(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((unused)) void** attributes) {
+int Sub(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     connx_Tensor* A = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* B = connx_Graph_get(graph, inputs[1]);
 
@@ -40,13 +40,13 @@ TEMPLATE_START(UINT8, uint8_t, UINT16, uint16_t, UINT32, uint32_t, UINT64, uint6
                         A_idx = (A_idx + 1) % A_total,
                         B_idx = (B_idx + 1) % B_total) {
 
-                    C_array[C_idx] = A_array[A_idx] + B_array[B_idx];
+                    C_array[C_idx] = A_array[A_idx] - B_array[B_idx];
                 }
             }
             break;
 TEMPLATE_END()
         default:
-            connx_error("Add: Datatype %d is not supported yet.\n", A->dtype);
+            connx_error("Sub: Datatype %d is not supported yet.\n", A->dtype);
             return NOT_SUPPORTED_DATATYPE;
     }
 

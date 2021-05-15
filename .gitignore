@@ -2,7 +2,6 @@
 /src/opset.c
 /obj
 /connx
-/test
 __pycache__
 *.swp
 gmon.out

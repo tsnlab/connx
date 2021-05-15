@@ -64,4 +64,10 @@ int connx_Graph_run(connx_Graph* graph,
 connx_Tensor* connx_Graph_get(connx_Graph* graph, uint32_t id);
 void connx_Graph_set(connx_Graph* graph, uint32_t id, connx_Tensor* tensor);
 
+// Template engine
+#define TEMPLATE_START(...)
+#define TEMPLATE_END(...)
+#define _DTYPE
+#define _TYPE
+
 #endif /* __CONNX_H__ */

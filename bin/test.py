@@ -9,12 +9,14 @@ PASS = '\033[92m'
 FAIL = '\033[91m'
 END = '\033[0m'
 
-for path in Path('testcase').rglob('*.connx'):
+for path in Path('test').rglob('*.connx'):
     dataset = glob(os.path.join(path.parent, 'test_data_set_*'))
 
     for data in dataset:
         input_paths = glob(os.path.join(data, 'input-*.data'))
+        input_paths.sort()
         output_paths = glob(os.path.join(data, 'output-*.data'))
+        output_paths.sort()
 
         name = path.parent.name
         print('# Test:', name, end=' ')
@@ -84,7 +86,7 @@ for path in Path('testcase').rglob('*.connx'):
                 if is_passed:
                     print(f'{FAIL}Failed{END}')
 
-                print('  data of output[{}] is differ:')
+                print('  data of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
                 print(output)
                 print('  ## Reference tensor')

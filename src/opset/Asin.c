@@ -8,28 +8,24 @@ int Asin(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__(
     int32_t total = connx_Int32_product(input->ndim, input->shape);
 
     switch(input->dtype) {
-        case FLOAT32:
+TEMPLATE_START(FLOAT32, float32_t, FLOAT64, float64_t)
+#undef _DTYPE
+#undef _TYPE
+#define _DTYPE FLOAT32
+#define _TYPE float32_t
+        case _DTYPE:
             {
-                float32_t* input_array = input->buffer;
-                float32_t* output_array = output->buffer;
+                _TYPE* input_array = input->buffer;
+                _TYPE* output_array = output->buffer;
 
                 for(int32_t i = 0; i < total; i++) {
                     output_array[i] = asinf(input_array[i]);
                 }
             }
             break;
-        case FLOAT64:
-            {
-                float64_t* input_array = input->buffer;
-                float64_t* output_array = output->buffer;
-
-                for(int32_t i = 0; i < total; i++) {
-                    output_array[i] = asin(input_array[i]);
-                }
-            }
-            break;
-        case FLOAT16:
+TEMPLATE_END()
         default:
+            connx_error("Asin: Datatype %d is not supported yet.\n", input->dtype);
             return NOT_SUPPORTED_DATATYPE;
     }
 

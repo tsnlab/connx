@@ -12,6 +12,8 @@ else
 	override CFLAGS += -O3
 endif
 
+OPSET_CFLAGS = -no-integrated-cpp -Bbin $(CFLAGS)
+
 LIBS := -lm -pthread
 SRCS := $(wildcard src/*.c) src/opset.c $(patsubst %, src/opset/%.c, $(OPSET))
 OBJS := $(patsubst src/%.c, obj/%.o, $(SRCS))
@@ -26,9 +28,9 @@ run: all
 	mkfifo tensorin
 	mkfifo tensorout
 	# Run connx as daemon
-	./connx  testcase/data/node/test_asin/ tensorin tensorout &
-	# Run the testcase
-	python bin/run.py tensorin tensorout testcase/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
+	./connx  test/data/node/test_asin/ tensorin tensorout &
+	# Run the test
+	python bin/run.py tensorin tensorout test/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
 	# Shutdown the daemon
 	python bin/run.py tensorin tensorout
 	# Clean
@@ -64,6 +66,9 @@ obj/%.d: src/ver.h $(SRCS)
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
+
+obj/opset/%.o: src/opset/%.c
+	$(CC) $(OPSET_CFLAGS) -c -o $@ $^
 
 ifneq (clean,$(filter clean, $(MAKECMDGOALS)))
 -include $(DEPS)

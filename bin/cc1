@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Get original gcc preprocessor as CC1
+CC1=`echo | gcc -v -x c -E - 2>&1 | sed 's/ /\n/g' | grep cc1`
+
+# Run preprocessor
+if [[ "$*" == *"-fpreprocessed"* ]]
+then
+    # Execute original gcc preprocessor CC1
+    $CC1 $@
+else
+    # Preprocessing
+    ARGS=`python3 bin/preprocessor.py $@`
+
+    # Find source file
+    for ARG in ${ARGS}
+    do
+        if [[ ${ARG} == *.c ]]
+        then
+            SOURCE=${ARG}
+            break
+        fi
+    done
+
+    # Execute original gcc preprocessor CC1
+    $CC1 ${ARGS}
+
+    # Remove intermediate source file
+    #rm ${SOURCE}
+    echo "Source: ${SOURCE}"
+fi
+
+exit $?
