@@ -101,13 +101,13 @@ def get_NAME(dtype):
     elif dtype == 'FLOAT64':
         return 'Float64'
     elif dtype == 'STRING':
-        return 'String*'
+        return 'String'
     elif dtype == 'BOOL':
         return 'Bool'
     elif dtype == 'COMPLEX64':
         return 'Complex64'
     elif dtype == 'COMPLEX128':
-        return 'Complex128*'
+        return 'Complex128'
     else:
         return '***** Not expected _NAME *****'
 
@@ -121,7 +121,7 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
                 tokens = re.split(',|\(|\)', line)
                 tokens.pop(0) # drop TEMPLATE_START
                 dtypes = []
-                while(len(tokens) > 0): # Exclude last empty one
+                while(len(tokens) > 0):
                     name = tokens.pop(0).strip()
                     if is_DTYPE(name):
                         dtypes.append(name)
