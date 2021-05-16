@@ -27,6 +27,7 @@ else
 
     # Remove intermediate source file
     rm ${SOURCE}
+    #echo "Source: ${SOURCE}"
 fi
 
 exit $?

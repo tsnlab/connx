@@ -23,16 +23,16 @@ int Add(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((
     int32_t C_total = connx_Int32_product(C->ndim, C->shape);
 
     switch(A->dtype) {
-TEMPLATE_START(UINT8, uint8_t, UINT16, uint16_t, UINT32, uint32_t, UINT64, uint64_t, INT8, int8_t, INT16, int16_t, INT32, int32_t, INT64, int64_t, FLOAT32, float32_t, FLOAT64, float64_t)
-#undef _DTYPE
-#undef _TYPE
-#define _DTYPE INT32
-#define _TYPE int32_t
-        case _DTYPE:
+TEMPLATE_START(UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64, FLOAT32, FLOAT64)
+#undef TEMPLATE_DTYPE
+#undef TEMPLATE_TYPE
+#define TEMPLATE_DTYPE INT32
+#define TEMPLATE_TYPE int32_t
+        case TEMPLATE_DTYPE:
             {
-                _TYPE* A_array = A->buffer;
-                _TYPE* B_array = B->buffer;
-                _TYPE* C_array = C->buffer;
+                TEMPLATE_TYPE* A_array = A->buffer;
+                TEMPLATE_TYPE* B_array = B->buffer;
+                TEMPLATE_TYPE* C_array = C->buffer;
 
                 for(int32_t C_idx = 0, A_idx = 0, B_idx = 0; 
                         C_idx < C_total;
