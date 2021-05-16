@@ -4,6 +4,7 @@
 #include <math.h> // sin, cos, ...
 #include "hal.h"
 #include "tensor.h"
+#include "accel.h"
 
 uint32_t connx_DataType_size(connx_DataType dtype) {
     switch(dtype) {
@@ -133,25 +134,6 @@ void connx_Iterator_dump(int32_t* iterator) {
         printf("%d ", step[i]);
     printf("\n");
 #endif /* __linux__ */
-}
-
-// Array utilities
-int32_t connx_Int32_sum(int32_t length, int32_t* array) {
-    int32_t result = 0;
-
-    for(int32_t i = 0; i < length; i++)
-        result += array[i];
-
-    return result;
-}
-
-int32_t connx_Int32_product(int32_t length, int32_t* array) {
-    int32_t result = 1;
-
-    for(int32_t i = 0; i < length; i++)
-        result *= array[i];
-
-    return result;
 }
 
 /**
@@ -465,8 +447,4 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             printf("Not implemented yet\n");
             break;
     }
-}
-
-int connx_Tensor_add(connx_Tensor* y, connx_Tensor* a, connx_Tensor* b) {
-    return OK;
 }

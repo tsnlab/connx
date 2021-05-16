@@ -1,3 +1,4 @@
+#include "accel.h"
 #include "connx.h"
 
 int Sub(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((unused)) void** attributes) {

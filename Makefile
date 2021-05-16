@@ -4,15 +4,15 @@ CC := gcc
 DEBUG ?= 1
 OPSET ?= $(patsubst src/opset/%.c, %, $(wildcard src/opset/*))
 
-override CFLAGS += -Iinclude -Wall -std=c99 -D_POSIX_C_SOURCE=200809
+# -D_POSIX_C_SOURCE=200809: Use sleep function in stdlib
+# -no_integrated-cpp -Bbin: Use bin/cc1 and bin/preprocessor.py as a preprocessor
+override CFLAGS += -Iinclude -Wall -std=c99 -D_POSIX_C_SOURCE=200809 -no-integrated-cpp -Bbin
 
 ifeq ($(DEBUG), 1)
-	override CFLAGS += -pg -O0 -g -DDEBUG=1 -fsanitize=address
+	override CFLAGS += -pg -O0 -g -DDEBUG=1 -fsanitize=address #-S -save-temps
 else
 	override CFLAGS += -O3
 endif
-
-OPSET_CFLAGS = -no-integrated-cpp -Bbin $(CFLAGS)
 
 LIBS := -lm -pthread
 SRCS := $(wildcard src/*.c) src/opset.c $(patsubst %, src/opset/%.c, $(OPSET))
@@ -62,13 +62,10 @@ src/opset.c:
 	bin/opset.sh $(OPSET)
 
 obj/%.d: src/ver.h $(SRCS)
-	mkdir -p obj/opset; $(CC) $(CFLAGS) -M $< > $@
+	mkdir -p obj/opset; $(CC) -M $< > $@
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
-
-obj/opset/%.o: src/opset/%.c
-	$(CC) $(OPSET_CFLAGS) -c -o $@ $^
 
 ifneq (clean,$(filter clean, $(MAKECMDGOALS)))
 -include $(DEPS)

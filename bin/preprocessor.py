@@ -71,11 +71,11 @@ def get_TYPE(dtype):
     elif dtype == 'BOOL':
         return 'bool'
     elif dtype == 'COMPLEX64':
-        return 'void*'
+        return 'complex64_t'
     elif dtype == 'COMPLEX128':
-        return 'void*'
+        return 'complex128_t'
     else:
-        return '***** Not expected _DTYPE *****'
+        raise Exception('Not expected dtype')
 
 def get_NAME(dtype):
     if dtype == 'UINT8':
@@ -109,10 +109,12 @@ def get_NAME(dtype):
     elif dtype == 'COMPLEX128':
         return 'Complex128'
     else:
-        return '***** Not expected _NAME *****'
+        raise Exception('Not expected dtype')
 
 with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
     line_no = 1
+    output.write('#line {} "{}"\n'.format(line_no, source))
+
     with open(source, 'r') as input:
         line = input.readline()
         while line:
@@ -131,7 +133,7 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
                 template = []
                 while 'TEMPLATE_END()' not in line:
                     if line[0] == '#':
-                        template.append('')
+                        template.append('\n')
                     else:
                         template.append(line)
 
@@ -141,18 +143,18 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
                     type = get_TYPE(dtype)
                     name = get_NAME(dtype)
 
+                    output.write('#line {} "{}"\n'.format(line_no + 1, source)) # plus header
+
                     for idx, (line) in enumerate(template):
                         line = line.replace('TEMPLATE_DTYPE', dtype)
                         line = line.replace('TEMPLATE_TYPE', type)
-                        line = line.replace('TEMPLATE_NAME', name)
+                        line = line.replace('##TEMPLATE_NAME##', name)
 
-                        output.write('#line {} "{}"\n'.format(line_no + idx + 1, source))
                         output.write(line)
 
                 line = input.readline()
                 line_no += len(template) + 2 # lines of template + header + tail
             else:
-                output.write('#line {} "{}"\n'.format(line_no, source))
                 output.write(line)
 
                 line = input.readline()

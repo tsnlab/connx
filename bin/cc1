@@ -26,8 +26,8 @@ else
     $CC1 ${ARGS}
 
     # Remove intermediate source file
+    #echo "Intermediate source code: ${SOURCE}"
     rm ${SOURCE}
-    #echo "Source: ${SOURCE}"
 fi
 
 exit $?
