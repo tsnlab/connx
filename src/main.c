@@ -4,7 +4,7 @@
 
 int main(__attribute__((unused)) int argc, char** argv) {
     if(argc < 2) {
-        connx_info("Usage: connx [connx model path] [[tensor in pipe] [tensor out pipe]]\n");
+        connx_info("Usage: connx [connx model path] [[tensor in pipe] tensor out pipe]]\n");
         return 0;
     }
 
@@ -128,12 +128,6 @@ int main(__attribute__((unused)) int argc, char** argv) {
             }
         }
 
-
-        //for(uint32_t i = 0; i < input_count; i++) {
-            // printf("***** input[%u]\n", i);
-            //connx_Tensor_dump(inputs[i]);
-        //}
-
         // Run model
         uint32_t output_count = 16;
         connx_Tensor* outputs[output_count];
@@ -177,7 +171,7 @@ int main(__attribute__((unused)) int argc, char** argv) {
 
         for(uint32_t i = 0; i < output_count; i++) {
             // printf("***** output[%u]\n", i);
-            //connx_Tensor_dump(outputs[i]);
+            // connx_Tensor_dump(outputs[i]);
         }
 
         for(uint32_t i = 0; i < output_count; i++) {

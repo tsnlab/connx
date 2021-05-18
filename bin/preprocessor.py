@@ -148,7 +148,7 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
                     for idx, (line) in enumerate(template):
                         line = line.replace('TEMPLATE_DTYPE', dtype)
                         line = line.replace('TEMPLATE_TYPE', type)
-                        line = line.replace('##TEMPLATE_NAME##', name)
+                        line = line.replace('TEMPLATE_NAME', name)
 
                         output.write(line)
 
