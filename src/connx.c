@@ -1,11 +1,11 @@
-#include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "connx.h"
-#include "opset.h"
 #include "hal.h"
+#include "opset.h"
 
 static char* _strdup(char* str) {
     int len = strlen(str);
@@ -18,52 +18,52 @@ static char* _strdup(char* str) {
     return str2;
 }
 
-#define next_token(token)                       \
-    ({                                          \
-        char* start = token;                    \
-        while(*token != ' ' && *token != '\n') {\
-            token++;                            \
-        }                                       \
-        *token++ = '\0';                        \
-        start;                                  \
+#define next_token(token)                        \
+    ({                                           \
+        char* start = token;                     \
+        while(*token != ' ' && *token != '\n') { \
+            token++;                             \
+        }                                        \
+        *token++ = '\0';                         \
+        start;                                   \
     })
 
-#define check_keyword(token, keyword)           \
-    ({                                          \
-        char* name = next_token(token);         \
-        if(strcmp(name, keyword) != 0) {        \
+#define check_keyword(token, keyword)                                 \
+    ({                                                                \
+        char* name = next_token(token);                               \
+        if(strcmp(name, keyword) != 0) {                              \
             connx_error("Illegal syntax: %s != %s\n", name, keyword); \
-            return ILLEGAL_SYNTAX;              \
-        }                                       \
+            return ILLEGAL_SYNTAX;                                    \
+        }                                                             \
     })
 
-#define next_integer(token)                     \
-    ({                                          \
-        char* number = next_token(token);       \
-        if(number == NULL) {                    \
+#define next_integer(token)                                            \
+    ({                                                                 \
+        char* number = next_token(token);                              \
+        if(number == NULL) {                                           \
             connx_error("Illegal integer format before: %s\n", token); \
-            return ILLEGAL_SYNTAX;              \
-        }                                       \
-        strtol(number, NULL, 0);                \
+            return ILLEGAL_SYNTAX;                                     \
+        }                                                              \
+        strtol(number, NULL, 0);                                       \
     })
 
-#define next_float(token)                       \
-    ({                                          \
-        char* number = next_token(token);       \
-        if(number == NULL) {                    \
+#define next_float(token)                                            \
+    ({                                                               \
+        char* number = next_token(token);                            \
+        if(number == NULL) {                                         \
             connx_error("Illegal float format before: %s\n", token); \
-            return ILLEGAL_SYNTAX;              \
-        }                                       \
-        strtof(number, NULL);                   \
+            return ILLEGAL_SYNTAX;                                   \
+        }                                                            \
+        strtof(number, NULL);                                        \
     })
 
-#define next_string(token)                      \
-    ({                                          \
-        uint32_t len = next_integer(token);     \
-        char* str = token;                      \
-        str[len] = '\0';                        \
-        token += + len + 1;                     \
-        str;                                    \
+#define next_string(token)                  \
+    ({                                      \
+        uint32_t len = next_integer(token); \
+        char* str = token;                  \
+        str[len] = '\0';                    \
+        token += len + 1;                   \
+        str;                                \
     })
 
 static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
@@ -174,7 +174,8 @@ int connx_Model_destroy(connx_Model* model) {
     return OK;
 }
 
-int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count, connx_Tensor** outputs) {
+int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count,
+                    connx_Tensor** outputs) {
     return connx_Graph_run(model->graphs[0], input_count, inputs, output_count, outputs);
 }
 
@@ -448,7 +449,8 @@ int connx_Graph_destroy(connx_Graph* graph) {
     return OK;
 }
 
-int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count, connx_Tensor** outputs) {
+int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count,
+                    connx_Tensor** outputs) {
     // Set inputs
     input_count = input_count < graph->input_count ? input_count : graph->input_count;
 
@@ -506,4 +508,3 @@ void connx_Graph_set(connx_Graph* graph, uint32_t id, connx_Tensor* tensor) {
 
     graph->value_infos[id] = tensor;
 }
-

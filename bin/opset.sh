@@ -8,7 +8,7 @@ COUNT=${#@}
 cat << EOF > src/opset.c
 #include "connx.h"
 
-#define OPERATOR_COUNT	${COUNT}
+#define OPERATOR_COUNT ${COUNT}
 
 EOF
 
@@ -29,12 +29,12 @@ EOF
 for NAME in $@
 do
 cat << EOF >> src/opset.c
-	"${NAME}",
+    "${NAME}",
 EOF
 done
 
 cat << EOF >> src/opset.c
-	NULL
+    NULL
 };
 
 EOF

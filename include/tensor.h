@@ -1,8 +1,8 @@
 #ifndef __CONNX_TENSOR_H__
 #define __CONNX_TENSOR_H__
 
-#include "types.h"
 #include "hal.h"
+#include "types.h"
 
 // Iterator
 /**
@@ -20,13 +20,13 @@ void connx_Iterator_dump(int32_t* iterator);
 
 // tensor structure follow Numpy's ndarray
 typedef struct _connx_Tensor {
-    connx_DataType  dtype;      // data type
-    int32_t         ndim;       // Number of dimensions
-    int32_t*        shape;      // Shape array
-    void*           buffer;     // Data buffer
-    uint32_t        size;       // size of buffer
-    int32_t         ref_count;  // Reference count
-    connx_Lock      lock;       // Reference lock
+    connx_DataType dtype; // data type
+    int32_t ndim;         // Number of dimensions
+    int32_t* shape;       // Shape array
+    void* buffer;         // Data buffer
+    uint32_t size;        // size of buffer
+    int32_t ref_count;    // Reference count
+    connx_Lock lock;      // Reference lock
 } connx_Tensor;
 
 int32_t connx_Iterator_size(connx_Tensor* tensor);

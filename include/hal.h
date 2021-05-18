@@ -1,14 +1,14 @@
 #ifndef __CONNX_HAL_H__
 #define __CONNX_HAL_H__
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #ifdef __linux__
 #include <pthread.h>
 #endif /* __linux__ */
 
-#define CONNX_ALIGNMENT  16 // Data alignment
-#define CONNX_ALIGN(offset)     (((offset) + CONNX_ALIGNMENT - 1) & ~(CONNX_ALIGNMENT - 1))
+#define CONNX_ALIGNMENT 16 // Data alignment
+#define CONNX_ALIGN(offset) (((offset) + CONNX_ALIGNMENT - 1) & ~(CONNX_ALIGNMENT - 1))
 
 // Lifecycle
 void connx_init();
