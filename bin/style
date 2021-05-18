@@ -1,0 +1,6 @@
+#!/bin/bash
+
+tmp=$(mktemp)
+clang-format-10 $1 > $tmp
+diff $1 $tmp
+rm "$tmp"
