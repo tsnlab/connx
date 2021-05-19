@@ -4,7 +4,7 @@
 [ ] MatMul
 [ ] MaxPool
 [X] Relu
-[ ] Reshape
+[X] Reshape
 
 [ ] Mobilenet
 [X] Add
@@ -12,7 +12,7 @@
 [ ] Conv
 [ ] GlobalAveragePool
 [X] Relu
-[ ] Reshape
+[X] Reshape
 
 [ ] YOLO v4
 [X] Add
@@ -25,7 +25,7 @@
 [ ] Log
 [ ] MaxPool
 [X] Mul
-[ ] Reshape
+[X] Reshape
 [ ] Resize
 [ ] Shape
 [ ] Sigmoid
