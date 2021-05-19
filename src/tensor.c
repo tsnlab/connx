@@ -149,6 +149,9 @@ connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* sh
     uint32_t buffer_size = CONNX_ALIGN(data_size);
 
     void* ptr = connx_alloc(header_size + dim_size + buffer_size);
+    if(ptr == NULL) {
+        return NULL;
+    }
 
     connx_Tensor* tensor = ptr;
     tensor->dtype = dtype;
@@ -157,6 +160,7 @@ connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* sh
     memcpy(tensor->shape, shape, sizeof(int32_t) * ndim);
     tensor->buffer = ptr + header_size + dim_size;
     tensor->size = data_size;
+    tensor->parent = NULL;
     tensor->ref_count = 1;
     connx_Lock_init(&tensor->lock);
 
@@ -241,6 +245,31 @@ connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor) {
     return tensor2;
 }
 
+connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* shape) {
+    uint32_t header_size = CONNX_ALIGN(sizeof(connx_Tensor));
+    uint32_t dim_size = CONNX_ALIGN(sizeof(int32_t) * ndim);
+
+    void* ptr = connx_alloc(header_size + dim_size);
+    if(ptr == NULL) {
+        return NULL;
+    }
+
+    connx_Tensor* tensor2 = ptr;
+    tensor2->dtype = tensor->dtype;
+    tensor2->ndim = ndim;
+    tensor2->shape = ptr + header_size;
+    memcpy(tensor2->shape, shape, sizeof(int32_t) * ndim);
+    tensor2->buffer = tensor->buffer;
+    tensor2->size = tensor->size;
+    tensor2->parent = tensor;
+    tensor2->ref_count = 1;
+    connx_Lock_init(&tensor2->lock);
+
+    connx_Tensor_ref(tensor); // reshaped tensor references parent tensor
+
+    return tensor2;
+}
+
 void connx_Tensor_ref(connx_Tensor* tensor) {
     connx_Lock_lock(&tensor->lock);
 
@@ -253,10 +282,18 @@ void connx_Tensor_unref(connx_Tensor* tensor) {
     connx_Lock_lock(&tensor->lock);
 
     if(--tensor->ref_count <= 0) {
+        connx_Tensor* parent = tensor->parent;
+
         connx_Lock_unlock(&tensor->lock);
         connx_Lock_destroy(&tensor->lock);
 
         connx_free(tensor);
+
+        // Unref parent
+        if(parent != NULL) {
+            connx_Tensor_unref(parent);
+        }
+
         return;
     }
 
@@ -282,154 +319,154 @@ int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
 void connx_Tensor_dump(connx_Tensor* tensor) {
 #define UNIT 8
 
-    printf("tensor < ");
+    fprintf(stderr, "tensor < ");
     for(int32_t i = 0; i < tensor->ndim; i++) {
-        printf("%u ", tensor->shape[i]);
+        fprintf(stderr, "%u ", tensor->shape[i]);
     }
 
     int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
-    printf("> = %u\n", total);
+    fprintf(stderr, "> = %u\n", total);
 
     switch(tensor->dtype) {
         case UINT8: {
             uint8_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRIu8 " ", array[i]);
+                fprintf(stderr, "%" PRIu8 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case INT8: {
             int8_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRId8 " ", array[i]);
+                fprintf(stderr, "%" PRId8 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case UINT16: {
             uint16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRIu16 " ", array[i]);
+                fprintf(stderr, "%" PRIu16 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case INT16: {
             int16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRId16 " ", array[i]);
+                fprintf(stderr, "%" PRId16 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case UINT32: {
             uint32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRIu32 " ", array[i]);
+                fprintf(stderr, "%" PRIu32 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case INT32: {
             int32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRId32 " ", array[i]);
+                fprintf(stderr, "%" PRId32 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case UINT64: {
             uint64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRIu64 " ", array[i]);
+                fprintf(stderr, "%" PRIu64 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case INT64: {
             int64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRId64 " ", array[i]);
+                fprintf(stderr, "%" PRId64 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case FLOAT16: {
             uint16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%" PRIu16 " ", array[i]);
+                fprintf(stderr, "%" PRIu16 " ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case FLOAT32: {
             float32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%f ", array[i]);
+                fprintf(stderr, "%f ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case FLOAT64: {
             float64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%f ", array[i]);
+                fprintf(stderr, "%f ", array[i]);
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case STRING:
-            printf("Not implemented yet\n");
+            fprintf(stderr, "Not implemented yet\n");
             break;
         case BOOL: {
             bool* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
-                printf("%s ", array[i] ? "true" : "false");
+                fprintf(stderr, "%s ", array[i] ? "true" : "false");
 
                 if((i + 1) % UNIT == 0)
-                    printf("\n");
+                    fprintf(stderr, "\n");
             }
-            printf("\n");
+            fprintf(stderr, "\n");
             break;
         }
         case COMPLEX64:
         case COMPLEX128:
         case UNDEFINED:
         default:
-            printf("Not implemented yet\n");
+            fprintf(stderr, "Not implemented yet\n");
     }
 }
