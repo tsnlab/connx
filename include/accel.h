@@ -3,13 +3,14 @@
 
 #include "types.h"
 
-#define DEFINE_BASIC(NAME, TYPE)                                       \
-    void connx_##NAME##_add(int32_t count, TYPE* c, TYPE* a, TYPE* b); \
-    void connx_##NAME##_sub(int32_t count, TYPE* c, TYPE* a, TYPE* b); \
-    void connx_##NAME##_mul(int32_t count, TYPE* c, TYPE* a, TYPE* b); \
-    int32_t connx_##NAME##_argmax(int32_t count, TYPE* y, TYPE* x);    \
-    int32_t connx_##NAME##_argmin(int32_t count, TYPE* y, TYPE* x);    \
-    TYPE connx_##NAME##_sum(int32_t count, TYPE* array);               \
+#define DEFINE_BASIC(NAME, TYPE)                                                       \
+    void connx_##NAME##_add(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \
+    void connx_##NAME##_sub(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \
+    void connx_##NAME##_mul(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \
+    void connx_##NAME##_broadcast(int32_t y_count, TYPE* y, int32_t x_count, TYPE* x); \
+    int32_t connx_##NAME##_argmax(int32_t count, TYPE* y, TYPE* x);                    \
+    int32_t connx_##NAME##_argmin(int32_t count, TYPE* y, TYPE* x);                    \
+    TYPE connx_##NAME##_sum(int32_t count, TYPE* array);                               \
     TYPE connx_##NAME##_product(int32_t count, TYPE* array);
 
 DEFINE_BASIC(Uint8, uint8_t)

@@ -1,3 +1,4 @@
+#include <string.h>
 #include "accel.h"
 
 // Array utilities
@@ -22,6 +23,12 @@ void connx_TEMPLATE_NAME_sub(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, 
 void connx_TEMPLATE_NAME_mul(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
     for(int32_t i = 0; i < count; i++) {
         c[i] = a[i] * b[i];
+    }
+}
+
+void connx_TEMPLATE_NAME_broadcast(int32_t y_count, TEMPLATE_TYPE* y, int32_t x_count, TEMPLATE_TYPE* x) {
+    for(int32_t i = 0; i < y_count / x_count; i++) {
+        memcpy(y + i * sizeof(TEMPLATE_TYPE), x, sizeof(TEMPLATE_TYPE) * x_count);
     }
 }
 

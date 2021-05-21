@@ -317,7 +317,27 @@ int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
 }
 
 void connx_Tensor_dump(connx_Tensor* tensor) {
-#define UNIT 8
+    int32_t unit = -1;
+    int32_t unit2 = -1;
+
+    if(tensor->ndim == 1) {
+        unit = 8;
+    } else if(tensor->ndim >= 1) {
+        unit = tensor->shape[tensor->ndim - 1];
+
+        if(tensor->ndim >= 2) {
+            unit2 = unit * tensor->shape[tensor->ndim - 2];
+        }
+    }
+
+    // New line by matrix
+#define NEWLINE()              \
+    if((i + 1) % unit == 0)    \
+        fprintf(stderr, "\n"); \
+                               \
+    if((i + 1) % unit2 == 0)   \
+        fprintf(stderr, "\n");
+
 
     fprintf(stderr, "tensor < ");
     for(int32_t i = 0; i < tensor->ndim; i++) {
@@ -332,9 +352,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             uint8_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu8 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -343,9 +361,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             int8_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId8 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -354,9 +370,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             uint16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu16 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -365,9 +379,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             int16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId16 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -376,9 +388,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             uint32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu32 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -387,9 +397,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             int32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId32 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -398,9 +406,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             uint64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu64 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -409,9 +415,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             int64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId64 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -420,9 +424,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             uint16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu16 " ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -431,9 +433,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             float32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%f ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -442,9 +442,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             float64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%f ", array[i]);
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
@@ -456,9 +454,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             bool* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%s ", array[i] ? "true" : "false");
-
-                if((i + 1) % UNIT == 0)
-                    fprintf(stderr, "\n");
+                NEWLINE()
             }
             fprintf(stderr, "\n");
             break;
