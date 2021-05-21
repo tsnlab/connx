@@ -338,7 +338,6 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     if((i + 1) % unit2 == 0)   \
         fprintf(stderr, "\n");
 
-
     fprintf(stderr, "tensor < ");
     for(int32_t i = 0; i < tensor->ndim; i++) {
         fprintf(stderr, "%u ", tensor->shape[i]);

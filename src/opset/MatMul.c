@@ -7,7 +7,8 @@ TEMPLATE_START(FLOAT32, FLOAT64, UINT32, UINT64, INT32, INT64)
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_broadcast connx_Float32_broadcast
-static TEMPLATE_TYPE* get_TEMPLATE_NAME_row(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count, TEMPLATE_TYPE* array, int32_t row) {
+static TEMPLATE_TYPE* get_TEMPLATE_NAME_row(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count, 
+                                            TEMPLATE_TYPE* array, int32_t row) {
     if(array_count >= temp_count) {
         return array + row * array_count;
     } else {
@@ -16,7 +17,8 @@ static TEMPLATE_TYPE* get_TEMPLATE_NAME_row(int32_t temp_count, TEMPLATE_TYPE* t
     }
 }
 
-static TEMPLATE_TYPE* get_TEMPLATE_NAME_col(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count, TEMPLATE_TYPE* array, int32_t col) {
+static TEMPLATE_TYPE* get_TEMPLATE_NAME_col(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count, 
+                                            TEMPLATE_TYPE* array, int32_t col) {
     for(int32_t i = 0; i < temp_count; i++) {
         temp[i] = array[i * array_count + col];
     }
@@ -50,9 +52,9 @@ int MatMul(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute_
         return NOT_ENOUGH_MEMORY;
     }
 
-    int32_t A_row = A->shape[A->ndim - 2]; // row count
-    int32_t A_col = A->shape[A->ndim - 1]; // col count
-    int32_t A_unit = A_row * A_col; // size of matrix
+    int32_t A_row = A->shape[A->ndim - 2];                    // row count
+    int32_t A_col = A->shape[A->ndim - 1];                    // col count
+    int32_t A_unit = A_row * A_col;                           // size of matrix
     int32_t A_total = connx_Int32_product(A->ndim, A->shape); // Number of matrics
     int32_t B_row = B->shape[B->ndim - 2];
     int32_t B_col = B->shape[B->ndim - 1];
@@ -81,7 +83,9 @@ int MatMul(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute_
             TEMPLATE_TYPE tmp_b[count];
             TEMPLATE_TYPE tmp_mul[count];
 
-            for(int32_t Y_idx = 0, A_idx = 0, B_idx = 0; Y_idx < Y_total; Y_idx += Y_unit, A_idx = (A_idx + A_unit) % A_total, B_idx = (B_idx + B_unit) % B_total) {
+            for(int32_t Y_idx = 0, A_idx = 0, B_idx = 0; Y_idx < Y_total; 
+                Y_idx += Y_unit, A_idx = (A_idx + A_unit) % A_total, B_idx = (B_idx + B_unit) % B_total) {
+
                 for(int32_t col_idx = 0; col_idx < Y_col; col_idx++) {
                     TEMPLATE_TYPE* b = get_TEMPLATE_NAME_col(count, tmp_a, B_col, B_array + B_idx, col_idx);
 
