@@ -29,15 +29,15 @@ run: all
 	# Run connx as daemon
 	./connx  test/data/node/test_asin/ tensorin tensorout &
 	# Run the test
-	python bin/run.py tensorin tensorout test/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
+	python3 bin/run.py tensorin tensorout test/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
 	# Shutdown the daemon
-	python bin/run.py tensorin tensorout
+	python3 bin/run.py tensorin tensorout
 	# Clean
 	rm -f tensorin
 	rm -f tensorout
 
 test: connx
-	python bin/test.py
+	python3 bin/test.py
 
 perf:
 	gprof ./connx gmon.out

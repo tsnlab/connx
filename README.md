@@ -3,9 +3,10 @@ C implementation of Open Neural Network Exchange Runtime
 
 # Compile
  * make # debugging
- * make RELEASE=1 # release
+ * make DEBUG=0 # release
 
 # Run
+If you want to run on Raspberry Pi 3 please compile with DEBUG=0 for to run sanitizer, some trick must be used.
  make run
 
 # Tensor I/O protocol

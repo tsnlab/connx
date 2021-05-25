@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef uint16_t float16_t;
+typedef float float16_t;
 typedef float float32_t;
 typedef double float64_t;
 

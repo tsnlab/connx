@@ -1,5 +1,17 @@
+#include <float.h>
 #include <string.h>
 #include "accel.h"
+
+#define UINT8_MIN 0
+#define UINT16_MIN 0
+#define UINT32_MIN 0
+#define UINT64_MIN 0
+#define FLOAT16_MIN -65504
+#define FLOAT16_MAX 65504
+#define FLOAT32_MIN -FLT_MAX
+#define FLOAT32_MAX FLT_MAX
+#define FLOAT64_MIN -DBL_MAX
+#define FLOAT64_MAX DBL_MAX
 
 // Array utilities
 TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64)
@@ -7,6 +19,8 @@ TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16
 #define TEMPLATE_TYPE int32_t
 #undef TEMPLATE_NAME
 #define TEMPLATE_NAME Int32
+#define TEMPLATE_DTYPE_MAX INT32_MAX
+#define TEMPLATE_DTYPE_MIN INT32_MIN
 
 void connx_TEMPLATE_NAME_add(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
     for(int32_t i = 0; i < count; i++) {
@@ -34,7 +48,7 @@ void connx_TEMPLATE_NAME_broadcast(int32_t y_count, TEMPLATE_TYPE* y, int32_t x_
 
 int32_t connx_TEMPLATE_NAME_argmax(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYPE* x) {
     int32_t argmax = -1;
-    TEMPLATE_TYPE max;
+    TEMPLATE_TYPE max = TEMPLATE_DTYPE_MIN;
 
     for(int32_t i = 0; i < count; i++) {
         if(argmax == -1 || x[i] > max) {
@@ -52,7 +66,7 @@ int32_t connx_TEMPLATE_NAME_argmax(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYP
 
 int32_t connx_TEMPLATE_NAME_argmin(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYPE* x) {
     int32_t argmin = -1;
-    TEMPLATE_TYPE min;
+    TEMPLATE_TYPE min = TEMPLATE_DTYPE_MAX;
 
     for(int32_t i = 0; i < count; i++) {
         if(argmin == -1 || x[i] < min) {
