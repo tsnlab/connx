@@ -1,7 +1,7 @@
 [ ] MNIST
 [X] Add
 [ ] Conv
-[ ] MatMul
+[X] MatMul
 [ ] MaxPool
 [X] Relu
 [X] Reshape

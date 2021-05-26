@@ -13,18 +13,18 @@ If you want to run on Raspberry Pi 3, please compile with DEBUG=0 for to run san
 ## To connx
 input\_count: int32 - -1 means quit the engine
 for each input
-    dtype: uint32
-    ndim: uint32
-    shape: uint32[] - array of uint32 values
-    data: various - binary data dump
+ * dtype: uint32
+ * ndim: uint32
+ * shape: uint32[] - array of uint32 values
+ * data: various - binary data dump
 
 ## From connx
 output\_count: uint32
 for each output
-    dtype: uint32
-    ndim: uint32
-    shape: uint32[] - array of uint32 values
-    data: various - binary data dump
+ * dtype: uint32
+ * ndim: uint32
+ * shape: uint32[] - array of uint32 values
+ * data: various - binary data dump
 
 # Test
 pthon3 with Numpy is required
