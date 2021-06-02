@@ -2,6 +2,10 @@
 #include <string.h>
 #include <connx/connx.h>
 
+int connx_set_model(const char* path);
+int connx_set_tensorin(const char* path);
+int connx_set_tensorout(const char* path);
+
 int main(int argc, char** argv) {
     if(argc < 2) {
         connx_info("Usage: connx [connx model path] [[tensor in pipe] tensor out pipe]]\n");

@@ -17,9 +17,6 @@ void* connx_alloc(uint32_t size);
 void connx_free(void* ptr);
 
 // Model loader
-int connx_set_model(const char* path);     // linux only function
-int connx_set_tensorin(const char* path);  // linux only function
-int connx_set_tensorout(const char* path); // linux only function
 void* connx_load(const char* name);
 void connx_unload(void* buf);
 
