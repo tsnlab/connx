@@ -36,10 +36,10 @@ int Reshape(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attr
     // Make a reshaped tensor
     connx_Tensor* reshaped = connx_Tensor_reshape(data, ndim, new_shape);
     if(reshaped == NULL) {
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     connx_Graph_set(graph, outputs[0], reshaped);
 
-    return OK;
+    return CONNX_OK;
 }

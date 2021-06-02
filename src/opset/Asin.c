@@ -26,10 +26,10 @@ int Asin(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__(
             TEMPLATE_END()
         default:
             connx_error("Asin: Datatype %d is not supported yet.\n", input->dtype);
-            return NOT_SUPPORTED_DATATYPE;
+            return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
     connx_Graph_set(graph, outputs[0], output);
 
-    return OK;
+    return CONNX_OK;
 }

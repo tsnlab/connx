@@ -146,7 +146,7 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
                     output.write('#line {} "{}"\n'.format(line_no + 1, source)) # plus header
 
                     for idx, (line) in enumerate(template):
-                        line = line.replace('TEMPLATE_DTYPE', dtype)
+                        line = line.replace('TEMPLATE_DTYPE', 'CONNX_' + dtype)
                         line = line.replace('TEMPLATE_TYPE', type)
                         line = line.replace('TEMPLATE_NAME', name)
 

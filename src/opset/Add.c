@@ -16,7 +16,7 @@ int Add(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((
     connx_Tensor* C = connx_Tensor_alloc(A->dtype, ndim, shape);
 
     if(C == NULL) {
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     int32_t A_total = connx_Int32_product(A->ndim, A->shape);
@@ -44,10 +44,10 @@ int Add(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((
             TEMPLATE_END()
         default:
             connx_error("Add: Datatype %d is not supported yet.\n", A->dtype);
-            return NOT_SUPPORTED_DATATYPE;
+            return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
     connx_Graph_set(graph, outputs[0], C);
 
-    return OK;
+    return CONNX_OK;
 }

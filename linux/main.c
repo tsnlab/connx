@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
         uint32_t input_count;
         if(connx_read(&input_count, sizeof(uint32_t)) != sizeof(uint32_t)) {
             connx_error("Cannot read input count from Tensor I/O module.\n");
-            return IO_ERROR;
+            return CONNX_IO_ERROR;
         }
 
         if(input_count == (uint32_t)-1) {
@@ -100,31 +100,31 @@ int main(int argc, char** argv) {
             int32_t dtype;
             if(connx_read(&dtype, sizeof(int32_t)) != sizeof(int32_t)) {
                 connx_error("Cannot read input data type from Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
 
             int32_t ndim;
             if(connx_read(&ndim, sizeof(int32_t)) != sizeof(int32_t)) {
                 connx_error("Cannot read input ndim from Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
 
             int32_t shape[ndim];
             if(connx_read(&shape, sizeof(int32_t) * ndim) != sizeof(int32_t) * ndim) {
                 connx_error("Cannot read input shape from Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
 
             connx_Tensor* input = inputs[i] = connx_Tensor_alloc(dtype, ndim, shape);
             if(input == NULL) {
                 connx_error("Out of memory\n");
-                return NOT_ENOUGH_MEMORY;
+                return CONNX_NOT_ENOUGH_MEMORY;
             }
 
             int32_t len = connx_read(input->buffer, input->size);
             if(len != (int32_t)input->size) {
                 connx_error("Cannot read input data from Tensor I/O moudle.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
         }
 
@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
         connx_Tensor* outputs[output_count];
 
         ret = connx_Model_run(&model, input_count, inputs, &output_count, outputs);
-        if(ret != OK) {
+        if(ret != CONNX_OK) {
             return ret;
         }
 
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
         // Write output count
         if(connx_write(&output_count, sizeof(uint32_t)) != sizeof(uint32_t)) {
             connx_error("Cannot write output data to Tensor I/O moudle.\n");
-            return IO_ERROR;
+            return CONNX_IO_ERROR;
         }
 
         for(uint32_t i = 0; i < output_count; i++) {
@@ -150,22 +150,22 @@ int main(int argc, char** argv) {
             int32_t dtype = output->dtype;
             if(connx_write(&dtype, sizeof(int32_t)) != sizeof(int32_t)) {
                 connx_error("Cannot write output data type to Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
 
             if(connx_write(&output->ndim, sizeof(int32_t)) != sizeof(int32_t)) {
                 connx_error("Cannot write output ndim to Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
 
             if(connx_write(output->shape, sizeof(int32_t) * output->ndim) != sizeof(int32_t) * output->ndim) {
                 connx_error("Cannot write output shape to Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
 
             if(connx_write(output->buffer, output->size) != (int32_t)output->size) {
                 connx_error("Cannot write output data to Tensor I/O module.\n");
-                return IO_ERROR;
+                return CONNX_IO_ERROR;
             }
         }
 

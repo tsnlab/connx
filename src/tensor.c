@@ -9,28 +9,28 @@
 
 uint32_t connx_DataType_size(connx_DataType dtype) {
     switch(dtype) {
-        case UINT8:
-        case INT8:
-        case BOOL:
+        case CONNX_UINT8:
+        case CONNX_INT8:
+        case CONNX_BOOL:
             return 1;
-        case UINT16:
-        case INT16:
-        case FLOAT16:
+        case CONNX_UINT16:
+        case CONNX_INT16:
+        case CONNX_FLOAT16:
             return 2;
-        case UINT32:
-        case INT32:
-        case FLOAT32:
+        case CONNX_UINT32:
+        case CONNX_INT32:
+        case CONNX_FLOAT32:
             return 4;
-        case UINT64:
-        case INT64:
-        case FLOAT64:
-        case COMPLEX64:
+        case CONNX_UINT64:
+        case CONNX_INT64:
+        case CONNX_FLOAT64:
+        case CONNX_COMPLEX64:
             return 8;
-        case COMPLEX128:
+        case CONNX_COMPLEX128:
             return 16;
-        case STRING:
+        case CONNX_STRING:
             return sizeof(uintptr_t);
-        case UNDEFINED:
+        case CONNX_UNDEFINED:
         default:
             return 0;
     }
@@ -282,7 +282,7 @@ int connx_Tensor_get(connx_Tensor* tensor, int32_t* iterator, void* data) {
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(data, tensor->buffer + offset * data_size, data_size);
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
@@ -290,5 +290,5 @@ int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(tensor->buffer + offset * data_size, data, data_size);
 
-    return OK;
+    return CONNX_OK;
 }

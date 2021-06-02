@@ -49,7 +49,7 @@ int MatMul(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute_
 
     connx_Tensor* Y = connx_Tensor_alloc(A->dtype, ndim, shape);
     if(Y == NULL) {
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     int32_t A_row = A->shape[A->ndim - 2];                    // row count
@@ -105,10 +105,10 @@ int MatMul(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute_
             TEMPLATE_END()
         default:
             connx_error("MatMul: Datatype %d is not supported yet.\n", A->dtype);
-            return NOT_SUPPORTED_DATATYPE;
+            return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
     connx_Graph_set(graph, outputs[0], Y);
 
-    return OK;
+    return CONNX_OK;
 }

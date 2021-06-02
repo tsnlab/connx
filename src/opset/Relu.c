@@ -5,7 +5,7 @@ int Relu(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__(
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* Y = connx_Tensor_alloc_like(X);
     if(Y == NULL) {
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     int32_t total = connx_Int32_product(X->ndim, X->shape);
@@ -28,10 +28,10 @@ int Relu(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__(
             TEMPLATE_END()
         default:
             connx_error("Relu: Datatype %d is not supported yet.\n", X->dtype);
-            return NOT_SUPPORTED_DATATYPE;
+            return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
     connx_Graph_set(graph, outputs[0], Y);
 
-    return OK;
+    return CONNX_OK;
 }

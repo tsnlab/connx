@@ -44,30 +44,30 @@ int connx_set_model(const char* path) {
     snprintf(_model_path, 128, "%s", path);
     struct stat st;
     if(stat(_model_path, &st) == 0 && S_ISDIR(st.st_mode)) {
-        return OK;
+        return CONNX_OK;
     } else {
         connx_error("Model not found in path: '%s'\n", _model_path);
-        return RESOURCE_NOT_FOUND;
+        return CONNX_RESOURCE_NOT_FOUND;
     }
 }
 
 int connx_set_tensorin(const char* path) {
     _tensorin = fopen(path, "r");
     if(_tensorin != NULL) {
-        return OK;
+        return CONNX_OK;
     } else {
         connx_error("Tensor input PIPE not found in path: '%s'\n", path);
-        return RESOURCE_NOT_FOUND;
+        return CONNX_RESOURCE_NOT_FOUND;
     }
 }
 
 int connx_set_tensorout(const char* path) {
     _tensorout = fopen(path, "w");
     if(_tensorout != NULL) {
-        return OK;
+        return CONNX_OK;
     } else {
         connx_error("Tensor output PIPE not found in path: '%s'\n", path);
-        return RESOURCE_NOT_FOUND;
+        return CONNX_RESOURCE_NOT_FOUND;
     }
 }
 
@@ -281,7 +281,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     fprintf(stderr, "> = %u\n", total);
 
     switch(tensor->dtype) {
-        case UINT8: {
+        case CONNX_UINT8: {
             uint8_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu8 " ", array[i]);
@@ -290,7 +290,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case INT8: {
+        case CONNX_INT8: {
             int8_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId8 " ", array[i]);
@@ -299,7 +299,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case UINT16: {
+        case CONNX_UINT16: {
             uint16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu16 " ", array[i]);
@@ -308,7 +308,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case INT16: {
+        case CONNX_INT16: {
             int16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId16 " ", array[i]);
@@ -317,7 +317,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case UINT32: {
+        case CONNX_UINT32: {
             uint32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu32 " ", array[i]);
@@ -326,7 +326,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case INT32: {
+        case CONNX_INT32: {
             int32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId32 " ", array[i]);
@@ -335,7 +335,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case UINT64: {
+        case CONNX_UINT64: {
             uint64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu64 " ", array[i]);
@@ -344,7 +344,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case INT64: {
+        case CONNX_INT64: {
             int64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRId64 " ", array[i]);
@@ -353,7 +353,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case FLOAT16: {
+        case CONNX_FLOAT16: {
             uint16_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%" PRIu16 " ", array[i]);
@@ -362,7 +362,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case FLOAT32: {
+        case CONNX_FLOAT32: {
             float32_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%f ", array[i]);
@@ -371,7 +371,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case FLOAT64: {
+        case CONNX_FLOAT64: {
             float64_t* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%f ", array[i]);
@@ -380,10 +380,10 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case STRING:
+        case CONNX_STRING:
             fprintf(stderr, "Not implemented yet\n");
             break;
-        case BOOL: {
+        case CONNX_BOOL: {
             bool* array = tensor->buffer;
             for(int32_t i = 0; i < total; i++) {
                 fprintf(stderr, "%s ", array[i] ? "true" : "false");
@@ -392,9 +392,9 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
             fprintf(stderr, "\n");
             break;
         }
-        case COMPLEX64:
-        case COMPLEX128:
-        case UNDEFINED:
+        case CONNX_COMPLEX64:
+        case CONNX_COMPLEX128:
+        case CONNX_UNDEFINED:
         default:
             fprintf(stderr, "Not implemented yet\n");
     }

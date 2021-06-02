@@ -33,7 +33,7 @@ static char* _strdup(char* str) {
         char* name = next_token(token);                               \
         if(strcmp(name, keyword) != 0) {                              \
             connx_error("Illegal syntax: %s != %s\n", name, keyword); \
-            return ILLEGAL_SYNTAX;                                    \
+            return CONNX_ILLEGAL_SYNTAX;                                    \
         }                                                             \
     })
 
@@ -42,7 +42,7 @@ static char* _strdup(char* str) {
         char* number = next_token(token);                              \
         if(number == NULL) {                                           \
             connx_error("Illegal integer format before: %s\n", token); \
-            return ILLEGAL_SYNTAX;                                     \
+            return CONNX_ILLEGAL_SYNTAX;                                     \
         }                                                              \
         strtol(number, NULL, 0);                                       \
     })
@@ -52,7 +52,7 @@ static char* _strdup(char* str) {
         char* number = next_token(token);                            \
         if(number == NULL) {                                         \
             connx_error("Illegal float format before: %s\n", token); \
-            return ILLEGAL_SYNTAX;                                   \
+            return CONNX_ILLEGAL_SYNTAX;                                   \
         }                                                            \
         strtof(number, NULL);                                        \
     })
@@ -66,7 +66,7 @@ static char* _strdup(char* str) {
         str;                                \
     })
 
-static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
+static int parse_Model(connx_Model* model, char* metadata) {
     char* token = metadata;
 
     // prase version
@@ -76,7 +76,7 @@ static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
 
     if(model->version <= 0 || model->version > 1) {
         connx_error("Not supported CONNX version: %u\n", model->version);
-        return NOT_SUPPORTED_CONNX_VERSION;
+        return CONNX_NOT_SUPPORTED_CONNX_VERSION;
     }
 
     // parse opset_import
@@ -86,13 +86,13 @@ static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
     model->opset_names = connx_alloc(sizeof(char*) * model->opset_count);
     if(model->opset_names == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     model->opset_versions = connx_alloc(sizeof(uint32_t) * model->opset_count);
     if(model->opset_versions == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     // parse opset name, version
@@ -100,7 +100,7 @@ static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
         model->opset_names[i] = _strdup(next_string(token));
         if(model->opset_names[i] == NULL) {
             connx_error("Out of memory\n");
-            return NOT_ENOUGH_MEMORY;
+            return CONNX_NOT_ENOUGH_MEMORY;
         }
         model->opset_versions[i] = next_integer(token);
     }
@@ -109,16 +109,16 @@ static connx_ErrorCode parse_Model(connx_Model* model, char* metadata) {
     check_keyword(token, "graph");
     model->graph_count = next_integer(token);
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Model_init(connx_Model* model) {
     // Parse model
     void* metadata = connx_load("model.connx");
-    connx_ErrorCode ret = parse_Model(model, metadata);
+    int ret = parse_Model(model, metadata);
     connx_unload(metadata);
 
-    if(ret != OK) {
+    if(ret != CONNX_OK) {
         return ret;
     }
 
@@ -126,24 +126,24 @@ int connx_Model_init(connx_Model* model) {
     model->graphs = connx_alloc(sizeof(connx_Graph*) * model->graph_count);
     if(model->graphs == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     for(uint32_t i = 0; i < model->graph_count; i++) {
         model->graphs[i] = connx_alloc(sizeof(connx_Graph));
         if(model->graphs[i] == NULL) {
             connx_error("Out of memory\n");
-            return NOT_ENOUGH_MEMORY;
+            return CONNX_NOT_ENOUGH_MEMORY;
         }
 
         ret = connx_Graph_init(model->graphs[i], model, i);
 
-        if(ret != OK) {
+        if(ret != CONNX_OK) {
             return ret;
         }
     }
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Model_destroy(connx_Model* model) {
@@ -171,7 +171,7 @@ int connx_Model_destroy(connx_Model* model) {
         connx_free(model->opset_names);
     }
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count,
@@ -179,7 +179,7 @@ int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inp
     return connx_Graph_run(model->graphs[0], input_count, inputs, output_count, outputs);
 }
 
-static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
+static int parse_Graph(connx_Graph* graph, char* text) {
     char* token = text;
 
     // prase value_info
@@ -189,7 +189,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     graph->value_infos = connx_alloc(sizeof(connx_Tensor*) * (graph->value_info_count + 1)); // 0 is null
     if(graph->value_infos == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     // prase initializer
@@ -199,7 +199,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     graph->initializers = connx_alloc(sizeof(connx_Tensor*) * graph->initializer_count);
     if(graph->initializers == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     // prase output
@@ -209,7 +209,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     graph->outputs = connx_alloc(sizeof(uint32_t) * graph->output_count);
     if(graph->outputs == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     for(uint32_t i = 0; i < graph->output_count; i++) {
@@ -223,7 +223,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     graph->inputs = connx_alloc(sizeof(uint32_t) * graph->input_count);
     if(graph->inputs == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     for(uint32_t i = 0; i < graph->input_count; i++) {
@@ -237,7 +237,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
     graph->nodes = connx_alloc(sizeof(connx_Node*) * graph->node_count);
     if(graph->nodes == NULL) {
         connx_error("Out of memory\n");
-        return NOT_ENOUGH_MEMORY;
+        return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     for(uint32_t i = 0; i < graph->node_count; i++) {
@@ -247,7 +247,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
         node->op_type = _strdup(op_type);
         if(node->op_type == NULL) {
             connx_error("Out of memory\n");
-            return NOT_ENOUGH_MEMORY;
+            return CONNX_NOT_ENOUGH_MEMORY;
         }
 
         // Find operator for op_type
@@ -260,7 +260,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
 
         if(node->op == NULL) {
             connx_error("Operator %s is not supported yet.\n", node->op_type);
-            return NOT_SUPPORTED_OPERATOR;
+            return CONNX_NOT_SUPPORTED_OPERATOR;
         }
 
         node->output_count = next_integer(token);
@@ -270,19 +270,19 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
         node->outputs = connx_alloc(sizeof(uint32_t) * node->output_count);
         if(node->outputs == NULL) {
             connx_error("Out of memory\n");
-            return NOT_ENOUGH_MEMORY;
+            return CONNX_NOT_ENOUGH_MEMORY;
         }
 
         node->inputs = connx_alloc(sizeof(uint32_t) * node->input_count);
         if(node->inputs == NULL) {
             connx_error("Out of memory\n");
-            return NOT_ENOUGH_MEMORY;
+            return CONNX_NOT_ENOUGH_MEMORY;
         }
 
         node->attributes = connx_alloc(sizeof(uintptr_t) * node->attribute_count);
         if(node->attributes == NULL) {
             connx_error("Out of memory\n");
-            return NOT_ENOUGH_MEMORY;
+            return CONNX_NOT_ENOUGH_MEMORY;
         }
 
         for(uint32_t i = 0; i < node->output_count; i++) {
@@ -304,7 +304,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     node->attributes[i] = connx_alloc(sizeof(float32_t));
                     if(node->attributes[i] == NULL) {
                         connx_error("Out of memory\n");
-                        return NOT_ENOUGH_MEMORY;
+                        return CONNX_NOT_ENOUGH_MEMORY;
                     }
                     *(float32_t*)node->attributes[i] = next_float(token);
                     break;
@@ -312,7 +312,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     node->attributes[i] = connx_alloc(sizeof(int32_t));
                     if(node->attributes[i] == NULL) {
                         connx_error("Out of memory\n");
-                        return NOT_ENOUGH_MEMORY;
+                        return CONNX_NOT_ENOUGH_MEMORY;
                     }
                     *(int32_t*)node->attributes[i] = next_integer(token);
                     break;
@@ -320,7 +320,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     node->attributes[i] = _strdup(next_string(token));
                     if(node->attributes[i] == NULL) {
                         connx_error("Out of memory\n");
-                        return NOT_ENOUGH_MEMORY;
+                        return CONNX_NOT_ENOUGH_MEMORY;
                     }
                     break;
                 case 6: // FLOATS
@@ -328,7 +328,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     node->attributes[i] = connx_alloc(sizeof(float32_t) * count);
                     if(node->attributes[i] == NULL) {
                         connx_error("Out of memory\n");
-                        return NOT_ENOUGH_MEMORY;
+                        return CONNX_NOT_ENOUGH_MEMORY;
                     }
 
                     for(uint32_t j = 0; j < count; j++) {
@@ -340,7 +340,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     node->attributes[i] = connx_alloc(sizeof(int32_t) * count);
                     if(node->attributes[i] == NULL) {
                         connx_error("Out of memory\n");
-                        return NOT_ENOUGH_MEMORY;
+                        return CONNX_NOT_ENOUGH_MEMORY;
                     }
 
                     for(uint32_t j = 0; j < count; j++) {
@@ -352,7 +352,7 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     node->attributes[i] = connx_alloc(sizeof(char*) * count);
                     if(node->attributes[i] == NULL) {
                         connx_error("Out of memory\n");
-                        return NOT_ENOUGH_MEMORY;
+                        return CONNX_NOT_ENOUGH_MEMORY;
                     }
 
                     for(uint32_t j = 0; j < count; j++) {
@@ -361,12 +361,12 @@ static connx_ErrorCode parse_Graph(connx_Graph* graph, char* text) {
                     break;
                 default:
                     connx_error("Attribute type %u is not supported.\n", type);
-                    return NOT_SUPPORTED_ATTRIBUTE;
+                    return CONNX_NOT_SUPPORTED_ATTRIBUTE;
             }
         }
     }
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Graph_init(connx_Graph* graph, connx_Model* model, uint32_t graph_id) {
@@ -378,14 +378,14 @@ int connx_Graph_init(connx_Graph* graph, connx_Model* model, uint32_t graph_id) 
     snprintf(name, 256, "%u.text", graph_id);
 
     void* text = connx_load(name);
-    connx_ErrorCode ret = parse_Graph(graph, text);
+    int ret = parse_Graph(graph, text);
     connx_unload(text);
 
-    if(ret != OK) {
+    if(ret != CONNX_OK) {
         return ret;
     }
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Graph_destroy(connx_Graph* graph) {
@@ -446,7 +446,7 @@ int connx_Graph_destroy(connx_Graph* graph) {
         connx_free(graph->initializers);
     }
 
-    return OK;
+    return CONNX_OK;
 }
 
 int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inputs, uint32_t* output_count,
@@ -470,7 +470,7 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
     for(uint32_t i = 0; i < graph->node_count; i++) {
         connx_Node* node = graph->nodes[i];
         int ret = node->op(graph, node->outputs, node->inputs, node->attributes);
-        if(ret != OK) {
+        if(ret != CONNX_OK) {
             return ret;
         }
     }
@@ -491,7 +491,7 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
         }
     }
 
-    return OK;
+    return CONNX_OK;
 }
 
 connx_Tensor* connx_Graph_get(connx_Graph* graph, uint32_t id) {
