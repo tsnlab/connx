@@ -7,7 +7,7 @@ TEMPLATE_START(FLOAT32, FLOAT64, UINT32, UINT64, INT32, INT64)
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_broadcast connx_Float32_broadcast
-static TEMPLATE_TYPE* get_TEMPLATE_NAME_row(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count, 
+static TEMPLATE_TYPE* get_TEMPLATE_NAME_row(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count,
                                             TEMPLATE_TYPE* array, int32_t row) {
     if(array_count >= temp_count) {
         return array + row * array_count;
@@ -17,7 +17,7 @@ static TEMPLATE_TYPE* get_TEMPLATE_NAME_row(int32_t temp_count, TEMPLATE_TYPE* t
     }
 }
 
-static TEMPLATE_TYPE* get_TEMPLATE_NAME_col(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count, 
+static TEMPLATE_TYPE* get_TEMPLATE_NAME_col(int32_t temp_count, TEMPLATE_TYPE* temp, int32_t array_count,
                                             TEMPLATE_TYPE* array, int32_t col) {
     for(int32_t i = 0; i < temp_count; i++) {
         temp[i] = array[i * array_count + col];
@@ -83,7 +83,7 @@ int MatMul(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute_
             TEMPLATE_TYPE tmp_b[count];
             TEMPLATE_TYPE tmp_mul[count];
 
-            for(int32_t Y_idx = 0, A_idx = 0, B_idx = 0; Y_idx < Y_total; 
+            for(int32_t Y_idx = 0, A_idx = 0, B_idx = 0; Y_idx < Y_total;
                 Y_idx += Y_unit, A_idx = (A_idx + A_unit) % A_total, B_idx = (B_idx + B_unit) % B_total) {
 
                 for(int32_t col_idx = 0; col_idx < Y_col; col_idx++) {

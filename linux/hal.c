@@ -6,8 +6,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include <connx/tensor.h>
 #include <connx/accel.h>
+#include <connx/tensor.h>
 
 #include <connx/hal.h>
 #include <connx/types.h>

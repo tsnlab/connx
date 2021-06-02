@@ -1,7 +1,7 @@
 #ifndef __CONNX_CONNX_H__
 #define __CONNX_CONNX_H__
 
-#include "tensor.h"
+#include <connx/tensor.h>
 
 typedef struct _connx_Graph connx_Graph;
 

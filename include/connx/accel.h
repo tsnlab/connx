@@ -1,7 +1,7 @@
 #ifndef __CONNX_ACCEL_H__
 #define __CONNX_ACCEL_H__
 
-#include "types.h"
+#include <connx/types.h>
 
 #define DEFINE_BASIC(NAME, TYPE)                                                       \
     void connx_##NAME##_add(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \

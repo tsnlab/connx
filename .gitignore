@@ -3,6 +3,7 @@
 /obj
 /connx
 /libconnx.a
+/.vscode
 __pycache__
 *.swp
 gmon.out

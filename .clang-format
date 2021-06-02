@@ -66,9 +66,9 @@ ForEachMacros:
   - FOREACH
 IncludeBlocks:   Preserve
 IncludeCategories:
-  - Regex:           '^<'
+  - Regex:           '^<[^c][^o][^o][^n][^x]'
     Priority:        -3
-  - Regex:           '^"connx/'
+  - Regex:           '^<connx/'
     Priority:        -2
   - Regex:           '<[[:alnum:].]+>'
     Priority:        -1

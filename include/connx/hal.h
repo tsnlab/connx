@@ -1,9 +1,9 @@
 #ifndef __CONNX_HAL_H__
 #define __CONNX_HAL_H__
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <pthread.h>
 
 #define CONNX_ALIGNMENT 16 // Data alignment
 #define CONNX_ALIGN(offset) (((offset) + CONNX_ALIGNMENT - 1) & ~(CONNX_ALIGNMENT - 1))
@@ -17,8 +17,8 @@ void* connx_alloc(uint32_t size);
 void connx_free(void* ptr);
 
 // Model loader
-int connx_set_model(const char* path); // linux only function
-int connx_set_tensorin(const char* path); // linux only function
+int connx_set_model(const char* path);     // linux only function
+int connx_set_tensorin(const char* path);  // linux only function
 int connx_set_tensorout(const char* path); // linux only function
 void* connx_load(const char* name);
 void connx_unload(void* buf);

@@ -1,8 +1,8 @@
 #ifndef __CONNX_TENSOR_H__
 #define __CONNX_TENSOR_H__
 
-#include "hal.h"
-#include "types.h"
+#include <connx/hal.h>
+#include <connx/types.h>
 
 // Iterator
 /**
