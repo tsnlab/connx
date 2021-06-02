@@ -1,5 +1,5 @@
-#ifndef __CONNX_H__
-#define __CONNX_H__
+#ifndef __CONNX_CONNX_H__
+#define __CONNX_CONNX_H__
 
 #include "tensor.h"
 
@@ -65,4 +65,4 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
 connx_Tensor* connx_Graph_get(connx_Graph* graph, uint32_t id);
 void connx_Graph_set(connx_Graph* graph, uint32_t id, connx_Tensor* tensor);
 
-#endif /* __CONNX_H__ */
+#endif /* __CONNX_CONNX_H__ */

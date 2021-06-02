@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h> // strtol
 #include <string.h> // memcpy
-#include "tensor.h"
-#include "accel.h"
-#include "hal.h"
+#include <connx/tensor.h>
+#include <connx/accel.h>
+#include <connx/hal.h>
 
 uint32_t connx_DataType_size(connx_DataType dtype) {
     switch(dtype) {

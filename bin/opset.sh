@@ -6,7 +6,7 @@ COUNT=${#@}
 
 # Write header
 cat << EOF > src/opset.c
-#include "connx.h"
+#include <connx/connx.h>
 
 #define OPERATOR_COUNT ${COUNT}
 

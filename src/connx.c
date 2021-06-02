@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "connx.h"
-#include "hal.h"
-#include "opset.h"
+#include <connx/connx.h>
+#include <connx/hal.h>
+#include <connx/opset.h>
 
 static char* _strdup(char* str) {
     int len = strlen(str);

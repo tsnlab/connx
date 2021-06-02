@@ -1,5 +1,5 @@
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef __CONNX_TYPES_H__
+#define __CONNX_TYPES_H__
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -62,4 +62,4 @@ uint32_t connx_DataType_size(connx_DataType dtype);
 #define TEMPLATE_TYPE
 #define TEMPLATE_NAME
 
-#endif /* __TYPES_H__ */
+#endif /* __CONNX_TYPES_H__ */

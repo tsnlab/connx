@@ -1,5 +1,5 @@
-#include "accel.h"
-#include "connx.h"
+#include <connx/accel.h>
+#include <connx/connx.h>
 
 TEMPLATE_START(FLOAT32, FLOAT64, UINT32, UINT64, INT32, INT64)
 #undef TEMPLATE_DTYPE

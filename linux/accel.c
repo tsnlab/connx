@@ -1,6 +1,6 @@
 #include <float.h>
 #include <string.h>
-#include "accel.h"
+#include <connx/accel.h>
 
 #define UINT8_MIN 0
 #define UINT16_MIN 0

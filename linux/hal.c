@@ -6,11 +6,11 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include <tensor.h>
-#include <accel.h>
+#include <connx/tensor.h>
+#include <connx/accel.h>
 
-#include "hal.h"
-#include "types.h"
+#include <connx/hal.h>
+#include <connx/types.h>
 
 static char _model_path[128];
 static FILE* _tensorin;

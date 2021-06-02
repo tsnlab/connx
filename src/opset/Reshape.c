@@ -1,5 +1,5 @@
-#include "accel.h"
-#include "connx.h"
+#include <connx/accel.h>
+#include <connx/connx.h>
 
 int Reshape(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attributes) {
     connx_Tensor* data = connx_Graph_get(graph, inputs[0]);

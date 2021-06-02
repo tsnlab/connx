@@ -1,6 +1,6 @@
 #include <math.h>
-#include "accel.h"
-#include "connx.h"
+#include <connx/accel.h>
+#include <connx/connx.h>
 
 int Asin(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     connx_Tensor* input = connx_Graph_get(graph, inputs[0]);
