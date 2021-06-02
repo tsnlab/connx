@@ -1,9 +1,4 @@
-/src/ver.h
-/src/opset.c
-/obj
-/connx
-/libconnx.a
-/.vscode
+.vscode
 __pycache__
 *.swp
 gmon.out

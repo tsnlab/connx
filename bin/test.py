@@ -5,11 +5,18 @@ from glob import glob
 import numpy as np
 from run import run_direct, get_numpy_dtype, product
 
+if len(sys.argv) != 3:
+    print('Usage: {} [connx path] [connx home path]'.format(sys.argv[0]))
+    sys.exit(0)
+
 PASS = '\033[92m'
 FAIL = '\033[91m'
 END = '\033[0m'
 
-for path in Path('test').rglob('*.connx'):
+CONNX = sys.argv[1]
+HOME = sys.argv[2]
+
+for path in Path(HOME + '/test').rglob('*.connx'):
     dataset = glob(os.path.join(path.parent, 'test_data_set_*'))
 
     for data in dataset:
@@ -22,7 +29,7 @@ for path in Path('test').rglob('*.connx'):
         print('# Test:', name, end=' ')
         model_path = os.path.join(path.parent)
 
-        outputs = run_direct('./connx', model_path, input_paths)
+        outputs = run_direct(CONNX, model_path, input_paths)
 
         is_passed = True
 

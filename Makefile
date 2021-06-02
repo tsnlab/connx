@@ -1,82 +1,29 @@
-.PHONY: all run test perf clean
+.PHONY: all
 
-CC := gcc
-AR := ar
 DEBUG ?= 1
 OPSET ?= $(patsubst src/opset/%.c, %, $(wildcard src/opset/*))
-PLATFORM ?= linux
+HAL_SRC ?= ports/linux/src/hal.c
+ACCEL_SRC ?= ports/linux/src/accel.c
+OUT_DIR ?= gen
 
-# -no_integrated-cpp -Bbin: Use bin/cc1 and bin/preprocessor.py as a preprocessor
-override CFLAGS += -Iinclude -Wall -std=c99 -no-integrated-cpp -Bbin
+override CFLAGS += -Iinclude -std=c99
 
-ifeq ($(DEBUG), 1)
-	override CFLAGS += -pg -O0 -g -DDEBUG=1 -fsanitize=address #-S -save-temps
-else
-	override CFLAGS += -O3
-endif
+SRCS := $(wildcard src/*.c) $(patsubst %, src/opset/%.c, $(OPSET))
+GENS:= $(patsubst src/%.c, $(OUT_DIR)/%.c, $(SRCS)) $(OUT_DIR)/opset.c $(OUT_DIR)/hal.c $(OUT_DIR)/accel.c
 
-LIBS := -lm -pthread
-SRCS := $(wildcard src/*.c) src/opset.c $(patsubst %, src/opset/%.c, $(OPSET))
-OBJS := $(patsubst src/%.c, obj/%.o, $(SRCS)) obj/hal.o obj/accel.o
-DEPS := $(patsubst src/%.c, obj/%.d, $(SRCS)) obj/hal.c obj/accel.c
+all: $(GENS)
 
-all: connx
+$(OUT_DIR)/opset.c: | $(OUT_DIR)
+	bin/opset.sh $(OPSET) > $@
 
-run: all
-	# Run Asin test case
-	rm -f tensorin
-	rm -f tensorout
-	mkfifo tensorin
-	mkfifo tensorout
-	# Run connx as daemon
-	./connx  test/data/node/test_asin/ tensorin tensorout &
-	# Run the test
-	python3 bin/run.py tensorin tensorout test/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
-	# Shutdown the daemon
-	python3 bin/run.py tensorin tensorout
-	# Clean
-	rm -f tensorin
-	rm -f tensorout
+$(OUT_DIR):
+	mkdir -p $(OUT_DIR)/opset
 
-test: connx
-	python3 bin/test.py
+$(OUT_DIR)/hal.c: $(HAL_SRC) | $(OUT_DIR)
+	bin/preprocessor.py $< $@
 
-perf:
-	gprof ./connx gmon.out
+$(OUT_DIR)/accel.c: $(ACCEL_SRC) | $(OUT_DIR)
+	bin/preprocessor.py $< $@
 
-clean:
-	rm -f gmon.out
-	rm -f tensorin
-	rm -f tensorout
-	rm -f src/ver.h
-	rm -f src/opset.c
-	rm -rf obj
-	rm -f connx
-
-libconnx.a: $(OBJS)
-	$(AR) rcs $@ $^
-
-connx: $(filter-out $(PLATFORM)/accel.c, $(filter-out $(PLATFORM)/hal.c, $(wildcard $(PLATFORM)/*.c))) libconnx.a
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
-
-src/ver.h:
-	bin/ver.sh
-
-src/opset.c:
-	bin/opset.sh $(OPSET)
-
-obj/%.d: src/ver.h $(SRCS) $(PLATFORM)/hal.c $(PLATFORM)/accel.c
-	mkdir -p obj/opset; $(CC) -M $< > $@
-
-obj/%.o: src/%.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-obj/hal.o: $(PLATFORM)/hal.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-obj/accel.o: $(PLATFORM)/accel.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-
-ifneq (clean,$(filter clean, $(MAKECMDGOALS)))
--include $(DEPS)
-endif
+$(OUT_DIR)/%.c: src/%.c | $(OUT_DIR)
+	bin/preprocessor.py $< $@

@@ -7,6 +7,7 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <stdio.h>
+#include <connx/tensor.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -15,6 +16,10 @@
 
 void app_main(void)
 {
+    int32_t shape[] = {2, 2, 2};
+    connx_Tensor* tensor = connx_Tensor_alloc(CONNX_FLOAT32, 3, shape);
+    connx_Tensor_dump(tensor);
+    
     printf("Hello world!\n");
 
     /* Print chip information */

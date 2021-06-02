@@ -1,13 +1,15 @@
+#!/usr/bin/env python3
+
 import sys
 import re
 import tempfile
 
-args = sys.argv[1:]
-for i in range(len(args)):
-    if args[i].endswith('.c'):
-        source_idx = i
-        source = args[i]
-        break
+if len(sys.argv) != 3:
+    print('Usage: {} [input source] [output source]'.format(sys.argv[0]))
+    sys.exit(0)
+
+input_source = sys.argv[1]
+output_source = sys.argv[2]
 
 def is_DTYPE(dtype):
     if dtype == 'UINT8':
@@ -111,11 +113,11 @@ def get_NAME(dtype):
     else:
         raise Exception('Not expected dtype')
 
-with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
+with open(output_source, 'w') as output:
     line_no = 1
-    output.write('#line {} "{}"\n'.format(line_no, source))
+    output.write('#line {} "{}"\n'.format(line_no, input_source))
 
-    with open(source, 'r') as input:
+    with open(input_source, 'r') as input:
         line = input.readline()
         while line:
             if 'TEMPLATE_START(' in line:
@@ -143,7 +145,7 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
                     type = get_TYPE(dtype)
                     name = get_NAME(dtype)
 
-                    output.write('#line {} "{}"\n'.format(line_no + 1, source)) # plus header
+                    output.write('#line {} "{}"\n'.format(line_no + 1, input_source)) # plus header
 
                     for idx, (line) in enumerate(template):
                         line = line.replace('TEMPLATE_DTYPE', 'CONNX_' + dtype)
@@ -159,7 +161,3 @@ with tempfile.NamedTemporaryFile(mode='w', suffix='.c', delete=False) as output:
 
                 line = input.readline()
                 line_no += 1
-
-    args[source_idx] = output.name
-
-print(' '.join(args))
