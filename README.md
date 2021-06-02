@@ -2,12 +2,12 @@
 C implementation of Open Neural Network Exchange Runtime
 
 # Compile
- * make # debug
- * make DEBUG=0 # release
+ * ports/linux$ make # debug
+ * ports/linux$ make DEBUG=0 # release
 
 # Run
 If you want to run on Raspberry Pi 3, please compile with DEBUG=0 for to run sanitizer, some trick must be used.
- * make run
+ * ports/linux$ make run
 
 # Tensor I/O protocol
 ## To connx
@@ -29,10 +29,10 @@ for each output
 # Test
 pthon3 with Numpy is required
 
- * make test # run all test cases
+ * ports/linux$ make test # run all test cases
 
 # Performance report
- * make perf
+ * ports/linux$ make perf
 
 # Supported platforms
  * x86\_64
