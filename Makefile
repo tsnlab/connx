@@ -17,8 +17,8 @@ endif
 
 LIBS := -lm -pthread
 SRCS := $(wildcard src/*.c) src/opset.c $(patsubst %, src/opset/%.c, $(OPSET))
-OBJS := $(patsubst src/%.c, obj/%.o, $(SRCS)) obj/hal.o
-DEPS := $(patsubst src/%.c, obj/%.d, $(SRCS)) obj/hal.c
+OBJS := $(patsubst src/%.c, obj/%.o, $(SRCS)) obj/hal.o obj/accel.o
+DEPS := $(patsubst src/%.c, obj/%.d, $(SRCS)) obj/hal.c obj/accel.c
 
 all: connx
 
@@ -56,7 +56,7 @@ clean:
 libconnx.a: $(OBJS)
 	$(AR) rcs $@ $^
 
-connx: $(filter-out $(PLATFORM)/hal.c, $(wildcard $(PLATFORM)/*.c)) libconnx.a
+connx: $(filter-out $(PLATFORM)/accel.c, $(filter-out $(PLATFORM)/hal.c, $(wildcard $(PLATFORM)/*.c))) libconnx.a
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 src/ver.h:
@@ -65,13 +65,16 @@ src/ver.h:
 src/opset.c:
 	bin/opset.sh $(OPSET)
 
-obj/%.d: src/ver.h $(SRCS) $(PLATFORM)/hal.c
+obj/%.d: src/ver.h $(SRCS) $(PLATFORM)/hal.c $(PLATFORM)/accel.c
 	mkdir -p obj/opset; $(CC) -M $< > $@
 
 obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 obj/hal.o: $(PLATFORM)/hal.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+obj/accel.o: $(PLATFORM)/accel.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 ifneq (clean,$(filter clean, $(MAKECMDGOALS)))
