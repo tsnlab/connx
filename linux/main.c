@@ -2,7 +2,7 @@
 #include <string.h>
 #include "connx.h"
 
-int main(__attribute__((unused)) int argc, char** argv) {
+int main(int argc, char** argv) {
     if(argc < 2) {
         connx_info("Usage: connx [connx model path] [[tensor in pipe] tensor out pipe]]\n");
         return 0;

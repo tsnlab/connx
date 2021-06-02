@@ -1,8 +1,10 @@
 .PHONY: all run test perf clean
 
 CC := gcc
+AR := ar
 DEBUG ?= 1
 OPSET ?= $(patsubst src/opset/%.c, %, $(wildcard src/opset/*))
+PLATFORM ?= linux
 
 # -no_integrated-cpp -Bbin: Use bin/cc1 and bin/preprocessor.py as a preprocessor
 override CFLAGS += -Iinclude -Wall -std=c99 -no-integrated-cpp -Bbin
@@ -15,8 +17,8 @@ endif
 
 LIBS := -lm -pthread
 SRCS := $(wildcard src/*.c) src/opset.c $(patsubst %, src/opset/%.c, $(OPSET))
-OBJS := $(patsubst src/%.c, obj/%.o, $(SRCS))
-DEPS := $(patsubst src/%.c, obj/%.d, $(SRCS))
+OBJS := $(patsubst src/%.c, obj/%.o, $(SRCS)) obj/hal.o
+DEPS := $(patsubst src/%.c, obj/%.d, $(SRCS)) obj/hal.c
 
 all: connx
 
@@ -51,8 +53,11 @@ clean:
 	rm -rf obj
 	rm -f connx
 
-connx: src/ver.h $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(filter %.o, $^) $(LIBS)
+libconnx.a: $(OBJS)
+	$(AR) rcs $@ $^
+
+connx: $(filter-out $(PLATFORM)/hal.c, $(wildcard $(PLATFORM)/*.c)) libconnx.a
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 src/ver.h:
 	bin/ver.sh
@@ -60,10 +65,13 @@ src/ver.h:
 src/opset.c:
 	bin/opset.sh $(OPSET)
 
-obj/%.d: src/ver.h $(SRCS)
+obj/%.d: src/ver.h $(SRCS) $(PLATFORM)/hal.c
 	mkdir -p obj/opset; $(CC) -M $< > $@
 
 obj/%.o: src/%.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+obj/hal.o: $(PLATFORM)/hal.c
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 ifneq (clean,$(filter clean, $(MAKECMDGOALS)))
