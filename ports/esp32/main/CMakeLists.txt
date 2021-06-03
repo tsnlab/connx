@@ -1,5 +1,9 @@
-idf_component_register(SRCS "main.c" "hal.c"
-                    "src_gen/tensor.c" "src_gen/tensor.c" "src_gen/opset.c" "src_gen/connx.c" "src_gen/accel.c"
-                    "src_gen/opset/Asin.c" "src_gen/opset/MatMul.c" "src_gen/opset/Add.c" "src_gen/opset/Mul.c" "src_gen/opset/Sub.c"
-                    "src_gen/opset/Reshape.c" "src_gen/opset/Relu.c"
-                    INCLUDE_DIRS "include")
+idf_component_register(SRCS "main.c"
+                       "../gen/tensor.c"
+                       "../gen/opset.c"
+                       "../gen/connx.c"
+                       "../gen/accel.c"
+                       "../gen/hal.c"
+                       INCLUDE_DIRS "../../../include")
+
+spiffs_create_partition_image(storage ../spiffs FLASH_IN_PROJECT)
