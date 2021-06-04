@@ -2,12 +2,12 @@
 
 CONNX_HOME := ../..
 CWD := $(shell pwd)
-OPSET ?= $(ls ../../src/opset/*.c | sed 's/\.\.\/\.\.\/src\/opset\///' | sed 's/\.c$//' | tr '\n' ' ')
+OPSET ?= $(shell bin/opset_list.sh $(CONNX_HOME))
 
 all: build/connx-esp32.bin
 	idf.py flash
 
-run: 
+run: build/connx-esp32.bin
 	idf.py monitor
 
 clean:
@@ -19,7 +19,7 @@ clean:
 build/connx-esp32.bin: spiffs main/CMakeFiles.txt
 	idf.py build
 
-gen:
+gen: main/hal.c main/accel.c
 	make -C $(CONNX_HOME) OUT_DIR=$(CWD)/gen HAL_SRC=$(CWD)/main/hal.c ACCEL_SRC=$(CWD)/main/accel.c OPSET="$(OPSET)"
 
 main/CMakeFiles.txt: gen

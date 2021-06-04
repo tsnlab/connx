@@ -12,8 +12,39 @@
 #include <connx/hal.h>
 #include <connx/types.h>
 
+#include "esp_spiffs.h"
+
 // Lifecycle
 void connx_init() {
+    // SPIFFS
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = "/spiffs",
+      .partition_label = NULL,
+      .max_files = 5,
+      .format_if_mount_failed = true
+    };
+
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+    if(ret != ESP_OK) {
+        if(ret == ESP_FAIL) {
+            printf("Failed to mount or format filesystem\n");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            printf("Failed to find SPIFFS partition\n");
+        } else {
+            printf("Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret));
+        }
+
+        return;
+    }
+
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(conf.partition_label, &total, &used);
+    if(ret != ESP_OK) {
+        printf("Failed to get SPIFFS partition information (%s)\n", esp_err_to_name(ret));
+    } else {
+        printf("Partition size: total: %d, used: %d\n", total, used);
+    }
 }
 
 void connx_destroy() {
@@ -21,6 +52,9 @@ void connx_destroy() {
 
 // Memory management
 void* connx_alloc(uint32_t size) {
+	if(size == 0) // ESP32 returns NULL when size is 0
+		size = 1;
+
     return calloc(1, size);
 }
 
@@ -30,7 +64,44 @@ void connx_free(void* ptr) {
 
 // Model loader
 void* connx_load(const char* name) {
-    return NULL;
+	char path[128];
+	snprintf(path, 128, "/spiffs/%s", name);
+
+    FILE* file = fopen(path, "r");
+    if(file == NULL) {
+        fprintf(stderr, "HAL ERROR: There is no such file: '%s'\n", path);
+        return NULL;
+    }
+
+    fseek(file, 0L, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+
+    void* buf = malloc(size + 1); // including EOF
+    if(buf == NULL) {
+        fprintf(stderr, "HAL ERROR: Cannot allocate memory: %" PRIdPTR " bytes", size);
+        fclose(file);
+        return NULL;
+    }
+
+    void* p = buf;
+    size_t remain = size;
+    while(remain > 0) {
+        int len = fread(p, 1, remain, file);
+        if(len < 0) {
+            fprintf(stderr, "HAL ERROR: Cannot read file: '%s'", path);
+            fclose(file);
+            return NULL;
+        }
+
+        p += len;
+        remain -= len;
+    }
+    fclose(file);
+
+    ((uint8_t*)buf)[size] = 0; // EOF
+
+    return buf;
 }
 
 void connx_unload(__attribute__((unused)) void* buf) {
