@@ -8,6 +8,7 @@
 /**
  * iterator - 1 + ndim * 4
  */
+int32_t connx_Iterator_size(int32_t ndim);
 void connx_Iterator_init(int32_t* iterator, int32_t ndim, int32_t* start, int32_t* stop, int32_t* step);
 bool connx_Iterator_next(int32_t* iterator);
 int32_t connx_Iterator_ndim(int32_t* iterator);
@@ -29,7 +30,7 @@ typedef struct _connx_Tensor {
     connx_Lock lock;              // Reference lock
 } connx_Tensor;
 
-int32_t connx_Iterator_size(connx_Tensor* tensor);
+int32_t connx_Iterator_size_tensor(connx_Tensor* tensor);
 
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);

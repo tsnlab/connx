@@ -5,8 +5,8 @@ from glob import glob
 import numpy as np
 from run import run_direct, get_numpy_dtype, product
 
-if len(sys.argv) != 3:
-    print('Usage: {} [connx path] [connx home path]'.format(sys.argv[0]))
+if len(sys.argv) < 3:
+    print('Usage: {} [connx path] [connx home path] [[test case] ...]'.format(sys.argv[0]))
     sys.exit(0)
 
 PASS = '\033[92m'
@@ -17,6 +17,17 @@ CONNX = sys.argv[1]
 HOME = sys.argv[2]
 
 for path in Path(HOME + '/test').rglob('*.connx'):
+    if len(sys.argv) > 3:
+        is_found = False
+
+        for tc in sys.argv[3:]:
+            if tc in str(path):
+                is_found = True
+                break
+
+        if not is_found:
+            continue
+
     dataset = glob(os.path.join(path.parent, 'test_data_set_*'))
 
     for data in dataset:
@@ -26,7 +37,7 @@ for path in Path(HOME + '/test').rglob('*.connx'):
         output_paths.sort()
 
         name = path.parent.name
-        print('# Test:', name, end=' ')
+        print('# Test:', name, end=' ', flush=True)
         model_path = os.path.join(path.parent)
 
         outputs = run_direct(CONNX, model_path, input_paths)

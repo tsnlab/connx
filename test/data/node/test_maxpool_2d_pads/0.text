@@ -1,0 +1,6 @@
+value_info 2
+initializer 0
+output 1 2
+input 1 1
+node 1
+MaxPool 1 1 7 2 1 8 auto_pad 3 6 NOTSET 9 ceil_mode 2 0 9 dilations 7 0 12 kernel_shape 7 2 3 3 4 pads 7 4 2 2 2 2 13 storage_order 2 0 7 strides 7 0

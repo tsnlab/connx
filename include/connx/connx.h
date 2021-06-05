@@ -16,7 +16,7 @@ typedef struct _connx_Model {
     connx_Graph** graphs;
 } connx_Model;
 
-typedef int (*CONNX_OPERATOR)(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attributes);
+typedef int (*CONNX_OPERATOR)(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_t input_count, uint32_t* inputs, void** attributes);
 
 typedef struct _connx_Node {
     uint32_t output_count;
@@ -31,6 +31,22 @@ typedef struct _connx_Node {
     char* op_type;
     CONNX_OPERATOR op;
 } connx_Node;
+
+typedef struct _connx_AttributeFloats {
+    uint32_t count;
+    float32_t array[0];
+} connx_AttributeFloats;
+
+typedef struct _connx_AttributeInts {
+    uint32_t count;
+    int32_t array[0];
+} connx_AttributeInts;
+
+typedef struct _connx_AttributeStrings {
+    uint32_t count;
+    char* array[0];
+} connx_AttributeStrings;
+
 
 struct _connx_Graph {
     connx_Model* model;

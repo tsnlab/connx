@@ -298,7 +298,6 @@ static int parse_Graph(connx_Graph* graph, char* text) {
             next_string(token); // Drop name
             uint32_t type = next_integer(token);
 
-            uint32_t count;
             switch(type) {
                 case 1: // FLOAT
                     node->attributes[i] = connx_alloc(sizeof(float32_t));
@@ -323,42 +322,67 @@ static int parse_Graph(connx_Graph* graph, char* text) {
                         return CONNX_NOT_ENOUGH_MEMORY;
                     }
                     break;
-                case 6: // FLOATS
-                    count = next_integer(token);
-                    node->attributes[i] = connx_alloc(sizeof(float32_t) * count);
-                    if(node->attributes[i] == NULL) {
+                case 6: { // FLOATS
+                    uint32_t count = next_integer(token);
+                    connx_AttributeFloats* attr = connx_alloc(sizeof(connx_AttributeFloats) + sizeof(float32_t) * count); // count, array
+                    if(attr == NULL) {
                         connx_error("Out of memory\n");
                         return CONNX_NOT_ENOUGH_MEMORY;
                     }
 
+                    node->attributes[i] = attr;
+                    attr->count = count;
                     for(uint32_t j = 0; j < count; j++) {
-                        ((float32_t*)node->attributes[i])[j] = next_float(token);
+                        attr->array[j] = next_float(token);
                     }
                     break;
-                case 7: // INTS
-                    count = next_integer(token);
-                    node->attributes[i] = connx_alloc(sizeof(int32_t) * count);
-                    if(node->attributes[i] == NULL) {
+                }
+                case 7: { // INTS
+                    uint32_t count = next_integer(token);
+                    connx_AttributeInts* attr = connx_alloc(sizeof(connx_AttributeInts) + sizeof(int32_t) * count); // count, array
+
+                    if(attr == NULL) {
                         connx_error("Out of memory\n");
                         return CONNX_NOT_ENOUGH_MEMORY;
                     }
 
+                    node->attributes[i] = attr;
+                    attr->count = count;
                     for(uint32_t j = 0; j < count; j++) {
-                        ((int32_t*)node->attributes[i])[j] = next_integer(token);
+                        attr->array[j] = next_integer(token);
                     }
                     break;
-                case 8: // STRINGS
-                    count = next_integer(token);
-                    node->attributes[i] = connx_alloc(sizeof(char*) * count);
-                    if(node->attributes[i] == NULL) {
+                }
+                case 8: { // STRINGS
+                    uint32_t count = next_integer(token);
+
+                    uint32_t size = 0;
+                    char* strs[count];
+
+                    for(uint32_t j = 0; j < count; j++) {
+                        strs[j] = next_string(token);
+                        size += strlen(strs[j]) + 1;
+                    }
+
+                    connx_AttributeStrings* attr = connx_alloc(sizeof(connx_AttributeStrings) + sizeof(char*) * count + size); // count, array, string buffer
+
+                    if(attr == NULL) {
                         connx_error("Out of memory\n");
                         return CONNX_NOT_ENOUGH_MEMORY;
                     }
 
+                    node->attributes[i] = attr;
+                    attr->count = count;
+                    char* buf = (void*)attr->array[count]; // Point the next to the array
                     for(uint32_t j = 0; j < count; j++) {
-                        ((char**)node->attributes[i])[j] = _strdup(next_string(token));
+                        attr->array[j] = buf;
+
+                        size_t len = strlen(strs[j]) + 1;
+                        memcpy(buf, strs[j], len);
+                        buf += len;
                     }
                     break;
+                }
                 default:
                     connx_error("Attribute type %u is not supported.\n", type);
                     return CONNX_NOT_SUPPORTED_ATTRIBUTE;
@@ -469,7 +493,7 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
     // Execute operators
     for(uint32_t i = 0; i < graph->node_count; i++) {
         connx_Node* node = graph->nodes[i];
-        int ret = node->op(graph, node->outputs, node->inputs, node->attributes);
+        int ret = node->op(graph, node->output_count, node->outputs, node->input_count, node->inputs, node->attributes);
         if(ret != CONNX_OK) {
             return ret;
         }

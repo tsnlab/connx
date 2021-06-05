@@ -14,7 +14,7 @@ EOF
 for NAME in $@
 do
 cat << EOF
-extern int ${NAME}(connx_Graph* graph, uint32_t* outputs, uint32_t* inputs, void** attributes);
+extern int ${NAME}(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_t input_count, uint32_t* inputs, void** attributes);
 EOF
 done
 

@@ -37,6 +37,10 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
 }
 
 // Iterator
+int32_t connx_Iterator_size(int32_t ndim) {
+    return 1 + ndim * 4;
+}
+
 #define ITER_NDIM(iter) (iter)
 #define ITER_START(iter) (iter + 1)
 #define ITER_STOP(iter) (iter + 1 + iter[0])
@@ -110,8 +114,8 @@ int32_t connx_Iterator_offset(int32_t* iterator, int32_t* shape) {
     return offset;
 }
 
-int32_t connx_Iterator_size(connx_Tensor* tensor) {
-    return 1 + tensor->ndim * 4;
+int32_t connx_Iterator_size_tensor(connx_Tensor* tensor) {
+    return connx_Iterator_size(tensor->ndim);
 }
 
 /**
