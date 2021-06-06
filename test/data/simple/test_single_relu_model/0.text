@@ -1,6 +1,0 @@
-value_info 2
-initializer 0
-output 1 2
-input 1 1
-node 1
-Relu 1 1 0 2 1
