@@ -27,4 +27,4 @@ main/CMakeFiles.txt: gen
 
 spiffs:
 	mkdir -p spiffs
-	-cp $(CONNX_HOME)/test/data/node/test_asin/* spiffs 2> /dev/null
+	-cp $(CONNX_HOME)/examples/mnist/* -r spiffs 2> /dev/null

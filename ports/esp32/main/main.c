@@ -21,7 +21,6 @@
 void app_main(void) {
 	connx_init();
 
-	printf("pointer: %p\n", malloc(1));
     // Parse connx model
     connx_Model model;
     int ret = connx_Model_init(&model);
@@ -30,12 +29,13 @@ void app_main(void) {
         return;
     }
 
-    int32_t shape[] = {2};
-    connx_Tensor* tensor = connx_Tensor_alloc(CONNX_FLOAT32, 1, shape);
-    float* array = (float*)tensor->buffer;
-    array[0] = 0.5;
-    array[1] = 0.8;
-    connx_Tensor_dump(tensor);
+    void* buf = connx_load("test_data_set_0/input_0.data");
+    connx_Tensor* tensor = connx_Tensor_alloc_buffer(buf);
+    connx_unload(buf);
+    //int32_t shape[] = {1, 1, 28, 28};
+    //connx_Tensor* tensor = connx_Tensor_alloc(CONNX_FLOAT32, 4, shape);
+    //float* array = (float*)tensor->buffer;
+    //connx_Tensor_dump(tensor);
 
 	uint32_t input_count = 1;
 	connx_Tensor* inputs[] = {tensor};
