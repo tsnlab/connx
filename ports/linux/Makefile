@@ -28,9 +28,9 @@ run: connx
 	mkfifo tensorin
 	mkfifo tensorout
 	# Run connx as daemon
-	./connx  $(CONNX_HOME)/test/data/node/test_asin/ tensorin tensorout &
+	./connx  $(CONNX_HOME)/examples/mnist/ tensorin tensorout &
 	# Run the test
-	python3 $(CONNX_HOME)/bin/run.py tensorin tensorout $(CONNX_HOME)/test/data/node/test_asin/test_data_set_0/input-0_1_3_3_4_5.data
+	python3 $(CONNX_HOME)/bin/run.py tensorin tensorout $(CONNX_HOME)/examples/mnist/test_data_set_0/input-0_1_4_1_1_28_28.data
 	# Shutdown the daemon
 	python3 $(CONNX_HOME)/bin/run.py tensorin tensorout
 	# Clean
