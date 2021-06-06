@@ -36,7 +36,7 @@ def get_numpy_dtype(onnx_dtype):
     elif onnx_dtype == 15:
         return np.cdouble
     else:
-        raise Exception('Not supported dtype: {}'.format(dtype))
+        raise Exception('Not supported dtype: {}'.format(onnx_dtype))
 
 def product(shape):
     p = 1
@@ -46,26 +46,11 @@ def product(shape):
     return p
 
 def run_direct(connx_path, model_path, input_paths):
-    with subprocess.Popen([connx_path, model_path], 
-                          stdin=subprocess.PIPE, 
-                          stdout=subprocess.PIPE) as proc:
+    with subprocess.Popen([connx_path, model_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
         # Write number of inputs
         proc.stdin.write(struct.pack('=I', len(input_paths)))
 
         for input_path in input_paths:
-            tokens = os.path.basename(input_path).strip('.data').split('_')
-            tokens.pop(0) # drop name
-
-            # Write data type and ndim
-            dtype = int(tokens.pop(0))
-            ndim = int(tokens.pop(0))
-            proc.stdin.write(struct.pack('=II', dtype, ndim))
-
-            # Write shape
-            shape = [ int(token) for token in tokens ]
-            for dim in shape:
-                proc.stdin.write(struct.pack('=I', dim))
-
             # Write data
             with open(input_path, 'rb') as file:
                 data = file.read()
@@ -77,6 +62,10 @@ def run_direct(connx_path, model_path, input_paths):
 
         # Parse number of outputs
         count = struct.unpack('=i', proc.stdout.read(4))[0]
+        if count < 0:
+            print('Error code:', count)
+            return count
+
         outputs = [ ]
 
         for i in range(count):
@@ -97,7 +86,21 @@ def run_direct(connx_path, model_path, input_paths):
         proc.stdout.close()
 
         return outputs
-    
+
+def read_tensor(io):
+    # Parse data type
+    dtype, ndim = struct.unpack('=II', io.read(8))
+
+    shape = []
+    for i in range(ndim):
+        shape.append(struct.unpack('=I', io.read(4))[0])
+
+    # Parse data
+    dtype = get_numpy_dtype(dtype)
+    itemsize = np.dtype(dtype).itemsize
+    total = product(shape)
+    return np.frombuffer(io.read(itemsize * total), dtype=dtype, count=product(shape)).reshape(shape)
+
 def main(argv):
     if len(argv) < 2:
         print('Usage: python run.py [tensor in pipe] [tensor out pipe] [input path]...]')
@@ -119,19 +122,6 @@ def main(argv):
         io.write(struct.pack('=I', len(inputs)))
 
         for input in inputs:
-            tokens = os.path.basename(input).strip('.data').split('_')
-            tokens.pop(0) # drop name
-
-            # Write data type and ndim
-            dtype = int(tokens.pop(0))
-            ndim = int(tokens.pop(0))
-            io.write(struct.pack('=II', dtype, ndim))
-
-            # Write shape
-            shape = [ int(token) for token in tokens ]
-            for dim in shape:
-                io.write(struct.pack('=I', dim))
-
             # Write data
             with open(input, 'rb') as file:
                 data = file.read()
@@ -146,18 +136,7 @@ def main(argv):
         count = struct.unpack('=i', io.read(4))[0]
 
         for i in range(count):
-            # Parse data type
-            dtype, ndim = struct.unpack('=II', io.read(8))
-
-            shape = []
-            for i in range(ndim):
-                shape.append(struct.unpack('=I', io.read(4))[0])
-
-            # Parse data
-            dtype = get_numpy_dtype(dtype)
-            itemsize = np.dtype(dtype).itemsize
-            total = product(shape)
-            output = np.frombuffer(io.read(itemsize * total), dtype=dtype, count=product(shape)).reshape(shape)
+            output = read_tensor(io)
             outputs.append(output)
 
     return outputs

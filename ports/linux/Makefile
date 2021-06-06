@@ -22,7 +22,7 @@ LIBS := -lm -pthread
 all: connx
 
 run: connx
-	# Run Asin test case
+	# Run MNIST test case
 	rm -f tensorin
 	rm -f tensorout
 	mkfifo tensorin
@@ -30,7 +30,7 @@ run: connx
 	# Run connx as daemon
 	./connx  $(CONNX_HOME)/examples/mnist/ tensorin tensorout &
 	# Run the test
-	python3 $(CONNX_HOME)/bin/run.py tensorin tensorout $(CONNX_HOME)/examples/mnist/test_data_set_0/input-0_1_4_1_1_28_28.data
+	python3 $(CONNX_HOME)/bin/run.py tensorin tensorout $(CONNX_HOME)/examples/mnist/test_data_set_0/input_0.data
 	# Shutdown the daemon
 	python3 $(CONNX_HOME)/bin/run.py tensorin tensorout
 	# Clean
@@ -51,6 +51,7 @@ clean:
 	rm -rf gen
 	rm -f connx
 	rm -f gmon.out
+	rm -f tensorin tensorout
 
 obj:
 	mkdir -p obj/opset

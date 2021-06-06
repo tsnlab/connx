@@ -33,14 +33,14 @@ int MatMul(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_
     // Create Y
     int32_t ndim = A->ndim > B->ndim ? A->ndim : B->ndim;
     int32_t shape[ndim];
-    for(int32_t i = 0; i < ndim; i++) {
-        int32_t A_dim = i < A->ndim ? A->shape[ndim - i - 1] : 0;
-        int32_t B_dim = i < B->ndim ? B->shape[ndim - i - 1] : 0;
+    for(int32_t i = 0; i < ndim; i++) { // back to front
+        int32_t A_dim = i < A->ndim ? A->shape[A->ndim - 1 - i] : 0;
+        int32_t B_dim = i < B->ndim ? B->shape[B->ndim - 1 - i] : 0;
 
         if(i == 0) {
-            A_dim = A->shape[ndim - 2];
+            A_dim = 0;
         } else if(i == 1) {
-            B_dim = B->shape[ndim - 1];
+            B_dim = 0;
         }
 
         shape[ndim - i - 1] = A_dim > B_dim ? A_dim : B_dim;
