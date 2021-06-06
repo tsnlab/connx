@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <connx/accel.h>
 #include <connx/connx.h>
 #include <connx/hal.h>
 #include <connx/opset.h>
@@ -179,6 +180,43 @@ int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inp
     return connx_Graph_run(model->graphs[0], input_count, inputs, output_count, outputs);
 }
 
+static int parse_initializer(connx_Tensor** tensor, uint32_t graph_id, uint32_t initializer_id) {
+    char name[16];
+    snprintf(name, 16, "%u_%u.data", graph_id, initializer_id);
+
+    void* buf = connx_load(name);
+    if(buf == NULL) {
+        return CONNX_RESOURCE_NOT_FOUND;
+    }
+
+    void* p = buf;
+
+    uint32_t dtype = *(uint32_t*)p;
+    p += sizeof(uint32_t);
+
+    uint32_t ndim = *(uint32_t*)p;
+    p += sizeof(uint32_t);
+
+    int32_t shape[ndim];
+    for(uint32_t i = 0; i < ndim; i++) {
+        shape[i] = *(int32_t*)p;
+        p += sizeof(int32_t);
+    }
+
+    uint32_t dsize = connx_DataType_size(dtype);
+    uint32_t total = connx_Int32_product(ndim, shape);
+
+    *tensor = connx_Tensor_alloc(dtype, ndim, shape);
+    if(*tensor == NULL) {
+        return CONNX_NOT_ENOUGH_MEMORY;
+    }
+
+    memcpy((*tensor)->buffer, p, dsize * total);
+    connx_unload(buf);
+
+    return CONNX_OK;
+}
+
 static int parse_Graph(connx_Graph* graph, char* text) {
     char* token = text;
 
@@ -200,6 +238,17 @@ static int parse_Graph(connx_Graph* graph, char* text) {
     if(graph->initializers == NULL) {
         connx_error("Out of memory\n");
         return CONNX_NOT_ENOUGH_MEMORY;
+    }
+
+    for(uint32_t i = 0; i < graph->initializer_count; i++) {
+        connx_Tensor* tensor;
+
+        int ret = parse_initializer(&tensor, graph->id, i + 1);
+        if(ret != CONNX_OK) {
+            return ret;
+        }
+
+        graph->initializers[i] = tensor;
     }
 
     // prase output
@@ -485,7 +534,7 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
 
     // Initialize value_infos
     for(uint32_t i = 0; i < graph->initializer_count; i++) {
-        if(graph->value_infos[i + 1] != NULL) {
+        if(graph->value_infos[i + 1] == NULL) {
             graph->value_infos[i + 1] = connx_Tensor_copy(graph->initializers[i]);
         }
     }
