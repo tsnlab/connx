@@ -4,7 +4,6 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-#include <stdio.h>
 int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_t input_count, uint32_t* inputs, void** attributes) {
 	// inputs
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
