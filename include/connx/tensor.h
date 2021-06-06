@@ -34,7 +34,7 @@ int32_t connx_Iterator_size_tensor(connx_Tensor* tensor);
 
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
-connx_Tensor* connx_Tensor_load(const char* path);
+connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
 connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* shape);
 

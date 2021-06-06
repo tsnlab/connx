@@ -152,6 +152,34 @@ connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor) {
     return connx_Tensor_alloc(tensor->dtype, tensor->ndim, tensor->shape);
 }
 
+connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
+    void* p = buf;
+
+    uint32_t dtype = *(uint32_t*)p;
+    p += sizeof(uint32_t);
+
+    uint32_t ndim = *(uint32_t*)p;
+    p += sizeof(uint32_t);
+
+    int32_t shape[ndim];
+    for(uint32_t i = 0; i < ndim; i++) {
+        shape[i] = *(int32_t*)p;
+        p += sizeof(int32_t);
+    }
+
+    uint32_t dsize = connx_DataType_size(dtype);
+    uint32_t total = connx_Int32_product(ndim, shape);
+
+    connx_Tensor* tensor = connx_Tensor_alloc(dtype, ndim, shape);
+    if(tensor == NULL) {
+        return NULL;
+    }
+
+    memcpy(tensor->buffer, p, dsize * total);
+
+    return tensor;
+}
+
 #define next_token(token)                       \
     ({                                          \
         char* start = token;                    \
@@ -169,50 +197,6 @@ connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor) {
             return NULL;                  \
         strtol(number, NULL, 0);          \
     })
-
-connx_Tensor* connx_Tensor_load(const char* path) {
-    int len = strlen(path);
-    char path2[len + 1];
-    memcpy(path2, path, len + 1);
-
-    // Get basename
-    char* token = path2 + len - 1;
-    while(*token != '/')
-        token--;
-    token++;
-
-    // Parse name
-    next_token(token); // drop name
-    int32_t data_type = next_integer(token);
-    int32_t ndim = next_integer(token);
-    int32_t shape[ndim];
-
-    for(int32_t i = 0; i < ndim; i++) {
-        shape[i] = next_integer(token);
-    }
-
-    // Create tensor
-    int32_t total = connx_Int32_product(ndim, shape);
-    int32_t data_size = connx_DataType_size(data_type);
-
-    connx_Tensor* tensor = connx_Tensor_alloc(data_type, ndim, shape);
-    if(tensor == NULL) {
-        return NULL;
-    }
-
-    // Load data
-    void* buf = connx_load(path);
-    if(buf == NULL) {
-        connx_error("Cannot load model data from path: %s\n", path);
-        return NULL;
-    }
-
-    // Copy data
-    memcpy(tensor->buffer, buf, total * data_size);
-    connx_unload(buf);
-
-    return tensor;
-}
 
 connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor) {
     connx_Tensor* tensor2 = connx_Tensor_alloc_like(tensor);

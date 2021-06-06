@@ -189,29 +189,11 @@ static int parse_initializer(connx_Tensor** tensor, uint32_t graph_id, uint32_t 
         return CONNX_RESOURCE_NOT_FOUND;
     }
 
-    void* p = buf;
-
-    uint32_t dtype = *(uint32_t*)p;
-    p += sizeof(uint32_t);
-
-    uint32_t ndim = *(uint32_t*)p;
-    p += sizeof(uint32_t);
-
-    int32_t shape[ndim];
-    for(uint32_t i = 0; i < ndim; i++) {
-        shape[i] = *(int32_t*)p;
-        p += sizeof(int32_t);
-    }
-
-    uint32_t dsize = connx_DataType_size(dtype);
-    uint32_t total = connx_Int32_product(ndim, shape);
-
-    *tensor = connx_Tensor_alloc(dtype, ndim, shape);
+    *tensor = connx_Tensor_alloc_buffer(buf);
     if(*tensor == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
 
-    memcpy((*tensor)->buffer, p, dsize * total);
     connx_unload(buf);
 
     return CONNX_OK;

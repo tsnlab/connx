@@ -105,7 +105,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32
 
     int32_t y_idx = 0;
 
-    int32_t storage_unit;
+    int32_t storage_unit = 0;
     if(storage_order == 1) {
         if(feature_dim >= 2) {
             storage_unit = output_shape[feature_dim - 2] * output_shape[feature_dim - 1];
