@@ -3,6 +3,7 @@
 CONNX_HOME := ../..
 CWD := $(shell pwd)
 OPSET ?= $(shell bin/opset_list.sh $(CONNX_HOME))
+SRCS := main/hal.c main/accel.c main/main.c main/cam.c
 
 all: build/connx-esp32.bin
 	idf.py flash
@@ -16,7 +17,7 @@ clean:
 	rm -f main/CMakeFiles.txt
 	rm -rf build
 
-build/connx-esp32.bin: spiffs main/CMakeFiles.txt
+build/connx-esp32.bin: spiffs main/CMakeFiles.txt $(SRCS)
 	idf.py build
 
 gen: main/hal.c main/accel.c

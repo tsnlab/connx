@@ -1,4 +1,4 @@
-idf_component_register(SRCS "main.c"
+idf_component_register(SRCS "main.c" "cam.c"
                        "../gen/tensor.c"
                        "../gen/opset.c"
                        "../gen/connx.c"
@@ -13,6 +13,7 @@ idf_component_register(SRCS "main.c"
                        "../gen/opset/Conv.c"
                        "../gen/opset/Reshape.c"
                        "../gen/opset/Relu.c"
-                       INCLUDE_DIRS "../../../include")
+                       INCLUDE_DIRS "../../../include" "include"
+                       REQUIRES esp32-camera spiffs)
 
 spiffs_create_partition_image(storage ../spiffs FLASH_IN_PROJECT)
