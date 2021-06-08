@@ -16,15 +16,108 @@
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "esp_camera.h"
+#include "esp_log.h"
 
 #include <cam.h>
 #include <connx/connx.h>
 
-#define GET(row, col) (data + width * 3 * (row) + (col) * 3)
-#define ROW_OFFSET 10
-#define COL_OFFSET 300
-#define ROW_BLOCK 25
-#define COL_BLOCK 25
+uint64_t get_ms() {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec * 1000ULL + (tv.tv_usec / 1000ULL));
+}
+
+static void min_pool(camera_fb_t* fb, int32_t rows, int32_t cols, uint8_t* red, uint8_t* green, uint8_t* blue) {
+#define GET(row, col) (data + width * 3 * ((row) - 1) - ((col) + 1) * 3)
+    int32_t height = fb->height;
+    int32_t width = fb->width;
+
+    int32_t block1 = height / rows;
+    int32_t block2 = width / cols;
+    int32_t block = block1 < block2 ? block1 : block2;
+
+    int32_t row_offset = (height - rows * block) / 2;
+    int32_t col_offset = (width - cols * block) / 2;
+
+    uint8_t* rp = red;
+    uint8_t* gp = green;
+    uint8_t* bp = blue;
+
+    uint8_t* buf = NULL;
+    size_t buf_len = 0;
+    bool converted = frame2bmp(fb, &buf, &buf_len);
+    if(!converted) {
+        ESP_LOGE("Main", "Cannot convert the frame to bmp");
+        return;
+    }
+
+    uint8_t* data = buf + *(uint32_t*)(buf + 10);
+
+    for(int32_t row = 0; row < rows; row++) {
+        for(int32_t col = 0; col < cols; col++) {
+            uint8_t* rgb = GET(row_offset + row * block, col_offset + col * block);
+            uint8_t r = rgb[0], g = rgb[1], b = rgb[2];
+
+            for(int32_t r2 = 0; r2 < block; r2++) {
+                for(int32_t c2 = 0; c2 < block; c2++) {
+                    rgb = GET(row_offset + row * block + r2, col_offset + col * block + c2);
+
+                    if(rgb[0] < r) {
+                       r = rgb[0];
+                    }
+
+                    if(rgb[1] < g) {
+                       g = rgb[1];
+                    }
+
+                    if(rgb[2] < b) {
+                       b = rgb[2];
+                    }
+                }
+            }
+
+            *rp++ = r;
+            *gp++ = g;
+            *bp++ = b;
+        }
+    }
+
+    free(buf);
+}
+
+static void grayscale(int32_t length, uint8_t* gray, uint8_t* red, uint8_t* green, uint8_t* blue) {
+    uint8_t* op = gray;
+    uint8_t* rp = red;
+    uint8_t* gp = green;
+    uint8_t* bp = blue;
+
+    for(int32_t i = 0; i < length; i++) {
+        *op++ = (*rp++ + *gp++ + *bp++) / 3.0;
+    }
+}
+
+static void invert_regularize(int32_t length, connx_Tensor* tensor, uint8_t* array) {
+    uint8_t min = array[0];
+    uint8_t max = array[0];
+    for(int32_t i = 1; i < length; i++) {
+        if(array[i] < min) {
+            min = array[i];
+        }
+
+        if(array[i] > max) {
+            max = array[i];
+        }
+    }
+
+    if(max != min) {
+        float* p = (float*)tensor->buffer;
+        float scale = 255.0 / (max - min);
+
+        for(int32_t i = 0; i < length; i++) {
+            p[i] = 255.0 - (array[i] - min) * scale;
+        }
+    }
+}
 
 void app_main(void) {
 	connx_init();
@@ -37,95 +130,44 @@ void app_main(void) {
         return;
     }
 
-    //void* buf = connx_load("test_data_set_0/input_0.data");
-    //connx_Tensor* tensor = connx_Tensor_alloc_buffer(buf);
-    //connx_unload(buf);
-    //int32_t shape[] = {1, 1, 28, 28};
-    //connx_Tensor* tensor = connx_Tensor_alloc(CONNX_FLOAT32, 4, shape);
-    //float* array = (float*)tensor->buffer;
-    //connx_Tensor_dump(tensor);
-
     ret = camera_init();
     printf("camera_init: %d\n", ret);
+    fflush(stdout);
+
+    int32_t shape[] = { 1, 1, 28, 28 };
+    connx_Tensor* input = connx_Tensor_alloc(CONNX_FLOAT32, 4, shape);
+
+    uint8_t* red = malloc(28 * 28);
+    uint8_t* green = malloc(28 * 28);
+    uint8_t* blue = malloc(28 * 28);
+    uint8_t* gray = malloc(28 * 28);
+
+    uint32_t input_count = 1;
+    connx_Tensor* inputs[] = { input };
+
+    uint32_t output_count = 16;
+    connx_Tensor* outputs[output_count];
+
+    float* input_flatten = (float*)input->buffer;
 
     while(true) {
+        uint64_t start_time = get_ms();
         camera_fb_t* fb = camera_capture();
-        printf("camera_capture: %u %u %p %u %d\n", fb->width, fb->height, fb->buf, fb->len, fb->format);
+        uint64_t end_time = get_ms();
+        printf("Capture:       \e[33m%llu ms\e[m\n", end_time - start_time);
 
-        uint8_t* buf = NULL;
-        size_t buf_len = 0;
-        bool converted = frame2bmp(fb, &buf, &buf_len);
-        printf("converted: %d %p %u\n", converted, buf, buf_len);
-        printf("%c%c %u %u\n", *(char*)(buf + 0), *(char*)(buf + 1), *(uint32_t*)(buf + 2), *(uint32_t*)(buf + 10));
-        printf("%u %d %d %u %u\n", 
-                *(uint32_t*)(buf + 14), // biSize
-                *(int32_t*)(buf + 18), // biWidth
-                *(int32_t*)(buf + 22), // biHeight
-                *(uint32_t*)(buf + 30), // biCompression
-                *(uint32_t*)(buf + 34)); // biSizeImage
-
-        uint32_t width = fb->width;
-        uint8_t* data = buf + *(uint32_t*)(buf + 10);
-
-        int32_t shape[] = { 1, 1, 28, 28 };
-        connx_Tensor* input = connx_Tensor_alloc(CONNX_FLOAT32, 4, shape);
-
-        uint32_t input_count = 1;
-        connx_Tensor* inputs[] = { input };
-
-        uint32_t output_count = 16;
-        connx_Tensor* outputs[output_count];
-
-        float* input_flatten = (float*)input->buffer;
-        float* p = input_flatten;
-
-        float min = 255.0, max = 0.0;
-
-        for(int row = 0; row < 28; row++) {
-            for(int col = 27; col >= 0; col--) {
-                float value = 255;
-
-                for(int r = 0; r < ROW_BLOCK; r++) {
-                    for(int c = 0; c < COL_BLOCK; c++) {
-                        uint8_t* rgb = GET(ROW_OFFSET + row * ROW_BLOCK + r, COL_OFFSET + col * COL_BLOCK + c);
-                        float tmp = 0;
-                        for(int i = 0; i < 3; i++) {
-                            tmp += (float)rgb[i];
-                        }
-
-                        if(tmp < value) {
-                            value = tmp;
-                        }
-                    }
-                }
-
-                if(value != 0.0)
-                    value /= 3;
-
-                if(min > value)
-                    min = value;
-
-                if(max < value)
-                    max = value;
-
-                *p++ = value;
-            }
-        }
-
-        if(converted) {
-            free(buf);
-        }
-
+        start_time = end_time;
+        min_pool(fb, 28, 28, red, green, blue);
         camera_free(fb);
+        grayscale(28 * 28, gray, red, green, blue);
+        invert_regularize(28 * 28, input, gray);
+        end_time = get_ms();
+        printf("Preprocessing: \e[33m%llu ms\e[m\n", end_time - start_time);
 
-        float gap = max - min;
-        if(gap == 0.0)
-            gap = 0.001;
-        p = input_flatten;
+        start_time = end_time;
+        float* p = input_flatten;
         for(int row = 0; row < 28; row++) {
             for(int col = 0; col < 28; col++) {
-                *p = (1.0 - (*p - min) / gap) * 255.0;
-
                 if(*p > 200)
                     printf("\e[31m%3d \e[m", (int)*p++);
                 else
@@ -133,20 +175,21 @@ void app_main(void) {
             }
             printf("\n");
         }
+        end_time = get_ms();
+        printf("Dump image:    \e[33m%llu ms\e[m\n", end_time - start_time);
 
+        start_time = end_time;
+        connx_Tensor_ref(input);
         ret = connx_Model_run(&model, input_count, inputs, &output_count, outputs);
         if(ret != CONNX_OK) {
             printf("Inference error: %d\n", ret);
             return;
         }
-
-        for(uint32_t i = 0; i < output_count; i++) {
-            connx_Tensor* output = outputs[i];
-            connx_Tensor_dump(output);
-        }
+        end_time = get_ms();
+        printf("Inference:     \e[33m%llu ms\e[m\n", end_time - start_time);
 
         int arg_max;
-        max = 0.0;
+        float max = 0.0;
         float* output_flatten = (float*)outputs[0]->buffer;
         for(int i = 0; i < 9; i++) {
             if(output_flatten[i] > max) {
@@ -154,10 +197,17 @@ void app_main(void) {
                 max = output_flatten[i];
             }
         }
-
         printf("\e[32m%d %f\e[m\n", arg_max, max);
 
-        fflush(stdout);
+        start_time = end_time;
+        for(uint32_t i = 0; i < output_count; i++) {
+            connx_Tensor* output = outputs[i];
+            connx_Tensor_dump(output);
+        }
+        end_time = get_ms();
+        printf("Dump tensor:   \e[33m%llu ms\e[m\n", end_time - start_time);
+
+        vTaskDelay(1);
     }
 
 }
