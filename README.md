@@ -26,6 +26,11 @@ for each output
  * shape: uint32[] - array of uint32 values
  * data: various - binary data dump
 
+## Add new operator
+ 1. Implement operator in src/opset directory
+ 2. Convert ONNX test case to CONNX using onnx-connx's bin/convert utility
+ 3. ports/linux$ make test
+
 # Test
 pthon3 with Numpy is required
 

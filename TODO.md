@@ -1,15 +1,15 @@
-[ ] MNIST
+[X] MNIST
 [X] Add
-[ ] Conv
+[X] Conv
 [X] MatMul
-[ ] MaxPool
+[X] MaxPool
 [X] Relu
 [X] Reshape
 
 [ ] Mobilenet
 [X] Add
 [ ] BatchNormalization
-[ ] Conv
+[X] Conv
 [ ] GlobalAveragePool
 [X] Relu
 [X] Reshape
@@ -18,12 +18,12 @@
 [X] Add
 [ ] Cast
 [ ] Concat
-[ ] Conv
+[X] Conv
 [ ] Exp
 [ ] Gather
 [ ] LeakyRelu
 [ ] Log
-[ ] MaxPool
+[X] MaxPool
 [X] Mul
 [X] Reshape
 [ ] Resize
