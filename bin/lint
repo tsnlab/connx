@@ -1,0 +1,15 @@
+#!/bin/bash
+
+bin/check-clang-format
+
+if [[ $? != 0 ]]; then
+    exit $?
+fi
+
+flake8
+
+if [[ $? != 0 ]]; then
+    exit $?
+fi
+
+exit 0

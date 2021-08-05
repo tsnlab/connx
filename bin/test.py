@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from glob import glob
 import numpy as np
-from run import run_direct, get_numpy_dtype, product, read_tensor
+from run import run, read_tensor
 
 if len(sys.argv) < 3:
     print('Usage: {} [connx path] [connx home path] [[test case] ...]'.format(sys.argv[0]))
@@ -40,7 +40,7 @@ for path in Path(HOME + '/test').rglob('*.connx'):
         print('# Test:', name, end=' ', flush=True)
         model_path = os.path.join(path.parent)
 
-        outputs = run_direct(CONNX, model_path, input_paths)
+        outputs = run(CONNX, model_path, input_paths)
 
         is_passed = True
 

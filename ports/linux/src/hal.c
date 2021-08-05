@@ -6,11 +6,9 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include <connx/accel.h>
 #include <connx/tensor.h>
-
+#include <connx/accel.h>
 #include <connx/hal.h>
-#include <connx/types.h>
 
 static char _model_path[128];
 static FILE* _tensorin;
@@ -181,14 +179,14 @@ void connx_Lock_unlock(connx_Lock* lock) {
 }
 
 // Thread pool
-uint32_t connx_Thread_alloc(uint32_t count, connx_Thread* threads) {
+uint32_t connx_Thread_alloc(__attribute__((unused)) uint32_t count, __attribute__((unused)) connx_Thread* threads) {
     return 0;
 }
 
-void connx_Thread_free(uint32_t count, connx_Thread* threads) {
+void connx_Thread_free(__attribute__((unused)) uint32_t count, __attribute__((unused)) connx_Thread* threads) {
 }
 
-void connx_Thread_join(uint32_t count, connx_Thread* threads) {
+void connx_Thread_join(__attribute__((unused)) uint32_t count, __attribute__((unused)) connx_Thread* threads) {
 }
 
 // error

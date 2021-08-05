@@ -4,6 +4,7 @@ COUNT=${#@}
 
 # Write header
 cat << EOF
+// $@
 #include <connx/connx.h>
 
 #define OPERATOR_COUNT ${COUNT}

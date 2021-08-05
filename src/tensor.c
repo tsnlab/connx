@@ -3,36 +3,37 @@
 #include <stdio.h>
 #include <stdlib.h> // strtol
 #include <string.h> // memcpy
+
 #include <connx/accel.h>
 #include <connx/hal.h>
 #include <connx/tensor.h>
 
 uint32_t connx_DataType_size(connx_DataType dtype) {
-    switch(dtype) {
-        case CONNX_UINT8:
-        case CONNX_INT8:
-        case CONNX_BOOL:
-            return 1;
-        case CONNX_UINT16:
-        case CONNX_INT16:
-        case CONNX_FLOAT16:
-            return 2;
-        case CONNX_UINT32:
-        case CONNX_INT32:
-        case CONNX_FLOAT32:
-            return 4;
-        case CONNX_UINT64:
-        case CONNX_INT64:
-        case CONNX_FLOAT64:
-        case CONNX_COMPLEX64:
-            return 8;
-        case CONNX_COMPLEX128:
-            return 16;
-        case CONNX_STRING:
-            return sizeof(uintptr_t);
-        case CONNX_UNDEFINED:
-        default:
-            return 0;
+    switch (dtype) {
+    case CONNX_UINT8:
+    case CONNX_INT8:
+    case CONNX_BOOL:
+        return 1;
+    case CONNX_UINT16:
+    case CONNX_INT16:
+    case CONNX_FLOAT16:
+        return 2;
+    case CONNX_UINT32:
+    case CONNX_INT32:
+    case CONNX_FLOAT32:
+        return 4;
+    case CONNX_UINT64:
+    case CONNX_INT64:
+    case CONNX_FLOAT64:
+    case CONNX_COMPLEX64:
+        return 8;
+    case CONNX_COMPLEX128:
+        return 16;
+    case CONNX_STRING:
+        return sizeof(uintptr_t);
+    case CONNX_UNDEFINED:
+    default:
+        return 0;
     }
 }
 
@@ -64,9 +65,9 @@ bool connx_Iterator_next(int32_t* iterator) {
     int32_t* index = ITER_INDEX(iterator);
 
     // Go next step
-    for(int32_t i = ndim - 1; i >= 0; i--) {
+    for (int32_t i = ndim - 1; i >= 0; i--) {
         index[i] += step[i];
-        if(index[i] < stop[i])
+        if (index[i] < stop[i])
             return true;
         else
             index[i] = start[i];
@@ -106,7 +107,7 @@ int32_t connx_Iterator_offset(int32_t* iterator, int32_t* shape) {
     int32_t offset = 0;
     int32_t unit = 1;
 
-    for(int32_t i = ndim - 1; i >= 0; i--) {
+    for (int32_t i = ndim - 1; i >= 0; i--) {
         offset += unit * index[i];
         unit *= shape[i];
     }
@@ -130,7 +131,7 @@ connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* sh
     uint32_t buffer_size = CONNX_ALIGN(data_size);
 
     void* ptr = connx_alloc(header_size + dim_size + buffer_size);
-    if(ptr == NULL) {
+    if (ptr == NULL) {
         return NULL;
     }
 
@@ -162,7 +163,7 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
     p += sizeof(uint32_t);
 
     int32_t shape[ndim];
-    for(uint32_t i = 0; i < ndim; i++) {
+    for (uint32_t i = 0; i < ndim; i++) {
         shape[i] = *(int32_t*)p;
         p += sizeof(int32_t);
     }
@@ -171,7 +172,7 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
     uint32_t total = connx_Int32_product(ndim, shape);
 
     connx_Tensor* tensor = connx_Tensor_alloc(dtype, ndim, shape);
-    if(tensor == NULL) {
+    if (tensor == NULL) {
         return NULL;
     }
 
@@ -180,27 +181,27 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
     return tensor;
 }
 
-#define next_token(token)                       \
-    ({                                          \
-        char* start = token;                    \
-        while(*token != '_' && *token != '.') { \
-            token++;                            \
-        }                                       \
-        *token++ = '\0';                        \
-        start;                                  \
+#define next_token(token)                        \
+    ({                                           \
+        char* start = token;                     \
+        while (*token != '_' && *token != '.') { \
+            token++;                             \
+        }                                        \
+        *token++ = '\0';                         \
+        start;                                   \
     })
 
 #define next_integer(token)               \
     ({                                    \
         char* number = next_token(token); \
-        if(number == NULL)                \
+        if (number == NULL)               \
             return NULL;                  \
         strtol(number, NULL, 0);          \
     })
 
 connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor) {
     connx_Tensor* tensor2 = connx_Tensor_alloc_like(tensor);
-    if(tensor2 == NULL)
+    if (tensor2 == NULL)
         return NULL;
 
     int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
@@ -215,7 +216,7 @@ connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* 
     uint32_t dim_size = CONNX_ALIGN(sizeof(int32_t) * ndim);
 
     void* ptr = connx_alloc(header_size + dim_size);
-    if(ptr == NULL) {
+    if (ptr == NULL) {
         return NULL;
     }
 
@@ -246,7 +247,7 @@ void connx_Tensor_ref(connx_Tensor* tensor) {
 void connx_Tensor_unref(connx_Tensor* tensor) {
     connx_Lock_lock(&tensor->lock);
 
-    if(--tensor->ref_count <= 0) {
+    if (--tensor->ref_count <= 0) {
         connx_Tensor* parent = tensor->parent;
 
         connx_Lock_unlock(&tensor->lock);
@@ -255,7 +256,7 @@ void connx_Tensor_unref(connx_Tensor* tensor) {
         connx_free(tensor);
 
         // Unref parent
-        if(parent != NULL) {
+        if (parent != NULL) {
             connx_Tensor_unref(parent);
         }
 

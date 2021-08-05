@@ -41,12 +41,12 @@ void connx_Thread_free(uint32_t count, connx_Thread* threads);
 void connx_Thread_join(uint32_t count, connx_Thread* threads);
 
 // debugging message
+struct _connx_Tensor;
 void connx_debug(const char* format, ...);
 void connx_info(const char* format, ...);
 void connx_error(const char* format, ...);
 
 void connx_Iterator_dump(int32_t* iterator);
-typedef struct _connx_Tensor connx_Tensor;
-void connx_Tensor_dump(connx_Tensor* tensor);
+void connx_Tensor_dump(struct _connx_Tensor* tensor);
 
 #endif /* __CONNX_HAL_H__ */

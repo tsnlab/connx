@@ -2,7 +2,6 @@
 
 import sys
 import re
-import tempfile
 
 if len(sys.argv) != 3:
     print('Usage: {} [input source] [output source]'.format(sys.argv[0]))
@@ -10,6 +9,7 @@ if len(sys.argv) != 3:
 
 input_source = sys.argv[1]
 output_source = sys.argv[2]
+
 
 def is_DTYPE(dtype):
     if dtype == 'UINT8':
@@ -45,6 +45,7 @@ def is_DTYPE(dtype):
     else:
         return False
 
+
 def get_TYPE(dtype):
     if dtype == 'UINT8':
         return 'uint8_t'
@@ -78,6 +79,7 @@ def get_TYPE(dtype):
         return 'complex128_t'
     else:
         raise Exception('Not expected dtype')
+
 
 def get_NAME(dtype):
     if dtype == 'UINT8':
@@ -113,6 +115,7 @@ def get_NAME(dtype):
     else:
         raise Exception('Not expected dtype')
 
+
 with open(output_source, 'w') as output:
     line_no = 1
     output.write('#line {} "{}"\n'.format(line_no, input_source))
@@ -123,7 +126,7 @@ with open(output_source, 'w') as output:
             if 'TEMPLATE_START(' in line:
                 # Parse _DTYPE and _TYPE
                 tokens = re.split(',|\(|\)', line)
-                tokens.pop(0) # drop TEMPLATE_START
+                tokens.pop(0)  # drop TEMPLATE_START
                 dtypes = []
                 while(len(tokens) > 0):
                     name = tokens.pop(0).strip()
@@ -145,7 +148,7 @@ with open(output_source, 'w') as output:
                     type = get_TYPE(dtype)
                     name = get_NAME(dtype)
 
-                    output.write('#line {} "{}"\n'.format(line_no + 1, input_source)) # plus header
+                    output.write('#line {} "{}"\n'.format(line_no + 1, input_source))  # plus header
 
                     for idx, (line) in enumerate(template):
                         line = line.replace('TEMPLATE_DTYPE', 'CONNX_' + dtype)
@@ -155,7 +158,7 @@ with open(output_source, 'w') as output:
                         output.write(line)
 
                 line = input.readline()
-                line_no += len(template) + 2 # lines of template + header + tail
+                line_no += len(template) + 2  # lines of template + header + tail
             else:
                 output.write(line)
 
