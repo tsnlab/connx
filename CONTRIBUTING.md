@@ -12,6 +12,26 @@ Welcome to CONNX project and very welcome your contirbutions.
 
 # How to contribute code
  1. Please agree CLA
- 2. Check all the test cases are passed
- 3. Pull request to maintainer(@semihlab)
+ 2. Pass all the onnx test cases
+ 3. Check C lint (clang-format-10 is required)
+
+~~~sh
+$ bin/check-clang-format
+~~~
+
+ 4. Check python lint (flake8 is required)
+
+~~~sh
+$ flake8
+~~~
+
+ 5. Register lint to git commit hook (optional)
+
+~~~sh
+$ cp bin/check-clang-format .git/hooks/pre-commit  # Register C lint only
+$ ln -s /usr/bin/flake8 .git/hooks/pre-commit      # Register Python lint only
+$ cp bin/lint .git/hooks/pre-commit                # Register C and Python lint at same time
+~~~
+
+ 6. Pull request to maintainer(@semihlab)
 

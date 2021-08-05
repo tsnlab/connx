@@ -1,8 +1,8 @@
-import os
 import sys
 import subprocess
 import struct
 import numpy as np
+
 
 def get_numpy_dtype(onnx_dtype):
     if onnx_dtype == 1:
@@ -38,12 +38,14 @@ def get_numpy_dtype(onnx_dtype):
     else:
         raise Exception('Not supported dtype: {}'.format(onnx_dtype))
 
+
 def product(shape):
     p = 1
     for dim in shape:
         p *= dim
 
     return p
+
 
 def run(connx_path, model_path, input_paths):
     with subprocess.Popen([connx_path, model_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
@@ -66,7 +68,7 @@ def run(connx_path, model_path, input_paths):
             print('Error code:', count)
             return count
 
-        outputs = [ ]
+        outputs = []
 
         for i in range(count):
             # Parse data type
@@ -87,6 +89,7 @@ def run(connx_path, model_path, input_paths):
 
         return outputs
 
+
 def read_tensor(io):
     # Parse data type
     dtype, ndim = struct.unpack('=II', io.read(8))
@@ -101,6 +104,7 @@ def read_tensor(io):
     total = product(shape)
     return np.frombuffer(io.read(itemsize * total), dtype=dtype, count=product(shape)).reshape(shape)
 
+
 if __name__ == '__main__':
     outputs = run(sys.argv[1], sys.argv[2], sys.argv[3:])
 
@@ -108,4 +112,3 @@ if __name__ == '__main__':
         for i in range(len(outputs)):
             print('# output[{}]'.format(i))
             print(outputs[i])
-

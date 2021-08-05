@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from glob import glob
 import numpy as np
-from run import run, get_numpy_dtype, product, read_tensor
+from run import run, read_tensor
 
 if len(sys.argv) < 3:
     print('Usage: {} [connx path] [connx home path] [[test case] ...]'.format(sys.argv[0]))

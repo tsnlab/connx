@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eo pipefail
+
+files=$(find src include examples -type f \( -name '*.c' -or -name '*.h' \))
+result=0
+for fname in $files; do
+    if ! diff --color -u "$fname" <(clang-format-10 "$fname"); then
+        result=1
+    fi
+done
+
+exit $result
