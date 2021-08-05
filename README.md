@@ -23,15 +23,17 @@ Add Conv MatMul MaxPool Relu Reshape
 ~~~
 
 ## Run examples
-If you want to run on Raspberry Pi 3, please compile with DEBUG=0 for to run sanitizer, some trick must be used.
+Run MNIST example. (Mobilenet and YOLO will coming soon)
 
 ~~~sh
 ports/linux/build$ ninja mnist
 ~~~
 
+Notice: If you want to run on Raspberry Pi 3, please compile with Release mode(CMAKE\_BUILD\_TYPE=Release) for sanitizer makes some problem.
+
 # Test
 Run the test cases in 'test' directory which contains converted test cases from ONNX.
-pthon3 with Numpy is required.
+python3 with Numpy is required.
 
 ~~~sh
 ports/linux/build$ ninja test
