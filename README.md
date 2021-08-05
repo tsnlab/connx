@@ -1,4 +1,7 @@
 # C-ONNX
+
+[![Join the chat at https://gitter.im/c-onnx/community](https://badges.gitter.im/c-onnx/community.svg)](https://gitter.im/c-onnx/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 C implementation of Open Neural Network Exchange Runtime
 
 # Compile
