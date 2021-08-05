@@ -81,4 +81,4 @@ ports/linux/build$ ninja prof                                       # Print perf
  * Raspberry pi 3 (32-bit O/S)
 
 # License
- * CONNX is licensed under GPLv3
+ * CONNX is licensed under GPLv3 See [LICENSE](LICENSE)
