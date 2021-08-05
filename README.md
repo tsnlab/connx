@@ -23,7 +23,7 @@ Add Conv MatMul MaxPool Relu Reshape
 ~~~
 
 ## Run examples
-Run MNIST example. (Mobilenet and YOLO will coming soon)
+Run MNIST example. (Mobilenet and YOLO will come soon)
 
 ~~~sh
 ports/linux/build$ ninja mnist
