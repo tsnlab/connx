@@ -45,7 +45,7 @@ def product(shape):
 
     return p
 
-def run_direct(connx_path, model_path, input_paths):
+def run(connx_path, model_path, input_paths):
     with subprocess.Popen([connx_path, model_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as proc:
         # Write number of inputs
         proc.stdin.write(struct.pack('=I', len(input_paths)))
@@ -101,48 +101,8 @@ def read_tensor(io):
     total = product(shape)
     return np.frombuffer(io.read(itemsize * total), dtype=dtype, count=product(shape)).reshape(shape)
 
-def main(argv):
-    if len(argv) < 2:
-        print('Usage: python run.py [tensor in pipe] [tensor out pipe] [input path]...]')
-        return None
-
-    tensorin_path = argv[1]
-    tensorout_path = argv[2]
-
-    if len(argv) == 3: # Stop the engine
-        with open(tensorin_path, 'wb') as io:
-            io.write(struct.pack('=i', -1))
-            return None
-
-    inputs = argv[3:]
-
-    # Write input tensors
-    with open(tensorin_path, 'wb') as io:
-        # Write number of inputs
-        io.write(struct.pack('=I', len(inputs)))
-
-        for input in inputs:
-            # Write data
-            with open(input, 'rb') as file:
-                data = file.read()
-                while len(data) != 0:
-                    io.write(data)
-                    data = file.read()
-
-    # Read output tensors
-    outputs = [ ]
-    with open(tensorout_path, 'rb') as io:
-        # Parse number of outputs
-        count = struct.unpack('=i', io.read(4))[0]
-
-        for i in range(count):
-            output = read_tensor(io)
-            outputs.append(output)
-
-    return outputs
-
 if __name__ == '__main__':
-    outputs = main(sys.argv)
+    outputs = run(sys.argv[1], sys.argv[2], sys.argv[3:])
 
     if outputs is not None:
         for i in range(len(outputs)):

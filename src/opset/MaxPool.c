@@ -4,7 +4,7 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_t input_count, uint32_t* inputs, void** attributes) {
+int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attribute__((unused)) uint32_t input_count, uint32_t* inputs, void** attributes) {
 	// inputs
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
 
@@ -24,7 +24,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32
 	// default attribute setting
     int32_t dilations[feature_dim];
     if(_dilations->count == 0) {
-        for(uint32_t i = 0; i < feature_dim; i++) {
+        for(int32_t i = 0; i < feature_dim; i++) {
             dilations[i] = 1;
         }
     } else {
@@ -35,7 +35,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32
 
     int32_t pads[feature_dim * 2];
     if(_pads->count == 0) {
-        for(uint32_t i = 0; i < feature_dim * 2; i++) {
+        for(int32_t i = 0; i < feature_dim * 2; i++) {
             pads[i] = 0;
         }
     } else {
@@ -44,7 +44,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32
 
     int32_t strides[feature_dim];
     if(_strides->count == 0) {
-        for(uint32_t i = 0; i < feature_dim; i++) {
+        for(int32_t i = 0; i < feature_dim; i++) {
             strides[i] = 1;
         }
     } else {

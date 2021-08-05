@@ -1,7 +1,7 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-int Mul(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
+int Mul(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs, __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     connx_Tensor* A = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* B = connx_Graph_get(graph, inputs[1]);
 
