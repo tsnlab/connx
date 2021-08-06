@@ -4,11 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ver.h"
 #include <connx/accel.h>
 #include <connx/connx.h>
 #include <connx/hal.h>
 #include <connx/opset.h>
+
+#include "ver.h"
 
 extern int connx_version_major;
 extern int connx_version_minor;

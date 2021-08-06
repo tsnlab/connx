@@ -1,0 +1,40 @@
+name: Build
+
+on:
+    - push
+    - pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Install ubuntu packages to lint
+      run: sudo apt install clang-format-10 flake8
+    - name: Check C lint
+      run: bin/check-clang-format
+    - name: Check python lint
+      run: flake8
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install ubuntu packages to build
+      run: sudo apt install cmake ninja-build
+    - name: build
+      run: |
+          mkdir build
+          cd build
+          cmake -G Ninja ../ports/linux/
+          ninja
+
+  examples:
+    - name: MNIST
+      run: |
+          cd build
+          ninja mnist
+    - name: ONNX Test Cases
+      run: |
+          cd build
+          ninja onnx
