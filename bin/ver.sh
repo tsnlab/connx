@@ -3,6 +3,10 @@
 # Tag name must be v(major).(minor) format
 TAG=`git describe --tags --long`
 
+if [[ -z ${TAG} ]]; then
+    TAG='v0.0-000-00000000'
+fi
+
 # Parse major, minor, micro and commit
 MAJOR=`echo ${TAG:1} | awk -F- '{print $1}' | awk -F. '{print $1}'` 
 MINOR=`echo ${TAG:1} | awk -F- '{print $1}' | awk -F. '{print $2}'` 
