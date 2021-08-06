@@ -24,7 +24,7 @@ jobs:
       run: sudo apt install cmake ninja-build
     - name: build
       run: |
-          cmake -G Ninja ../ports/linux/
+          cmake -G Ninja ports/linux/
           ninja
     - name: MNIST
       run: |
