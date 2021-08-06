@@ -30,6 +30,8 @@ jobs:
           ninja
 
   examples:
+    runs-on: ubuntu-latest
+    steps:
     - name: MNIST
       run: |
           cd build
