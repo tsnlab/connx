@@ -24,12 +24,11 @@ jobs:
       run: sudo apt install cmake ninja-build
     - name: build
       run: |
-          mkdir build
-          cd build; cmake -G Ninja ../ports/linux/
-          cd build; ninja
+          cmake -G Ninja ../ports/linux/
+          ninja
     - name: MNIST
       run: |
-          cd build; ninja mnist
+          ninja mnist
     - name: ONNX Test Cases
       run: |
-          cd build; ninja onnx
+          ninja onnx

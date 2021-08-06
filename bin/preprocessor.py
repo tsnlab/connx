@@ -125,7 +125,7 @@ with open(output_source, 'w') as output:
         while line:
             if 'TEMPLATE_START(' in line:
                 # Parse _DTYPE and _TYPE
-                tokens = re.split(',|\(|\)', line)
+                tokens = re.split(r',|\(|\)', line)
                 tokens.pop(0)  # drop TEMPLATE_START
                 dtypes = []
                 while(len(tokens) > 0):
