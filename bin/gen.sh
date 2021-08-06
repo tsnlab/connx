@@ -90,10 +90,10 @@ fi
 # Copy connx codes
 for FILE in ${CONNX}; do
     if [[ ${IS_DUMP} == 1 ]]; then
-        echo "${OUTPUT_DIR}/${FILE}"
+        echo "${FILE}"
     else
         if [[ ! -f ${OUTPUT_DIR}/${FILE} ]] || [[ ${INPUT_DIR}/${FILE} -nt ${OUTPUT_DIR}/${FILE} ]]; then
-            echo "Generating ${OUTPUT_DIR}/${FILE}"
+            echo "Copying ${OUTPUT_DIR}/${FILE}"
             cp ${INPUT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}
         fi
     fi
@@ -101,7 +101,7 @@ done
 
 # Generate opset.c
 if [[ ${IS_DUMP} == 1 ]]; then
-    echo "${OUTPUT_DIR}/opset.c"
+    echo "opset.c"
 else
     if [[ ! -f ${OUTPUT_DIR}/opset.c ]] || [[ "//${OPSET}" != `head -1 ${OUTPUT_DIR}/opset.c` ]]; then
         echo "Generating ${OUTPUT_DIR}/opset.c"
@@ -112,7 +112,7 @@ fi
 # Generate ver.h
 TAG=`git describe --tags --long`
 if [[ ${IS_DUMP} == 1 ]]; then
-    echo "${OUTPUT_DIR}/ver.h"
+    echo "ver.h"
 else
     if [[ ! -f ${OUTPUT_DIR}/ver.h ]] || [[ "// ${TAG}" != `head -1 ${OUTPUT_DIR}/ver.h` ]]; then
         echo "Generating ${OUTPUT_DIR}/ver.h"
@@ -123,10 +123,10 @@ fi
 # Generate opset codes
 for FILE in ${OPSET}; do
     if [[ ${IS_DUMP} == 1 ]]; then
-        echo "${OUTPUT_DIR}/opset/${FILE}.c"
+        echo "opset/${FILE}.c"
     else
         if [[ ${INPUT_DIR}/opset/${FILE}.c -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
-            echo "Generating ${OUTPUT_DIR}/opset/${FILE}.c"
+            echo "Preprocessing ${OUTPUT_DIR}/opset/${FILE}.c"
             ${HOME}/preprocessor.py ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c
         fi
     fi
@@ -135,10 +135,10 @@ done
 # Generate port codes
 for FILE in `ls ${PORT_DIR}`; do
     if [[ ${IS_DUMP} == 1 ]]; then
-        echo "${OUTPUT_DIR}/${FILE}"
+        echo "${FILE}"
     else
         if [[ ${PORT_DIR}/${FILE} -nt ${OUTPUT_DIR}/${FILE} ]]; then
-            echo "Generating ${OUTPUT_DIR}/${FILE}"
+            echo "Preprocessing ${OUTPUT_DIR}/${FILE}"
             ${HOME}/preprocessor.py ${PORT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}
         fi
     fi

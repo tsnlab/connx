@@ -11,10 +11,13 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 set(CONNX_HOME ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 # list up generated source files using gen.sh utility
-execute_process(COMMAND ../../bin/gen.sh -d WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE SRC)
-string(PREPEND SRC "${CMAKE_CURRENT_SOURCE_DIR}/")
+execute_process(
+    COMMAND ../../bin/gen.sh -d -o ${CMAKE_CURRENT_BINARY_DIR}/src
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE SRC)
 string(REGEX REPLACE "\n$" "" SRC ${SRC})
-string(REPLACE "\n" ";${CMAKE_CURRENT_SOURCE_DIR}/" SRC ${SRC})
+string(PREPEND SRC "src/")
+string(REPLACE "\n" ";src/" SRC ${SRC})
 
 # list up original source files
 file(GLOB_RECURSE CONNX_HDR "${CONNX_HOME}/include/*")
@@ -29,7 +32,7 @@ endif()
 # generate source files
 add_custom_command(
     OUTPUT ${SRC}
-    COMMAND ../../bin/gen.sh
+    COMMAND ../../bin/gen.sh -o ${CMAKE_CURRENT_BINARY_DIR}/src
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS ${CONNX_SRC} ${CONNX_HDR} ${HAL_SRC} ${OPSET}
     COMMENT "Generating source code"
