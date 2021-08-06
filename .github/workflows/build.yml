@@ -24,13 +24,18 @@ jobs:
       uses: actions/checkout@master
     - name: Install ubuntu packages to build
       run: sudo apt install cmake ninja-build
+    - name: Create build directory
+      run: mkdir build
     - name: build
+      working-directory: build
       run: |
-          cmake -G Ninja ports/linux/
+          cmake -G Ninja ../ports/linux/
           ninja
     - name: MNIST
+      working-directory: build
       run: |
           ninja mnist
     - name: ONNX Test Cases
+      working-directory: build
       run: |
           ninja onnx
