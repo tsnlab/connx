@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 project(connx)
 
+# variables
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CONNX_HOME ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 # list up generated source files using gen.sh utility
 execute_process(COMMAND ../../bin/gen.sh -d WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE SRC)
+string(PREPEND SRC "${CMAKE_CURRENT_SOURCE_DIR}/")
 string(REGEX REPLACE "\n$" "" SRC ${SRC})
-string(REPLACE "\n" ";" SRC ${SRC})
-list(TRANSFORM SRC PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+string(REPLACE "\n" ";${CMAKE_CURRENT_SOURCE_DIR}/" SRC ${SRC})
 
 # list up original source files
 file(GLOB_RECURSE CONNX_HDR "${CONNX_HOME}/include/*")
@@ -41,6 +46,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -std=c99)
 target_link_libraries(${PROJECT_NAME} m pthread)
 
 # Test
-add_custom_target(test COMMAND python3 ${CONNX_HOME}/bin/test.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME})
+add_custom_target(onnx COMMAND python3 ${CONNX_HOME}/bin/test.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME})
 add_custom_target(mnist COMMAND python3 ${CONNX_HOME}/bin/run.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/mnist/ ${CONNX_HOME}/examples/mnist/test_data_set_0/input_0.data)
 add_custom_target(prof COMMAND gprof ${CMAKE_CURRENT_BINARY_DIR}/connx ${CMAKE_CURRENT_BINARY_DIR}/gmon.out)

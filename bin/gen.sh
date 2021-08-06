@@ -109,6 +109,17 @@ else
     fi
 fi
 
+# Generate ver.h
+TAG=`git describe --tags --long`
+if [[ ${IS_DUMP} == 1 ]]; then
+    echo "${OUTPUT_DIR}/ver.h"
+else
+    if [[ ! -f ${OUTPUT_DIR}/ver.h ]] || [[ "// ${TAG}" != `head -1 ${OUTPUT_DIR}/ver.h` ]]; then
+        echo "Generating ${OUTPUT_DIR}/ver.h"
+        $HOME/ver.sh > ${OUTPUT_DIR}/ver.h
+    fi
+fi
+
 # Generate opset codes
 for FILE in ${OPSET}; do
     if [[ ${IS_DUMP} == 1 ]]; then

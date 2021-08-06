@@ -4,10 +4,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ver.h"
 #include <connx/accel.h>
 #include <connx/connx.h>
 #include <connx/hal.h>
 #include <connx/opset.h>
+
+extern int connx_version_major;
+extern int connx_version_minor;
+extern int connx_version_micro;
+extern char* connx_version_commit;
+extern char* connx_version;
+
+int connx_version_major = CONNX_VERSION_MAJOR;
+int connx_version_minor = CONNX_VERSION_MINOR;
+int connx_version_micro = CONNX_VERSION_MICRO;
+char* connx_version_commit = CONNX_VERSION_COMMIT;
+char* connx_version = CONNX_VERSION;
 
 static char* _strdup(char* str) {
     int len = strlen(str);
