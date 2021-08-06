@@ -17,7 +17,7 @@ jobs:
     - name: Check python lint
       run: flake8
 
-  build:
+  build_and_test:
     runs-on: ubuntu-latest
     steps:
     - name: Install ubuntu packages to build
@@ -25,18 +25,11 @@ jobs:
     - name: build
       run: |
           mkdir build
-          cd build
-          cmake -G Ninja ../ports/linux/
-          ninja
-
-  examples:
-    runs-on: ubuntu-latest
-    steps:
+          cd build; cmake -G Ninja ../ports/linux/
+          cd build; ninja
     - name: MNIST
       run: |
-          cd build
-          ninja mnist
+          cd build; ninja mnist
     - name: ONNX Test Cases
       run: |
-          cd build
-          ninja onnx
+          cd build; ninja onnx
