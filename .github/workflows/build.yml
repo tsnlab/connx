@@ -23,7 +23,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install ubuntu packages to build
-      run: sudo apt install cmake ninja-build
+      run: |
+          sudo apt install cmake ninja-build
+          pip3 install numpy
     - name: Create build directory
       run: mkdir build
     - name: build
