@@ -115,7 +115,7 @@ if [[ ${IS_DUMP} == 1 ]]; then
     echo "ver.h"
 else
     if [[ ! -f ${OUTPUT_DIR}/ver.h ]] || [[ "// ${TAG}" != `head -1 ${OUTPUT_DIR}/ver.h` ]]; then
-        echo "Generating ${OUTPUT_DIR}/ver.h"
+        echo "Generating ${OUTPUT_DIR}/ver.h with tag ${TAG}"
         $HOME/ver.sh > ${OUTPUT_DIR}/ver.h
     fi
 fi
