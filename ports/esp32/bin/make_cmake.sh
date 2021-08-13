@@ -1,4 +1,4 @@
-FILES=`find gen -type f`
+FILES=`find gen -name *.c`
 
 TMP=`mktemp`
 

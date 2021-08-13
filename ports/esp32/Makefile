@@ -21,7 +21,7 @@ build/connx-esp32.bin: spiffs main/CMakeFiles.txt $(SRCS)
 	idf.py build
 
 gen: main/hal.c main/accel.c
-	make -C $(CONNX_HOME) OUT_DIR=$(CWD)/gen HAL_SRC=$(CWD)/main/hal.c ACCEL_SRC=$(CWD)/main/accel.c OPSET="$(OPSET)"
+	../../bin/gen.sh -o gen -p main
 
 main/CMakeFiles.txt: gen
 	bin/make_cmake.sh

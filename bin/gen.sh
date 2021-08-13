@@ -133,7 +133,9 @@ for FILE in ${OPSET}; do
 done
 
 # Generate port codes
-for FILE in `ls ${PORT_DIR}`; do
+for FILE in `ls ${PORT_DIR}/*.c`; do
+    FILE=${FILE#${PORT_DIR}/}
+
     if [[ ${IS_DUMP} == 1 ]]; then
         echo "${FILE}"
     else

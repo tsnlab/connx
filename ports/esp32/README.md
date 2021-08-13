@@ -1,14 +1,23 @@
 # Prerequirements
 ## esp-idf must be installed
-## Activate esp-idf environment
-. ~/esp/esp-idf/export.sh
+Ref: https://github.com/espressif/esp-idf
 
-## build
+## Activate esp-idf environment
+```sh
+source $(ESP\_IDF\_HOME)/export.sh
+```
+
+# build
 Below command will build and flash the image to ESP32
 
+```sh
 make
+```
 
-## monitor
+# monitor
+```sh
 make run
+```
 
 To exit the monitor, Ctrl + ]
+If you have any problem with I/O permission, please check you have enough permission to access /dev/ttyUSB0
