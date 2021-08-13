@@ -3,7 +3,7 @@
 # Tag name must be v(major).(minor) format
 if [[ -f ${HOME}/../TAG ]]; then
     TAG=`cat ${HOME}/../TAG`
-else:
+else
     TAG=`git describe --tags --long`
 fi
 

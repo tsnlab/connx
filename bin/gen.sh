@@ -112,7 +112,7 @@ fi
 # Generate ver.h
 if [[ -f ${HOME}/../TAG ]]; then
     TAG=`cat ${HOME}/../TAG`
-else:
+else
     TAG=`git describe --tags --long`
 fi
 
