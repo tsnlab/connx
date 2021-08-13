@@ -110,7 +110,16 @@ else
 fi
 
 # Generate ver.h
-TAG=`git describe --tags --long`
+if [[ -f ${HOME}/../TAG ]]; then
+    TAG=`cat ${HOME}/../TAG`
+else:
+    TAG=`git describe --tags --long`
+fi
+
+if [[ -z ${TAG} ]]; then
+    TAG='v0.0-000-00000000'
+fi
+
 if [[ ${IS_DUMP} == 1 ]]; then
     echo "ver.h"
 else

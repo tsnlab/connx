@@ -43,7 +43,8 @@ with open(str(license_file), 'r') as f:
 # retrieve files
 for path in Path(base_dir).rglob('*'):
     # print(path, path.name)
-    if not os.path.isfile(str(path)):
+    name = path.name
+    if not name.endswith('.h') and not name.endswith('.c'):
         continue
 
     pos = None

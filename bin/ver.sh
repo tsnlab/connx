@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Tag name must be v(major).(minor) format
-TAG=`git describe --tags --long`
+if [[ -f ${HOME}/../TAG ]]; then
+    TAG=`cat ${HOME}/../TAG`
+else:
+    TAG=`git describe --tags --long`
+fi
 
 if [[ -z ${TAG} ]]; then
     TAG='v0.0-000-00000000'
