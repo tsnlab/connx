@@ -42,7 +42,7 @@ with open(str(license_file), 'r') as f:
 
 # retrieve files
 for path in Path(base_dir).rglob('*'):
-    #print(path, path.name)
+    # print(path, path.name)
     if not os.path.isfile(str(path)):
         continue
 
