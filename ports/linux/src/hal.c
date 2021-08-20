@@ -252,17 +252,17 @@ void connx_Iterator_dump(int32_t* iterator) {
     int32_t* index = ITER_INDEX(iterator);
 
     for(int32_t i = 0; i < ndim; i++)
-        printf("%d ", index[i]);
-    printf("/ ");
+        fprintf(stderr, "%d ", index[i]);
+    fprintf(stderr, "/ ");
     for(int32_t i = 0; i < ndim; i++)
-        printf("%d ", start[i]);
-    printf("/ ");
+        fprintf(stderr, "%d ", start[i]);
+    fprintf(stderr, "/ ");
     for(int32_t i = 0; i < ndim; i++)
-        printf("%d ", stop[i]);
-    printf("/ ");
+        fprintf(stderr, "%d ", stop[i]);
+    fprintf(stderr, "/ ");
     for(int32_t i = 0; i < ndim; i++)
-        printf("%d ", step[i]);
-    printf("\n");
+        fprintf(stderr, "%d ", step[i]);
+    fprintf(stderr, "\n");
 }
 
 void connx_Tensor_dump(connx_Tensor* tensor) {
