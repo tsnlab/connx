@@ -165,39 +165,38 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
             for (int32_t channel = 0; channel < channel_count; channel++) {
-                int32_t starts[feature_dim];
-                int32_t stops[feature_dim];
-                int32_t steps[feature_dim];
+                // x_iter
+                connx_Slice x_slices[feature_dim];
+                connx_Iterator x_iter = {feature_dim, x_slices};
 
                 for (int32_t i = 0; i < feature_dim; i++) {
-                    starts[i] = -pads[i];
-                    stops[i] = -pads[i] + output_shape[i] * strides[i];
-                    steps[i] = strides[i];
+                    x_slices[i].start = -pads[i];
+                    x_slices[i].stop = -pads[i] + output_shape[i] * strides[i];
+                    x_slices[i].step = strides[i];
                 }
 
-                int32_t x_iter[connx_Iterator_size(feature_dim)];
-                connx_Iterator_init(x_iter, feature_dim, starts, stops, steps);
+                connx_Iterator_init(&x_iter);
 
-                while (connx_Iterator_next(x_iter)) {
-                    int32_t* x_idx = connx_Iterator_index(x_iter);
-
+                while (connx_Iterator_next(&x_iter)) {
                     TEMPLATE_TYPE y = 0;
                     int64_t argmax_idx = -1;
 
+                    // k_iter
+                    connx_Slice k_slices[feature_dim];
+                    connx_Iterator k_iter = {feature_dim, k_slices};
+
                     for (int32_t i = 0; i < feature_dim; i++) {
-                        starts[i] = 0;
-                        stops[i] = kernel_shape[i] * dilations[i];
-                        steps[i] = dilations[i];
+                        k_slices[i].start = 0;
+                        k_slices[i].stop = kernel_shape[i] * dilations[i];
+                        k_slices[i].step = dilations[i];
                     }
 
-                    int32_t k_iter[connx_Iterator_size(feature_dim)];
-                    connx_Iterator_init(k_iter, feature_dim, starts, stops, steps);
+                    connx_Iterator_init(&k_iter);
 
-                    while (connx_Iterator_next(k_iter)) {
-                        int32_t* k_idx = connx_Iterator_index(k_iter);
+                    while (connx_Iterator_next(&k_iter)) {
                         int32_t d_idx[feature_dim];
                         for (int32_t i = 0; i < feature_dim; i++) {
-                            d_idx[i] = x_idx[i] + k_idx[i];
+                            d_idx[i] = x_iter.slices[i].idx + k_iter.slices[i].idx;
 
                             if (d_idx[i] < 0 || d_idx[i] >= feature_shape[i]) {
                                 goto SKIP_TEMPLATE_NAME;

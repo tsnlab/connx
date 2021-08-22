@@ -55,85 +55,49 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
 }
 
 // Iterator
-int32_t connx_Iterator_size(int32_t ndim) {
-    return 1 + ndim * 4;
+void connx_Iterator_init(connx_Iterator* iterator) {
+    int32_t ndim = iterator->ndim;
+    connx_Slice* slices = iterator->slices;
+
+    for (int32_t i = 0; i < ndim; i++) {
+        slices[i].idx = slices[i].start;
+    }
+
+    slices[ndim - 1].idx -= slices[ndim - 1].step;
 }
 
-#define ITER_NDIM(iter) (iter)
-#define ITER_START(iter) (iter + 1)
-#define ITER_STOP(iter) (iter + 1 + iter[0])
-#define ITER_STEP(iter) (iter + 1 + iter[0] * 2)
-#define ITER_INDEX(iter) (iter + 1 + iter[0] * 3)
-
-void connx_Iterator_init(int32_t* iterator, int32_t ndim, int32_t* start, int32_t* stop, int32_t* step) {
-    *ITER_NDIM(iterator) = ndim;
-    memcpy(ITER_START(iterator), start, sizeof(int32_t) * ndim);
-    memcpy(ITER_STOP(iterator), stop, sizeof(int32_t) * ndim);
-    memcpy(ITER_STEP(iterator), step, sizeof(int32_t) * ndim);
-    memcpy(ITER_INDEX(iterator), start, sizeof(int32_t) * ndim);
-    ITER_INDEX(iterator)[ndim - 1] -= step[ndim - 1];
-}
-
-bool connx_Iterator_next(int32_t* iterator) {
-    int32_t ndim = *ITER_NDIM(iterator);
-    int32_t* start = ITER_START(iterator);
-    int32_t* stop = ITER_STOP(iterator);
-    int32_t* step = ITER_STEP(iterator);
-    int32_t* index = ITER_INDEX(iterator);
+bool connx_Iterator_next(connx_Iterator* iterator) {
+    int32_t ndim = iterator->ndim;
+    connx_Slice* slices = iterator->slices;
 
     // Go next step
     for (int32_t i = ndim - 1; i >= 0; i--) {
-        index[i] += step[i];
-        if (index[i] < stop[i])
+        slices[i].idx += slices[i].step;
+        if (slices[i].idx < slices[i].stop)
             return true;
         else
-            index[i] = start[i];
+            slices[i].idx = slices[i].start;
     }
 
-    // Return to just before start
-    memcpy(index, start, sizeof(int32_t) * ndim);
-    index[ndim - 1] -= step[ndim - 1];
+    // End of iterator
+    connx_Iterator_init(iterator);
 
     return false;
 }
 
-int32_t connx_Iterator_ndim(int32_t* iterator) {
-    return *ITER_NDIM(iterator);
-}
-
-int32_t* connx_Iterator_start(int32_t* iterator) {
-    return ITER_START(iterator);
-}
-
-int32_t* connx_Iterator_stop(int32_t* iterator) {
-    return ITER_STOP(iterator);
-}
-
-int32_t* connx_Iterator_step(int32_t* iterator) {
-    return ITER_STEP(iterator);
-}
-
-int32_t* connx_Iterator_index(int32_t* iterator) {
-    return ITER_INDEX(iterator);
-}
-
-int32_t connx_Iterator_offset(int32_t* iterator, int32_t* shape) {
-    int32_t ndim = *ITER_NDIM(iterator);
-    int32_t* index = ITER_INDEX(iterator);
+int32_t connx_Iterator_offset(connx_Iterator* iterator, int32_t* shape) {
+    int32_t ndim = iterator->ndim;
+    connx_Slice* slices = iterator->slices;
 
     int32_t offset = 0;
     int32_t unit = 1;
 
     for (int32_t i = ndim - 1; i >= 0; i--) {
-        offset += unit * index[i];
+        offset += unit * slices[i].idx;
         unit *= shape[i];
     }
 
     return offset;
-}
-
-int32_t connx_Iterator_size_tensor(connx_Tensor* tensor) {
-    return connx_Iterator_size(tensor->ndim);
 }
 
 /**
@@ -283,7 +247,7 @@ void connx_Tensor_unref(connx_Tensor* tensor) {
     connx_Lock_unlock(&tensor->lock);
 }
 
-int connx_Tensor_get(connx_Tensor* tensor, int32_t* iterator, void* data) {
+int connx_Tensor_get(connx_Tensor* tensor, connx_Iterator* iterator, void* data) {
     int32_t offset = connx_Iterator_offset(iterator, tensor->shape);
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(data, tensor->buffer + offset * data_size, data_size);
@@ -291,7 +255,7 @@ int connx_Tensor_get(connx_Tensor* tensor, int32_t* iterator, void* data) {
     return CONNX_OK;
 }
 
-int connx_Tensor_set(connx_Tensor* tensor, int32_t* iterator, void* data) {
+int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data) {
     int32_t offset = connx_Iterator_offset(iterator, tensor->shape);
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(tensor->buffer + offset * data_size, data, data_size);

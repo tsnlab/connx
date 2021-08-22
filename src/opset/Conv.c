@@ -28,9 +28,9 @@ TEMPLATE_START(FLOAT32, FLOAT64)
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_add connx_Float32_add
-static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X, int32_t* x_iter, connx_Tensor* W,
-                                int32_t* w_iter, int32_t batch, int32_t x_channel, int32_t w_channel,
-                                int32_t feature_map, int32_t* dilations) {
+static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X, connx_Iterator* x_iter,
+                                connx_Tensor* W, connx_Iterator* w_iter, int32_t batch, int32_t x_channel,
+                                int32_t w_channel, int32_t feature_map, int32_t* dilations) {
 
     int32_t feature_dim = X->ndim - 2;
     int32_t* feature_shape = X->shape + 2;
@@ -60,15 +60,12 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
     }
 
     while (connx_Iterator_next(x_iter)) {
-        int32_t* x_idx = connx_Iterator_index(x_iter);
-
         TEMPLATE_TYPE y = 0;
         while (connx_Iterator_next(w_iter)) {
-            int32_t* w_idx = connx_Iterator_index(w_iter);
             int32_t d_idx[feature_dim];
 
             for (int i = 0; i < feature_dim; i++) {
-                d_idx[i] = x_idx[i] + w_idx[i] * dilations[i];
+                d_idx[i] = x_iter->slices[i].idx + w_iter->slices[i].idx * dilations[i];
                 if (d_idx[i] < 0 || d_idx[i] >= feature_shape[i]) {
                     goto SKIP_TEMPLATE_NAME;
                 }
@@ -83,7 +80,7 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
             int32_t w_offset = 0;
             for (int32_t i = 0; i < kernel_dim; i++) {
-                w_offset += w_units[i] * w_idx[i];
+                w_offset += w_units[i] * w_iter->slices[i].idx;
             }
 
             TEMPLATE_TYPE w = W_flatten[w_base + w_offset];
@@ -194,28 +191,28 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, 2 + feature_dim, Y_shape);
 
     // init x_iter
-    int32_t starts[feature_dim];
-    int32_t stops[feature_dim];
-    int32_t steps[feature_dim];
+    connx_Slice x_slices[feature_dim];
+    connx_Iterator x_iter = {feature_dim, x_slices};
 
     for (int32_t i = 0; i < feature_dim; i++) {
-        starts[i] = -pads[i];
-        stops[i] = -pads[i] + output_shape[i] * strides[i];
-        steps[i] = strides[i];
+        x_slices[i].start = -pads[i];
+        x_slices[i].stop = -pads[i] + output_shape[i] * strides[i];
+        x_slices[i].step = strides[i];
     }
 
-    int32_t x_iter[connx_Iterator_size(feature_dim)];
-    connx_Iterator_init(x_iter, feature_dim, starts, stops, steps);
+    connx_Iterator_init(&x_iter);
 
     // init w_iter
+    connx_Slice w_slices[kernel_dim];
+    connx_Iterator w_iter = {kernel_dim, w_slices};
+
     for (int32_t i = 0; i < kernel_dim; i++) {
-        starts[i] = 0;
-        stops[i] = kernel_shape[i];
-        steps[i] = 1;
+        w_slices[i].start = 0;
+        w_slices[i].stop = kernel_shape[i];
+        w_slices[i].step = 1;
     }
 
-    int32_t w_iter[connx_Iterator_size(kernel_dim)];
-    connx_Iterator_init(w_iter, kernel_dim, starts, stops, steps);
+    connx_Iterator_init(&w_iter);
 
     switch (X->dtype) {
         TEMPLATE_START(FLOAT32, FLOAT64)
@@ -243,8 +240,8 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
             for (int32_t g = 0; g < group; g++) {
                 for (int32_t feature_map = g * feature_group; feature_map < (g + 1) * feature_group; feature_map++) {
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y, y_idx, X, x_iter, W, w_iter, batch, g * channel_count + channel, channel,
-                                            feature_map, dilations);
+                        _conv_TEMPLATE_NAME(Y, y_idx, X, &x_iter, W, &w_iter, batch, g * channel_count + channel,
+                                            channel, feature_map, dilations);
                     }
 
                     if (B_flatten != NULL) {

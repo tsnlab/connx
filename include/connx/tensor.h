@@ -22,18 +22,28 @@
 #include <connx/types.h>
 
 // Iterator
+typedef struct _connx_Slice {
+    int32_t start; // Start index (>=)
+    int32_t stop;  // Stop index (<)
+    int32_t step;  // Step size
+    int32_t idx;   // Current index (used by iterator)
+} connx_Slice;
+
+typedef struct _connx_Iterator {
+    int32_t ndim;        // number of slices
+    connx_Slice* slices; // slices
+} connx_Iterator;
+
+void connx_Iterator_init(connx_Iterator* iterator);
+bool connx_Iterator_next(connx_Iterator* iterator);
 /**
- * iterator - 1 + ndim * 4
+ * Get offset of data from linear array.
+ *
+ * @param iterator iterator for a tensor
+ * @param shape shape of a tensor
+ * @return offset of data which iterator is pointing
  */
-int32_t connx_Iterator_size(int32_t ndim);
-void connx_Iterator_init(int32_t* iterator, int32_t ndim, int32_t* start, int32_t* stop, int32_t* step);
-bool connx_Iterator_next(int32_t* iterator);
-int32_t connx_Iterator_ndim(int32_t* iterator);
-int32_t* connx_Iterator_start(int32_t* iterator);
-int32_t* connx_Iterator_stop(int32_t* iterator);
-int32_t* connx_Iterator_step(int32_t* iterator);
-int32_t* connx_Iterator_index(int32_t* iterator);
-int32_t connx_Iterator_offset(int32_t* iterator, int32_t* shape);
+int32_t connx_Iterator_offset(connx_Iterator* iterator, int32_t* shape);
 
 // tensor structure follow Numpy's ndarray
 typedef struct _connx_Tensor {
@@ -47,8 +57,6 @@ typedef struct _connx_Tensor {
     connx_Lock lock;              // Reference lock
 } connx_Tensor;
 
-int32_t connx_Iterator_size_tensor(connx_Tensor* tensor);
-
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
@@ -58,7 +66,24 @@ connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* 
 void connx_Tensor_ref(connx_Tensor* tensor);
 void connx_Tensor_unref(connx_Tensor* tensor);
 
-int connx_Tensor_get(connx_Tensor* tensor, int32_t* idx, void* data);
-int connx_Tensor_set(connx_Tensor* tensor, int32_t* idx, void* data);
+/**
+ * Get an element(data) which iterator is pointing.
+ *
+ * @param tensor getting a data from a tensor
+ * @param iterator getting a data which iterator is pointing
+ * @param data a pointer to copy an element from tensor
+ * @return connx_ErrorCode
+ */
+int connx_Tensor_get(connx_Tensor* tensor, connx_Iterator* iterator, void* data);
+
+/**
+ * Set an element(data) which iterator is pointing.
+ *
+ * @param tensor setting a data from a tensor
+ * @param iterator setting a data which iterator is pointing
+ * @param data a pointer to copy an element to tensor
+ * @return connx_ErrorCode
+ */
+int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data);
 
 #endif /* __CONNX_TENSOR_H__ */
