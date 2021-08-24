@@ -128,8 +128,6 @@ int main(int argc, char** argv) {
             }
         }
 
-	test_slice();
-
         // Run model
         uint32_t output_count = 16;
         connx_Tensor* outputs[output_count];
