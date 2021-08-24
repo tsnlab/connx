@@ -16,7 +16,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 #include <strings.h> // bzero
 
@@ -33,52 +32,11 @@ TEMPLATE_START(FLOAT32, FLOAT64)
 static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X, connx_Iterator* x_iter,
                                 connx_Tensor* W, connx_Iterator* w_iter, int32_t batch, int32_t x_channel,
                                 int32_t w_channel, int32_t feature_map, int32_t* dilations) {
-    fprintf(stderr, "\n");
     int32_t feature_dim = X->ndim - 2;
     int32_t* feature_shape = X->shape + 2;
 
     int32_t kernel_dim = W->ndim - 2;
     int32_t* kernel_shape = W->shape + 2;
-
-    // Make dilation kernel
-    int32_t new_kernel_shape[kernel_dim];
-    for (int32_t i = 0; i < kernel_dim; i++) {
-        new_kernel_shape[i] = dilations[i] * kernel_shape[i];
-        if (dilations[i] != 1) {
-            new_kernel_shape[i] -= 1;
-        }
-    }
-
-
-    connx_Tensor* kernel = connx_Tensor_alloc(W->dtype, kernel_dim, new_kernel_shape);
-    connx_Slice k_slices[kernel_dim];
-    for (int32_t i = 0; i < kernel_dim; i++) {
-        connx_Slice_init(&k_slices[i], 0, kernel->shape[i], dilations[i], 0);
-    }
-
-    connx_Slice w_slices[W->ndim];
-    connx_Slice_init(&w_slices[0], feature_map, feature_map + 1, dilations[0], feature_map);
-    connx_Slice_init(&w_slices[1], w_channel, w_channel + 1, dilations[1], w_channel);
-    for (int32_t i = 0; i < kernel_dim; i++) {
-        connx_Slice_init(&w_slices[i + 2], 0, kernel_shape[i], 1, 0);
-    }
-
-    connx_Tensor* w_sliced = connx_Tensor_get_by_slice(W, w_slices);
-    connx_Tensor_set_by_slice(kernel, k_slices, w_sliced);
-
-
-    // Make X patch. (x = X[batch, x_channel])
-    connx_Slice x_slices[X->ndim];
-    connx_Slice_init(&x_slices[0], feature_map, feature_map + 1, dilations[0], feature_map);
-    connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, dilations[1], x_channel);
-    for (int32_t i = 2; i < X->ndim; i++) {
-        connx_Slice_init(&x_slices[i + 2], 0, feature_shape[i], 1, 0);
-    }
-
-    connx_Tensor* x_sliced = connx_Tensor_get_by_slice(X, x_slices);
-
-    fprintf(stderr, "CONV!\n");
-    connx_Tensor_dump(x_sliced);
 
     TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer;
     TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer;
