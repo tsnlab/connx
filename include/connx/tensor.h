@@ -24,10 +24,12 @@
 // Iterator
 typedef struct _connx_Slice {
     int32_t start; // Start index (>=)
-    int32_t stop;  // Stop index (<)
+    int32_t end;   // Stop index (<)
     int32_t step;  // Step size
     int32_t idx;   // Current index (used by iterator)
 } connx_Slice;
+
+int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t stop, int32_t end, int32_t idx);
 
 typedef struct _connx_Iterator {
     int32_t ndim;        // number of slices
@@ -86,8 +88,7 @@ int connx_Tensor_get(connx_Tensor* tensor, connx_Iterator* iterator, void* data)
  */
 int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data);
 
-int connx_Slice_set(connx_Slice* slice, int32_t start, int32_t stop, int32_t end);
-
 connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slices);
 int connx_Tensor_set_by_slice(connx_Tensor* lhs, connx_Slice* slices, connx_Tensor* rhs);
+
 #endif /* __CONNX_TENSOR_H__ */

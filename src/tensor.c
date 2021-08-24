@@ -16,20 +16,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <inttypes.h>
-#include <math.h> // sin, cos, ...
-#include <stdio.h>
+#include <math.h>   // sin, cos, ...
 #include <stdlib.h> // strtol
 #include <string.h> // memcpy
 
 #include <connx/accel.h>
 #include <connx/hal.h>
 #include <connx/tensor.h>
-
-TEMPLATE_START(FLOAT32, FLOAT64, UINT32, UINT64, INT32, INT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
 
 uint32_t connx_DataType_size(connx_DataType dtype) {
     switch (dtype) {
@@ -60,6 +53,15 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
     }
 }
 
+int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t end, int32_t step, int32_t idx) {
+    slice->start = start;
+    slice->end = end;
+    slice->step = step;
+    slice->idx = idx;
+
+    return CONNX_OK;
+}
+
 // Iterator
 void connx_Iterator_init(connx_Iterator* iterator) {
     int32_t ndim = iterator->ndim;
@@ -79,9 +81,9 @@ bool connx_Iterator_next(connx_Iterator* iterator) {
     // Go next step
     for (int32_t i = ndim - 1; i >= 0; i--) {
         slices[i].idx += slices[i].step;
-        if (slices[i].step > 0 && slices[i].idx < slices[i].stop)
+        if (slices[i].step > 0 && slices[i].idx < slices[i].end)
             return true;
-        else if (slices[i].step < 0 && slices[i].idx > slices[i].stop)
+        else if (slices[i].step < 0 && slices[i].idx > slices[i].end)
             return true;
         else
             slices[i].idx = slices[i].start;
@@ -271,14 +273,6 @@ int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data)
     return CONNX_OK;
 }
 
-int connx_Slice_set(connx_Slice* slice, int32_t start, int32_t stop, int32_t step) {
-    slice->start = start;
-    slice->stop = stop;
-    slice->step = step;
-
-    return CONNX_OK;
-}
-
 connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slices) {
     connx_Iterator tensor_iter = {tensor->ndim, slices};
     connx_Iterator_init(&tensor_iter);
@@ -286,95 +280,74 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
     // Make new tensor
     int32_t sliced_shape[tensor->ndim];
     for (int32_t i = 0; i < tensor->ndim; i++) {
-        // start 또는 stop이 음수인 경우 shape을 더해서 인덱스를 양수로 바꾼다.
-        int32_t start = slices[i].start >= 0 ? slices[i].start : tensor->shape[i] + slices[i].start;
-        int32_t stop = slices[i].stop >= 0 ? slices[i].stop : tensor->shape[i] + slices[i].stop;
-        int32_t step = slices[i].step > 0 ? slices[i].step : -slices[i].step;
-        step = slices[i].step == 0 ? 1 : step;
-        fprintf(stderr, "슬라이스 쉐입[%d] %d:%d:%d = %d => ", i, start, stop, step, stop - start);
+        int32_t start = slices[i].start;
+        int32_t end = slices[i].end;
+        int32_t step = slices[i].step;
+        int32_t diff = end - start;
 
-        // start보다 stop이 큰 경우 둘다 0 처리하여 범위 지정하지 않는다.
-        if (start > stop) {
-            start = 0;
-            stop = 0;
-        }
-        // 슬라이싱 시작지점이 쉐입을 넘는 경우 최소 크기를 지정한다.
-        else if (start > tensor->shape[i]) {
-            start = tensor->shape[i];
+        if (step == 0) {
+            return NULL;
         }
 
-        // 슬라이싱 하는 stop 구간이 쉐입 범위를 넘어서는 경우 최대 크기를 지정한다.
-        else if (stop > tensor->shape[i]) {
-            stop = tensor->shape[i];
-        }
-
-        fprintf(stderr, "슬라이스 쉐입[%d] %d:%d:%d = %d \n", i, start, stop, step, stop - start);
-        sliced_shape[i] = ceilf((float)(stop - start) / (float)step);
+        sliced_shape[i] = diff / step + (diff % step > 0 ? 1 : 0);
     }
-    connx_Tensor* sliced_tensor = connx_Tensor_alloc(tensor->dtype, tensor->ndim, sliced_shape);
 
-    if (sliced_tensor == NULL) {
+    connx_Tensor* sliced = connx_Tensor_alloc(tensor->dtype, tensor->ndim, sliced_shape);
+
+    if (sliced == NULL) {
         return NULL;
     }
 
-    int32_t tensor_units[tensor->ndim];
-    tensor_units[tensor->ndim - 1] = 1;
+    int32_t units[tensor->ndim];
+    units[tensor->ndim - 1] = 1;
     for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
-        tensor_units[i] = tensor_units[i + 1] * tensor->shape[i + 1];
+        units[i] = units[i + 1] * tensor->shape[i + 1];
     }
-
-    TEMPLATE_TYPE* sliced_tensor_array = sliced_tensor->buffer;
-    TEMPLATE_TYPE* tensor_array = tensor->buffer;
 
     int32_t sliced_offset = 0;
+    uint32_t data_size = connx_DataType_size(tensor->dtype);
+
     while (connx_Iterator_next(&tensor_iter)) {
-        int32_t d_idx[tensor->ndim];
-        for (int i = 0; i < tensor->ndim; i++) {
-            d_idx[i] = tensor_iter.slices[i].idx;
-        }
-
         int32_t d_offset = 0;
-        for (int32_t i = 0; i < tensor->ndim; i++) {
-            d_offset += tensor_units[i] * d_idx[i];
+        for (int i = 0; i < tensor->ndim; i++) {
+            d_offset += units[i] * tensor_iter.slices[i].idx;
         }
-
-        sliced_tensor_array[sliced_offset++] = tensor_array[d_offset];
+        memcpy(sliced->buffer + sliced_offset * data_size, tensor->buffer + d_offset * data_size, data_size);
+        sliced_offset++;
     }
 
-    return sliced_tensor;
+    return sliced;
 }
 
-int connx_Tensor_set_by_slice(connx_Tensor* lhs, connx_Slice* slices, connx_Tensor* rhs) {
-    // 대입 받는 측, 대입하는 측 모두 이터레이션 필요
-    // 두 이터레이터는 레인지나 스텝은 달라도 쉐입 같음
-    connx_Iterator lhs_iter = {lhs->ndim, slices};
-    connx_Iterator_init(&lhs_iter);
+int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs) {
+    for (int32_t i = 0; i < tensor->ndim; i++) {
+        int32_t step = slices[i].step;
 
-    int32_t lhs_units[lhs->ndim];
-
-    lhs_units[lhs->ndim - 1] = 1;
-    for (int32_t i = lhs->ndim - 2; i >= 0; i--) {
-        lhs_units[i] = lhs_units[i + 1] * lhs->shape[i + 1];
+        if (step == 0) {
+            return CONNX_OUT_OF_INDEX;
+        }
     }
 
-    TEMPLATE_TYPE* lhs_array = lhs->buffer;
-    TEMPLATE_TYPE* rhs_array = rhs->buffer;
+    connx_Iterator tensor_iter = {tensor->ndim, slices};
+    connx_Iterator_init(&tensor_iter);
+
+    int32_t units[tensor->ndim];
+    units[tensor->ndim - 1] = 1;
+    for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
+        units[i] = units[i + 1] * tensor->shape[i + 1];
+    }
 
     int32_t rhs_offset = 0;
-    while (connx_Iterator_next(&lhs_iter)) {
-        int32_t lhs_d_idx[lhs->ndim];
+    while (connx_Iterator_next(&tensor_iter)) {
+        int32_t tensor_offset = 0;
 
-        // 이터레이터를 이용한 인덱스 계산
-        for (int i = 0; i < lhs->ndim; i++) {
-            lhs_d_idx[i] = lhs_iter.slices[i].idx;
+        for (int i = 0; i < tensor->ndim; i++) {
+            tensor_offset += units[i] * tensor_iter.slices[i].idx;
         }
 
-        // 인데스를 가지고 1차원 상에서 offset 계산
-        int32_t lhs_offset = 0;
-        for (int32_t i = 0; i < lhs->ndim; i++) {
-            lhs_offset += lhs_units[i] * lhs_d_idx[i];
-        }
-        lhs_array[lhs_offset] = rhs_array[rhs_offset++];
+        uint32_t data_size = connx_DataType_size(tensor->dtype);
+        memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
+        rhs_offset++;
     }
 
     return CONNX_OK;
