@@ -73,7 +73,7 @@ bool connx_Iterator_next(connx_Iterator* iterator) {
     // Go next step
     for (int32_t i = ndim - 1; i >= 0; i--) {
         slices[i].idx += slices[i].step;
-        if (slices[i].idx < slices[i].stop)
+        if ((slices[i].step > 0 && slices[i].idx < slices[i].stop) || slices[i].idx > slices[i].stop)
             return true;
         else
             slices[i].idx = slices[i].start;
