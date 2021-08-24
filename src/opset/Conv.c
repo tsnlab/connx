@@ -49,7 +49,6 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
         }
     }
 
-    connx_Tensor_dump(X);
 
     connx_Tensor* kernel = connx_Tensor_alloc(W->dtype, kernel_dim, new_kernel_shape);
     connx_Slice k_slices[kernel_dim];
@@ -67,21 +66,19 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
     connx_Tensor* w_sliced = connx_Tensor_get_by_slice(W, w_slices);
     connx_Tensor_set_by_slice(kernel, k_slices, w_sliced);
 
+
     // Make X patch. (x = X[batch, x_channel])
-    /*
     connx_Slice x_slices[X->ndim];
     connx_Slice_init(&x_slices[0], feature_map, feature_map + 1, dilations[0], feature_map);
-    connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, dilations[1], w_channel);
-    for (int32_t i = 2; i < feature_dim; i++) {
+    connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, dilations[1], x_channel);
+    for (int32_t i = 2; i < X->ndim; i++) {
         connx_Slice_init(&x_slices[i + 2], 0, feature_shape[i], 1, 0);
     }
 
     connx_Tensor* x_sliced = connx_Tensor_get_by_slice(X, x_slices);
-    */
-    //connx_Tensor_set_by_slice(kernel, k_slices, w_sliced);
 
     fprintf(stderr, "CONV!\n");
-    connx_Tensor_dump(kernel);
+    connx_Tensor_dump(x_sliced);
 
     TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer;
     TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer;
