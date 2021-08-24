@@ -89,6 +89,6 @@ int connx_Tensor_get(connx_Tensor* tensor, connx_Iterator* iterator, void* data)
 int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data);
 
 connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slices);
-int connx_Tensor_set_by_slice(connx_Tensor* lhs, connx_Slice* slices, connx_Tensor* rhs);
+int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs);
 
 #endif /* __CONNX_TENSOR_H__ */

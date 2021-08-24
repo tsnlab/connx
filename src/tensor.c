@@ -277,7 +277,7 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
     connx_Iterator tensor_iter = {tensor->ndim, slices};
     connx_Iterator_init(&tensor_iter);
 
-    // Make new tensor
+    // Make a new tensor
     int32_t sliced_shape[tensor->ndim];
     for (int32_t i = 0; i < tensor->ndim; i++) {
         int32_t start = slices[i].start;
