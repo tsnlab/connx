@@ -16,8 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <inttypes.h>
-#include <math.h> // sin, cos, ...
-#include <stdio.h>
+#include <math.h>   // sin, cos, ...
 #include <stdlib.h> // strtol
 #include <string.h> // memcpy
 
@@ -54,6 +53,15 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
     }
 }
 
+int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t end, int32_t step, int32_t idx) {
+    slice->start = start;
+    slice->end = end;
+    slice->step = step;
+    slice->idx = idx;
+
+    return CONNX_OK;
+}
+
 // Iterator
 void connx_Iterator_init(connx_Iterator* iterator) {
     int32_t ndim = iterator->ndim;
@@ -73,9 +81,9 @@ bool connx_Iterator_next(connx_Iterator* iterator) {
     // Go next step
     for (int32_t i = ndim - 1; i >= 0; i--) {
         slices[i].idx += slices[i].step;
-        if (slices[i].step > 0 && slices[i].idx < slices[i].stop)
+        if (slices[i].step > 0 && slices[i].idx < slices[i].end)
             return true;
-        else if (slices[i].step < 0 && slices[i].idx > slices[i].stop)
+        else if (slices[i].step < 0 && slices[i].idx > slices[i].end)
             return true;
         else
             slices[i].idx = slices[i].start;
@@ -261,6 +269,86 @@ int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data)
     int32_t offset = connx_Iterator_offset(iterator, tensor->shape);
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     memcpy(tensor->buffer + offset * data_size, data, data_size);
+
+    return CONNX_OK;
+}
+
+connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slices) {
+    connx_Iterator tensor_iter = {tensor->ndim, slices};
+    connx_Iterator_init(&tensor_iter);
+
+    // Make a new tensor
+    int32_t sliced_shape[tensor->ndim];
+    for (int32_t i = 0; i < tensor->ndim; i++) {
+        int32_t start = slices[i].start;
+        int32_t end = slices[i].end;
+        int32_t step = slices[i].step;
+        int32_t diff = end - start;
+
+        if (step == 0) {
+            return NULL;
+        }
+
+        sliced_shape[i] = diff / step + (diff % step > 0 ? 1 : 0);
+    }
+
+    connx_Tensor* sliced = connx_Tensor_alloc(tensor->dtype, tensor->ndim, sliced_shape);
+
+    if (sliced == NULL) {
+        return NULL;
+    }
+
+    int32_t units[tensor->ndim];
+    units[tensor->ndim - 1] = 1;
+    for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
+        units[i] = units[i + 1] * tensor->shape[i + 1];
+    }
+
+    int32_t sliced_offset = 0;
+    uint32_t data_size = connx_DataType_size(tensor->dtype);
+
+    while (connx_Iterator_next(&tensor_iter)) {
+        int32_t d_offset = 0;
+        for (int i = 0; i < tensor->ndim; i++) {
+            d_offset += units[i] * tensor_iter.slices[i].idx;
+        }
+        memcpy(sliced->buffer + sliced_offset * data_size, tensor->buffer + d_offset * data_size, data_size);
+        sliced_offset++;
+    }
+
+    return sliced;
+}
+
+int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs) {
+    for (int32_t i = 0; i < tensor->ndim; i++) {
+        int32_t step = slices[i].step;
+
+        if (step == 0) {
+            return CONNX_OUT_OF_INDEX;
+        }
+    }
+
+    connx_Iterator tensor_iter = {tensor->ndim, slices};
+    connx_Iterator_init(&tensor_iter);
+
+    int32_t units[tensor->ndim];
+    units[tensor->ndim - 1] = 1;
+    for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
+        units[i] = units[i + 1] * tensor->shape[i + 1];
+    }
+
+    int32_t rhs_offset = 0;
+    while (connx_Iterator_next(&tensor_iter)) {
+        int32_t tensor_offset = 0;
+
+        for (int i = 0; i < tensor->ndim; i++) {
+            tensor_offset += units[i] * tensor_iter.slices[i].idx;
+        }
+
+        uint32_t data_size = connx_DataType_size(tensor->dtype);
+        memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
+        rhs_offset++;
+    }
 
     return CONNX_OK;
 }

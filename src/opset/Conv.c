@@ -196,7 +196,7 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 
     for (int32_t i = 0; i < feature_dim; i++) {
         x_slices[i].start = -pads[i];
-        x_slices[i].stop = -pads[i] + output_shape[i] * strides[i];
+        x_slices[i].end = -pads[i] + output_shape[i] * strides[i];
         x_slices[i].step = strides[i];
     }
 
@@ -208,7 +208,7 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 
     for (int32_t i = 0; i < kernel_dim; i++) {
         w_slices[i].start = 0;
-        w_slices[i].stop = kernel_shape[i];
+        w_slices[i].end = kernel_shape[i];
         w_slices[i].step = 1;
     }
 

@@ -171,7 +171,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
 
                 for (int32_t i = 0; i < feature_dim; i++) {
                     x_slices[i].start = -pads[i];
-                    x_slices[i].stop = -pads[i] + output_shape[i] * strides[i];
+                    x_slices[i].end = -pads[i] + output_shape[i] * strides[i];
                     x_slices[i].step = strides[i];
                 }
 
@@ -187,7 +187,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
 
                     for (int32_t i = 0; i < feature_dim; i++) {
                         k_slices[i].start = 0;
-                        k_slices[i].stop = kernel_shape[i] * dilations[i];
+                        k_slices[i].end = kernel_shape[i] * dilations[i];
                         k_slices[i].step = dilations[i];
                     }
 
