@@ -28,10 +28,10 @@ TEMPLATE_START(FLOAT32, FLOAT64)
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_add connx_Float32_add
-
 static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X, connx_Iterator* x_iter,
                                 connx_Tensor* W, connx_Iterator* w_iter, int32_t batch, int32_t x_channel,
                                 int32_t w_channel, int32_t feature_map, int32_t* dilations) {
+
     int32_t feature_dim = X->ndim - 2;
     int32_t* feature_shape = X->shape + 2;
 

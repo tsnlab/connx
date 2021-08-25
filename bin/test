@@ -1,7 +1,0 @@
-#!/bin/bash
-cd ~/connx/ports/linux/build
-ninja
-
-cd ~/connx/bin
-#python3 test.py /home/semih2/connx/ports/linux/build/connx /home/semih2/connx/ /home/semih2/connx/test/data/node/test_maxpool_3d_default
-python3 test.py /home/semih2/connx/ports/linux/build/connx /home/semih2/connx/ /home/semih2/connx/test/data/node/test_conv_with_autopad
