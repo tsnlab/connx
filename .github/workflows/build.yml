@@ -31,7 +31,7 @@ jobs:
     - name: build
       working-directory: build
       run: |
-          cmake -G Ninja ../ports/linux/
+          cmake -G Ninja ../ports/linux/ -DCMAKE_BUILD_TYPE=Debug
           ninja
     - name: MNIST
       working-directory: build

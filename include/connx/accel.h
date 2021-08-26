@@ -24,6 +24,7 @@
     void connx_##NAME##_add(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \
     void connx_##NAME##_sub(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \
     void connx_##NAME##_mul(int32_t count, TYPE* c, TYPE* a, TYPE* b);                 \
+    TYPE connx_##NAME##_mul_and_sum(int32_t count, TYPE* a, TYPE* b);                  \
     void connx_##NAME##_broadcast(int32_t y_count, TYPE* y, int32_t x_count, TYPE* x); \
     int32_t connx_##NAME##_argmax(int32_t count, TYPE* y, TYPE* x);                    \
     int32_t connx_##NAME##_argmin(int32_t count, TYPE* y, TYPE* x);                    \
