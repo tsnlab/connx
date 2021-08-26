@@ -319,7 +319,7 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
     return sliced;
 }
 
-int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs) {
+static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs) {
     for (int32_t i = 0; i < tensor->ndim; i++) {
         int32_t step = slices[i].step;
 
@@ -351,4 +351,65 @@ int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_T
     }
 
     return CONNX_OK;
+}
+
+static int _connx_Tensor_set_by_slice_tensor(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs,
+                                             connx_Slice* rhs_slices) {
+    // Step size check
+    for (int32_t i = 0; i < tensor->ndim; i++) {
+        if (slices[i].step == 0) {
+            return CONNX_OUT_OF_INDEX;
+        }
+    }
+
+    for (int32_t i = 0; i < rhs->ndim; i++) {
+        if (rhs_slices[i].step == 0) {
+            return CONNX_OUT_OF_INDEX;
+        }
+    }
+
+    connx_Iterator tensor_iter = {tensor->ndim, slices};
+    connx_Iterator_init(&tensor_iter);
+
+    connx_Iterator rhs_iter = {rhs->ndim, rhs_slices};
+    connx_Iterator_init(&rhs_iter);
+
+    int32_t tensor_units[tensor->ndim];
+    tensor_units[tensor->ndim - 1] = 1;
+    for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
+        tensor_units[i] = tensor_units[i + 1] * tensor->shape[i + 1];
+    }
+
+    int32_t rhs_units[rhs->ndim];
+    rhs_units[rhs->ndim - 1] = 1;
+    for (int32_t i = rhs->ndim - 2; i >= 0; i--) {
+        rhs_units[i] = rhs_units[i + 1] * rhs->shape[i + 1];
+    }
+
+    while (connx_Iterator_next(&tensor_iter) && connx_Iterator_next(&rhs_iter)) {
+        int32_t tensor_offset = 0;
+        int32_t rhs_offset = 0;
+
+        for (int i = 0; i < tensor->ndim; i++) {
+            tensor_offset += tensor_units[i] * tensor_iter.slices[i].idx;
+        }
+
+        for (int i = 0; i < rhs->ndim; i++) {
+            rhs_offset += rhs_units[i] * rhs_iter.slices[i].idx;
+        }
+
+        uint32_t data_size = connx_DataType_size(tensor->dtype);
+        memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
+        rhs_offset++;
+    }
+
+    return CONNX_OK;
+}
+
+int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs, connx_Slice* rhs_slices) {
+    if (rhs_slices == NULL) {
+        return _connx_Tensor_set_by_slice(tensor, slices, rhs);
+    } else {
+        return _connx_Tensor_set_by_slice_tensor(tensor, slices, rhs, rhs_slices);
+    }
 }
