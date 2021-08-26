@@ -69,6 +69,16 @@ void connx_TEMPLATE_NAME_mul(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, 
     }
 }
 
+TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
+    TEMPLATE_TYPE sum = 0;
+
+    for(int32_t i = 0; i < count; i++) {
+        sum += a[i] * b[i];
+    }
+
+    return sum;
+}
+
 void connx_TEMPLATE_NAME_broadcast(int32_t y_count, TEMPLATE_TYPE* y, int32_t x_count, TEMPLATE_TYPE* x) {
     for(int32_t i = 0; i < y_count / x_count; i++) {
         memcpy(y + i, x, sizeof(TEMPLATE_TYPE) * x_count);
