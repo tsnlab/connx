@@ -100,7 +100,6 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
         Y_flatten[y_idx] += y;
         y_idx++;
-
     }
 
     connx_Tensor_unref(x_patch);

@@ -353,7 +353,8 @@ static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices,
     return CONNX_OK;
 }
 
-static int _connx_Tensor_set_by_slice_tensor(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs, connx_Slice* rhs_slices) {
+static int _connx_Tensor_set_by_slice_tensor(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs,
+                                             connx_Slice* rhs_slices) {
     // Step size check
     for (int32_t i = 0; i < tensor->ndim; i++) {
         if (slices[i].step == 0) {
