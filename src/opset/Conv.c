@@ -29,8 +29,8 @@ TEMPLATE_START(FLOAT32, FLOAT64)
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_add connx_Float32_add
 static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X, connx_Iterator* x_iter,
-                                connx_Tensor* W, connx_Iterator* w_iter, int32_t batch, int32_t x_channel,
-                                int32_t w_channel, int32_t feature_map, int32_t* dilations) {
+                                connx_Tensor* W, int32_t batch, int32_t x_channel, int32_t w_channel,
+                                int32_t feature_map, int32_t* dilations) {
 
     int32_t feature_dim = X->ndim - 2;
     int32_t* feature_shape = X->shape + 2;
@@ -38,61 +38,73 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
     int32_t kernel_dim = W->ndim - 2;
     int32_t* kernel_shape = W->shape + 2;
 
-    TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer;
-    TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer;
+    // Figure out dilated kernel shape
+    int32_t new_kernel_shape[kernel_dim];
+    for (int32_t i = 0; i < kernel_dim; i++) {
+        new_kernel_shape[i] = dilations[i] * kernel_shape[i];
+        if (dilations[i] != 1) {
+            new_kernel_shape[i] -= 1;
+        }
+    }
+    int32_t kernel_size = connx_Int32_product(kernel_dim, new_kernel_shape);
+
+    // Make kernel slice from W(kernel[tuple(slicers)])
+    connx_Tensor* kernel = connx_Tensor_alloc(W->dtype, kernel_dim, new_kernel_shape);
+    connx_Slice k_slices[kernel_dim];
+    connx_Slice w_slices[W->ndim];
+    connx_Slice_init(&w_slices[0], feature_map, feature_map + 1, 1, feature_map);
+    connx_Slice_init(&w_slices[1], w_channel, w_channel + 1, 1, w_channel);
+
+    for (int32_t i = 0; i < kernel_dim; i++) {
+        connx_Slice_init(&k_slices[i], 0, new_kernel_shape[i], dilations[i], 0);
+        connx_Slice_init(&w_slices[i + 2], 0, kernel_shape[i], 1, 0);
+    }
+
+    // kernel[tuple(slicers)] = W[feature_map, w_channel]
+    connx_Tensor_set_by_slice(kernel, k_slices, W, w_slices);
+
+    // Make slice of X(x = X[batch, x_channel])
+    connx_Slice x_slices[X->ndim];
+    connx_Slice_init(&x_slices[0], batch, batch + 1, 1, batch);
+    connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, 1, x_channel);
+
     TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
-
-    int32_t x_base = batch * connx_Int32_product(X->ndim - 1, X->shape + 1) +
-                     x_channel * connx_Int32_product(X->ndim - 2, X->shape + 2);
-    int32_t w_base = feature_map * connx_Int32_product(W->ndim - 1, W->shape + 1) +
-                     w_channel * connx_Int32_product(W->ndim - 2, W->shape + 2);
-
-    int32_t x_units[feature_dim];
-    x_units[feature_dim - 1] = 1;
-    for (int32_t i = feature_dim - 2; i >= 0; i--) {
-        x_units[i] = x_units[i + 1] * feature_shape[i + 1];
-    }
-
-    int32_t w_units[kernel_dim];
-    w_units[kernel_dim - 1] = 1;
-    for (int32_t i = kernel_dim - 2; i >= 0; i--) {
-        w_units[i] = w_units[i + 1] * kernel_shape[i + 1];
-    }
+    connx_Tensor* x_patch = connx_Tensor_alloc(X->dtype, kernel_dim, new_kernel_shape);
+    uint32_t total = kernel_size * connx_DataType_size(X->dtype);
 
     while (connx_Iterator_next(x_iter)) {
         TEMPLATE_TYPE y = 0;
-        while (connx_Iterator_next(w_iter)) {
-            int32_t d_idx[feature_dim];
 
-            for (int i = 0; i < feature_dim; i++) {
-                d_idx[i] = x_iter->slices[i].idx + w_iter->slices[i].idx * dilations[i];
-                if (d_idx[i] < 0 || d_idx[i] >= feature_shape[i]) {
-                    goto SKIP_TEMPLATE_NAME;
-                }
-            }
+        // Make padded x patch
+        bzero(x_patch->buffer, total);
 
-            int32_t d_offset = 0;
-            for (int32_t i = 0; i < feature_dim; i++) {
-                d_offset += x_units[i] * d_idx[i];
-            }
+        // Make a slice for copying patch of X[batch, channel] on to padded x patch
+        connx_Slice x_padded_slices[feature_dim];
+        for (int32_t i = 0; i < feature_dim; i++) {
+            int32_t x_idx = x_iter->slices[i].idx;
+            int32_t x_start = x_idx < 0 ? 0 : x_idx;
+            int32_t end = x_idx + new_kernel_shape[i];
+            int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
+            connx_Slice_init(&x_slices[i + 2], x_start, x_end, 1, x_start);
 
-            TEMPLATE_TYPE x = X_flatten[x_base + d_offset];
-
-            int32_t w_offset = 0;
-            for (int32_t i = 0; i < kernel_dim; i++) {
-                w_offset += w_units[i] * w_iter->slices[i].idx;
-            }
-
-            TEMPLATE_TYPE w = W_flatten[w_base + w_offset];
-
-            y += x * w;
-
-SKIP_TEMPLATE_NAME:;
+            int32_t x_padded_start = x_idx < 0 ? -x_idx : 0;
+            int32_t x_padded_end = x_padded_start + (x_end - x_start);
+            connx_Slice_init(&x_padded_slices[i], x_padded_start, x_padded_end, 1, x_padded_start);
         }
+
+        // Get slice of X. X[tuple(x_slices)]. x_patch[x_padded_slices] = X[tuple(x_slices)]
+        connx_Tensor_set_by_slice(x_patch, x_padded_slices, X, x_slices);
+
+        // Convolute
+        y = connx_TEMPLATE_NAME_mul_and_sum(kernel_size, x_patch->buffer, kernel->buffer);
 
         Y_flatten[y_idx] += y;
         y_idx++;
+
     }
+
+    connx_Tensor_unref(x_patch);
+    connx_Tensor_unref(kernel);
 }
 TEMPLATE_END()
 
@@ -240,8 +252,8 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
             for (int32_t g = 0; g < group; g++) {
                 for (int32_t feature_map = g * feature_group; feature_map < (g + 1) * feature_group; feature_map++) {
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y, y_idx, X, &x_iter, W, &w_iter, batch, g * channel_count + channel,
-                                            channel, feature_map, dilations);
+                        _conv_TEMPLATE_NAME(Y, y_idx, X, &x_iter, W, batch, g * channel_count + channel, channel,
+                                            feature_map, dilations);
                     }
 
                     if (B_flatten != NULL) {
