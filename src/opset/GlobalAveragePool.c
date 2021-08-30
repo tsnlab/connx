@@ -68,7 +68,7 @@ int GlobalAveragePool(connx_Graph* graph, __attribute__((unused)) uint32_t outpu
     }
         TEMPLATE_END()
     default:
-        connx_error("MaxPool: Datatype %d is not supported yet.\n", X->dtype);
+        connx_error("GlobalAveragePool: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
