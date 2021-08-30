@@ -142,6 +142,17 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
         }
     }
 
+    // Figure out dilated kernel shape
+    int32_t new_kernel_shape[feature_dim];
+    for (int32_t i = 0; i < feature_dim; i++) {
+        new_kernel_shape[i] = dilations[i] * kernel_shape[i];
+        if (dilations[i] != 1) {
+            new_kernel_shape[i] -= 1;
+        }
+    }
+
+    connx_Slice slices[X->ndim];
+
     int32_t units[2 + feature_dim]; // batch_unit, channel_unit, feature units
 
     units[X->ndim - 1] = 1;
@@ -160,7 +171,6 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
 #define TEMPLATE_DTYPE INT32
 #define TEMPLATE_TYPE int32_t
     case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* X_array = (TEMPLATE_TYPE*)X->buffer;
         TEMPLATE_TYPE* Y_array = (TEMPLATE_TYPE*)Y->buffer;
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
@@ -170,55 +180,55 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                 connx_Iterator x_iter = {feature_dim, x_slices};
 
                 for (int32_t i = 0; i < feature_dim; i++) {
-                    x_slices[i].start = -pads[i];
-                    x_slices[i].end = -pads[i] + output_shape[i] * strides[i];
-                    x_slices[i].step = strides[i];
+                    connx_Slice_init(&x_slices[i], -pads[i], -pads[i] + output_shape[i] * strides[i], strides[i],
+                                     -pads[i]);
                 }
 
                 connx_Iterator_init(&x_iter);
 
+                connx_Slice_init(&slices[0], batch, batch + 1, 1, batch);
+                connx_Slice_init(&slices[1], channel, channel + 1, 1, channel);
+
                 while (connx_Iterator_next(&x_iter)) {
                     TEMPLATE_TYPE y = 0;
                     int64_t argmax_idx = -1;
+                    int32_t k_idx[feature_dim];
 
-                    // k_iter
-                    connx_Slice k_slices[feature_dim];
-                    connx_Iterator k_iter = {feature_dim, k_slices};
-
+                    // Make slicers for copy patch of X[batch, channel] on to padded X
                     for (int32_t i = 0; i < feature_dim; i++) {
-                        k_slices[i].start = 0;
-                        k_slices[i].end = kernel_shape[i] * dilations[i];
-                        k_slices[i].step = dilations[i];
+                        int32_t x_idx = x_iter.slices[i].idx;
+                        int32_t x_start = x_idx < 0 ? 0 : x_idx;
+                        int32_t end = x_idx + new_kernel_shape[i];
+                        int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
+                        connx_Slice_init(&slices[i + 2], x_start, x_end, dilations[i], x_start);
+
+                        int32_t x_padded_start = x_idx < 0 ? -x_idx : 0;
+                        k_idx[i] = x_padded_start;
                     }
 
-                    connx_Iterator_init(&k_iter);
+                    // Get patch of X[batch, channel]
+                    connx_Tensor* x_patch = connx_Tensor_get_by_slice(X, slices);
+                    int32_t tmp_size = connx_Int32_product(feature_dim, x_patch->shape + 2);
+                    int32_t kernel_offset = connx_TEMPLATE_NAME_argmax(tmp_size, &y, x_patch->buffer);
 
-                    while (connx_Iterator_next(&k_iter)) {
-                        int32_t d_idx[feature_dim];
-                        for (int32_t i = 0; i < feature_dim; i++) {
-                            d_idx[i] = x_iter.slices[i].idx + k_iter.slices[i].idx;
+                    // Convert offset to index
+                    for (int32_t i = 1; i < feature_dim; i++) {
+                        int32_t unit = connx_Int32_product(feature_dim - i, x_patch->shape + 2 + i);
+                        k_idx[i - 1] += kernel_offset / unit;
+                        kernel_offset = kernel_offset % unit;
+                    }
+                    k_idx[feature_dim - 1] += kernel_offset;
 
-                            if (d_idx[i] < 0 || d_idx[i] >= feature_shape[i]) {
-                                goto SKIP_TEMPLATE_NAME;
-                            }
-                        }
+                    int32_t d_idx[feature_dim];
+                    int32_t d_offset = 0;
 
-                        // Get x at index
-                        int32_t d_offset = 0;
-                        for (int32_t i = 0; i < feature_dim; i++) {
-                            d_offset += d_idx[i] * units[2 + i];
-                        }
-
-                        TEMPLATE_TYPE x = X_array[batch * units[0] + channel * units[1] + d_offset];
-
-                        // get maximum y
-                        if (argmax_idx < 0 || x > y) {
-                            y = x;
-                            argmax_idx = d_offset;
-                        }
-SKIP_TEMPLATE_NAME:;
+                    // Compute offset of max argmax in X[batch, channel]
+                    for (int32_t i = 0; i < feature_dim; i++) {
+                        d_idx[i] = x_iter.slices[i].idx + k_idx[i];
+                        d_offset += d_idx[i] * units[2 + i];
                     }
 
+                    argmax_idx = d_offset;
                     Y_array[y_idx] = y;
 
                     if (output_count > 1) {
@@ -231,8 +241,8 @@ SKIP_TEMPLATE_NAME:;
                             Indices_array[y_idx] = argmax_idx;
                         }
                     }
-
                     y_idx++;
+                    connx_Tensor_unref(x_patch);
                 }
             }
         }
