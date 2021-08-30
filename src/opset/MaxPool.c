@@ -151,11 +151,9 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
         }
     }
 
-    connx_Slice x_padded_slices[feature_dim];
     connx_Slice slices[X->ndim];
 
     int32_t units[2 + feature_dim]; // batch_unit, channel_unit, feature units
-
     units[X->ndim - 1] = 1;
 
     for (int32_t i = X->ndim - 2; i >= 0; i--) {
@@ -190,6 +188,10 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                 connx_Slice_init(&slices[0], batch, batch + 1, 1, batch);
                 connx_Slice_init(&slices[1], channel, channel + 1, 1, channel);
 
+                int32_t d_idx[feature_dim];
+                int32_t k_idx[feature_dim];
+                int32_t k_units[feature_dim] = {1, }; // batch_unit, channel_unit, feature units
+
                 while (connx_Iterator_next(&x_iter)) {
                     TEMPLATE_TYPE y = 0;
                     int64_t argmax_idx = -1;
@@ -203,34 +205,24 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                         connx_Slice_init(&slices[i + 2], x_start, x_end, dilations[i], x_start);
 
                         int32_t x_padded_start = x_idx < 0 ? -x_idx : 0;
-                        int32_t x_padded_end = x_padded_start + (x_end - x_start);
-                        connx_Slice_init(&x_padded_slices[i], x_padded_start, x_padded_end, dilations[i],
-                                         x_padded_start);
+                        k_idx[i] = x_padded_start;
                     }
 
                     // Get patch of X[batch, channel]
                     connx_Tensor* x_patch = connx_Tensor_get_by_slice(X, slices);
-                    int32_t tmp_size = connx_Int32_product(feature_dim, x_patch->shape + 2);
+                    int32_t tmp_size = connx_Int32_product(feature_dim, x_patch->shape + feature_dim);
                     int32_t kernel_offset = connx_TEMPLATE_NAME_argmax(tmp_size, &y, x_patch->buffer);
 
-                    // Convert offset to index
-                    int32_t k_idx[feature_dim];
+                    // Convert kernel argmax offset to index
                     for (int32_t i = 1; i < feature_dim; i++) {
                         int32_t unit = connx_Int32_product(feature_dim - i, x_patch->shape + 2 + i);
-                        k_idx[i - 1] = kernel_offset / unit;
+                        k_idx[i - 1] += kernel_offset / unit;
                         kernel_offset = kernel_offset % unit;
                     }
-                    k_idx[feature_dim - 1] = kernel_offset;
-
-                    // Add kernel idx
-                    for (int32_t i = 0; i < feature_dim; i++) {
-                        k_idx[i] += x_padded_slices[i].start;
-                    }
-
-                    int32_t d_idx[feature_dim];
-                    int32_t d_offset = 0;
+                    k_idx[feature_dim - 1] += kernel_offset;
 
                     // Compute offset of max argmax in X[batch, channel]
+                    int32_t d_offset = 0;
                     for (int32_t i = 0; i < feature_dim; i++) {
                         d_idx[i] = x_iter.slices[i].idx + k_idx[i];
                         d_offset += d_idx[i] * units[2 + i];
