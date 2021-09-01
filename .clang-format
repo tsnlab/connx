@@ -66,15 +66,17 @@ ForEachMacros:
   - FOREACH
 IncludeBlocks:   Regroup
 IncludeCategories:
-  - Regex:           '^<[^c][^o][^o][^n][^x]'
-    Priority:        -3
-  - Regex:           '^<connx/'
-    Priority:        -2
-  - Regex:           '<[[:alnum:].]+>'
-    Priority:        -1
-  - Regex:           '.*'
-    Priority:        1
-    SortPriority:    0
+  - Regex: '<connx/'
+    Priority: 3
+    SortPriority: 0
+  - Regex: '<.*/.*'
+    Priority: 2
+    SortPriority: 0
+  - Regex: '<'
+    Priority: 1
+    SortPriority: 1
+  - Regex: '.*'
+    Priority: 4
 IncludeIsMainRegex: '(Test)?$'
 IncludeIsMainSourceRegex: ''
 IndentCaseLabels: false

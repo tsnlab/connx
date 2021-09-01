@@ -15,9 +15,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <string.h>
-#include <connx/accel.h>
 #include <float.h>
+#include <string.h>
+
+#include <connx/accel.h>
 
 #define CONNX_INT8_MIN INT8_MIN
 #define CONNX_INT8_MAX INT8_MAX
@@ -52,19 +53,19 @@ TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16
 #define TEMPLATE_DTYPE_MIN CONNX_INT32_MIN
 
 void connx_TEMPLATE_NAME_add(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
-    for(int32_t i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         c[i] = a[i] + b[i];
     }
 }
 
 void connx_TEMPLATE_NAME_sub(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
-    for(int32_t i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         c[i] = a[i] - b[i];
     }
 }
 
 void connx_TEMPLATE_NAME_mul(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
-    for(int32_t i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         c[i] = a[i] * b[i];
     }
 }
@@ -72,7 +73,7 @@ void connx_TEMPLATE_NAME_mul(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, 
 TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
     TEMPLATE_TYPE sum = 0;
 
-    for(int32_t i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         sum += a[i] * b[i];
     }
 
@@ -80,7 +81,7 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
 }
 
 void connx_TEMPLATE_NAME_broadcast(int32_t y_count, TEMPLATE_TYPE* y, int32_t x_count, TEMPLATE_TYPE* x) {
-    for(int32_t i = 0; i < y_count / x_count; i++) {
+    for (int32_t i = 0; i < y_count / x_count; i++) {
         memcpy(y + i, x, sizeof(TEMPLATE_TYPE) * x_count);
     }
 }
@@ -89,14 +90,14 @@ int32_t connx_TEMPLATE_NAME_argmax(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYP
     int32_t argmax = -1;
     TEMPLATE_TYPE max = TEMPLATE_DTYPE_MIN;
 
-    for(int32_t i = 0; i < count; i++) {
-        if(argmax == -1 || x[i] > max) {
+    for (int32_t i = 0; i < count; i++) {
+        if (argmax == -1 || x[i] > max) {
             argmax = i;
             max = x[i];
         }
     }
 
-    if(y != NULL) {
+    if (y != NULL) {
         *y = max;
     }
 
@@ -107,14 +108,14 @@ int32_t connx_TEMPLATE_NAME_argmin(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYP
     int32_t argmin = -1;
     TEMPLATE_TYPE min = TEMPLATE_DTYPE_MAX;
 
-    for(int32_t i = 0; i < count; i++) {
-        if(argmin == -1 || x[i] < min) {
+    for (int32_t i = 0; i < count; i++) {
+        if (argmin == -1 || x[i] < min) {
             argmin = i;
             min = x[i];
         }
     }
 
-    if(y != NULL) {
+    if (y != NULL) {
         *y = min;
     }
 
@@ -124,7 +125,7 @@ int32_t connx_TEMPLATE_NAME_argmin(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYP
 TEMPLATE_TYPE connx_TEMPLATE_NAME_sum(int32_t count, TEMPLATE_TYPE* array) {
     TEMPLATE_TYPE result = 0;
 
-    for(int32_t i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         result += array[i];
     }
 
@@ -134,7 +135,7 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_sum(int32_t count, TEMPLATE_TYPE* array) {
 TEMPLATE_TYPE connx_TEMPLATE_NAME_product(int32_t count, TEMPLATE_TYPE* array) {
     TEMPLATE_TYPE result = 1;
 
-    for(int32_t i = 0; i < count; i++) {
+    for (int32_t i = 0; i < count; i++) {
         result *= array[i];
     }
 

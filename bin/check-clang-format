@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-files=$(find src include examples -type f \( -name '*.c' -or -name '*.h' \))
+files=$(find src include examples ports/linux/src -type f \( -name '*.c' -or -name '*.h' \))
 result=0
 for fname in $files; do
     if ! diff --color -u "$fname" <(clang-format-10 "$fname"); then

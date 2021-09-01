@@ -2,12 +2,13 @@
 
 import sys
 import re
+import os
 
 if len(sys.argv) != 3:
     print('Usage: {} [input source] [output source]'.format(sys.argv[0]))
     sys.exit(0)
 
-input_source = sys.argv[1]
+input_source = os.path.abspath(sys.argv[1])
 output_source = sys.argv[2]
 
 

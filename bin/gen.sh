@@ -135,7 +135,7 @@ for FILE in ${OPSET}; do
         echo "opset/${FILE}.c"
     else
         if [[ ${INPUT_DIR}/opset/${FILE}.c -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
-            echo "Preprocessing ${OUTPUT_DIR}/opset/${FILE}.c"
+            echo "Preprocessing ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c"
             ${HOME}/preprocessor.py ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c
         fi
     fi
@@ -149,7 +149,7 @@ for FILE in `ls ${PORT_DIR}/*.c`; do
         echo "${FILE}"
     else
         if [[ ${PORT_DIR}/${FILE} -nt ${OUTPUT_DIR}/${FILE} ]]; then
-            echo "Preprocessing ${OUTPUT_DIR}/${FILE}"
+            echo "Preprocessing ${PORT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}"
             ${HOME}/preprocessor.py ${PORT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}
         fi
     fi
