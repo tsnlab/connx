@@ -15,33 +15,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <float.h>
 #include <string.h>
 
 #include <connx/accel.h>
-
-#define CONNX_INT8_MIN INT8_MIN
-#define CONNX_INT8_MAX INT8_MAX
-#define CONNX_INT16_MIN INT16_MIN
-#define CONNX_INT16_MAX INT16_MAX
-#define CONNX_INT32_MIN INT32_MIN
-#define CONNX_INT32_MAX INT32_MAX
-#define CONNX_INT64_MIN INT64_MIN
-#define CONNX_INT64_MAX INT64_MAX
-#define CONNX_UINT8_MIN 0
-#define CONNX_UINT8_MAX UINT8_MAX
-#define CONNX_UINT16_MIN 0
-#define CONNX_UINT16_MAX UINT16_MAX
-#define CONNX_UINT32_MIN 0
-#define CONNX_UINT32_MAX UINT32_MAX
-#define CONNX_UINT64_MIN 0
-#define CONNX_UINT64_MAX UINT64_MAX
-#define CONNX_FLOAT16_MIN -65504
-#define CONNX_FLOAT16_MAX 65504
-#define CONNX_FLOAT32_MIN -FLT_MAX
-#define CONNX_FLOAT32_MAX FLT_MAX
-#define CONNX_FLOAT64_MIN -DBL_MAX
-#define CONNX_FLOAT64_MAX DBL_MAX
 
 // Array utilities
 TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64)
