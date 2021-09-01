@@ -250,6 +250,7 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
 
     for (uint32_t i = 0; i < output_count; i++) {
         connx_Tensor_dump(outputs[i]);
+        connx_Tensor_unref(outputs[i]);
     }
 
     return CONNX_OK;
