@@ -56,7 +56,8 @@ typedef struct _connx_Tensor {
     uint32_t size;                // size of buffer
     struct _connx_Tensor* parent; // Parent tensor that share the buffer
     int32_t ref_count;            // Reference count
-    connx_Lock lock;              // Reference lock
+    int32_t child_count;          // Child count
+    connx_Lock lock;              // Reference and child count lock
 } connx_Tensor;
 
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
@@ -66,7 +67,9 @@ connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* shape);
 
 void connx_Tensor_ref(connx_Tensor* tensor);
-void connx_Tensor_unref(connx_Tensor* tensor);
+int32_t connx_Tensor_unref(connx_Tensor* tensor);
+void connx_Tensor_ref_child(connx_Tensor* tensor);
+int32_t connx_Tensor_unref_child(connx_Tensor* tensor);
 
 /**
  * Get an element(data) which iterator is pointing.

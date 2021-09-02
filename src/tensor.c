@@ -135,6 +135,7 @@ connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* sh
     tensor->size = data_size;
     tensor->parent = NULL;
     tensor->ref_count = 1;
+    tensor->child_count = 0;
     connx_Lock_init(&tensor->lock);
 
     return tensor;
@@ -220,9 +221,10 @@ connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* 
     tensor2->size = tensor->size;
     tensor2->parent = tensor;
     tensor2->ref_count = 1;
+    tensor2->child_count = 0;
     connx_Lock_init(&tensor2->lock);
 
-    connx_Tensor_ref(tensor); // reshaped tensor references parent tensor
+    connx_Tensor_ref_child(tensor); // reshaped tensor references parent tensor
 
     return tensor2;
 }
@@ -235,10 +237,13 @@ void connx_Tensor_ref(connx_Tensor* tensor) {
     connx_Lock_unlock(&tensor->lock);
 }
 
-void connx_Tensor_unref(connx_Tensor* tensor) {
+int32_t connx_Tensor_unref(connx_Tensor* tensor) {
+    int32_t ref_count = 0;
+
     connx_Lock_lock(&tensor->lock);
 
-    if (--tensor->ref_count <= 0) {
+    ref_count = --tensor->ref_count;
+    if (ref_count <= 0 && tensor->child_count <= 0) {
         connx_Tensor* parent = tensor->parent;
 
         connx_Lock_unlock(&tensor->lock);
@@ -248,13 +253,50 @@ void connx_Tensor_unref(connx_Tensor* tensor) {
 
         // Unref parent
         if (parent != NULL) {
-            connx_Tensor_unref(parent);
+            connx_Tensor_unref_child(parent);
         }
 
-        return;
+        return ref_count;
     }
 
     connx_Lock_unlock(&tensor->lock);
+
+    return ref_count;
+}
+
+void connx_Tensor_ref_child(connx_Tensor* tensor) {
+    connx_Lock_lock(&tensor->lock);
+
+    tensor->child_count++;
+
+    connx_Lock_unlock(&tensor->lock);
+}
+
+int32_t connx_Tensor_unref_child(connx_Tensor* tensor) {
+    int32_t child_count = 0;
+
+    connx_Lock_lock(&tensor->lock);
+
+    child_count = --tensor->child_count;
+    if (child_count <= 0 && tensor->ref_count <= 0) {
+        connx_Tensor* parent = tensor->parent;
+
+        connx_Lock_unlock(&tensor->lock);
+        connx_Lock_destroy(&tensor->lock);
+
+        connx_free(tensor);
+
+        // Unref parent
+        if (parent != NULL) {
+            connx_Tensor_unref_child(parent);
+        }
+
+        return child_count;
+    }
+
+    connx_Lock_unlock(&tensor->lock);
+
+    return child_count;
 }
 
 int connx_Tensor_get(connx_Tensor* tensor, connx_Iterator* iterator, void* data) {
