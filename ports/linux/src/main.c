@@ -346,53 +346,53 @@ int main(int argc, char** argv) {
             break;
         case 1:
             switch (get_file_type(argv[i])) {
-                case -2: // I/O error
-                    connx_error("Cannot get file state: '%s'\n", argv[i]);
-                    break;
-                case -1: // Unsupported file type
-                    connx_error("Unknown file type: '%s'\n", argv[i]);
-                    break;
-                case 0: // FIFO
-                    input_type = 0;
-                    input_count = 1;
-                    input_paths = argv + i;
-                    state = 3;
-                    break;
-                case 1: // regular file
-                    input_type = 1;
-                    input_count = 1;
-                    input_paths = argv + i;
-                    state = 2;
-                    break;
-                default:;
-                    // Do nothing
+            case -2: // I/O error
+                connx_error("Cannot get file state: '%s'\n", argv[i]);
+                break;
+            case -1: // Unsupported file type
+                connx_error("Unknown file type: '%s'\n", argv[i]);
+                break;
+            case 0: // FIFO
+                input_type = 0;
+                input_count = 1;
+                input_paths = argv + i;
+                state = 3;
+                break;
+            case 1: // regular file
+                input_type = 1;
+                input_count = 1;
+                input_paths = argv + i;
+                state = 2;
+                break;
+            default:;
+                // Do nothing
             }
             break;
         case 2:
             switch (get_file_type(argv[i])) {
-                case 1: // regular file
-                    input_count++;
-                    break;
-                default:
-                    i--;
-                    state = 3;
+            case 1: // regular file
+                input_count++;
+                break;
+            default:
+                i--;
+                state = 3;
             }
             break;
         case 3:
             switch (get_file_type(argv[i])) {
-                case -2: // I/O error
-                    connx_error("Cannot get file state: '%s'\n", argv[i]);
-                    break;
-                case -1: // Unsupported file type
-                    connx_error("Unknown file type: '%s'\n", argv[i]);
-                    break;
-                case 0: // FIFO
-                    output_type = 0;
-                    output_path = argv[i];
-                    state = 9;
-                    break;
-                default:
-                    state = 9;
+            case -2: // I/O error
+                connx_error("Cannot get file state: '%s'\n", argv[i]);
+                break;
+            case -1: // Unsupported file type
+                connx_error("Unknown file type: '%s'\n", argv[i]);
+                break;
+            case 0: // FIFO
+                output_type = 0;
+                output_path = argv[i];
+                state = 9;
+                break;
+            default:
+                state = 9;
             }
             break;
         default:
@@ -418,13 +418,13 @@ int main(int argc, char** argv) {
     }
 
     switch (input_type) {
-        case 0: // fifo
-            ret = run_from_fifo(&model, input_paths[0], output_path);
-            break;
-        case 1: // file
-            ret = run_from_file(&model, input_count, input_paths, output_type, output_path);
-            break;
-        default: ;
+    case 0: // fifo
+        ret = run_from_fifo(&model, input_paths[0], output_path);
+        break;
+    case 1: // file
+        ret = run_from_file(&model, input_count, input_paths, output_type, output_path);
+        break;
+    default:;
     }
 
     connx_Model_destroy(&model);

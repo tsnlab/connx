@@ -563,6 +563,13 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
         if (ret != CONNX_OK) {
             return ret;
         }
+
+        for (uint32_t i = 0; i < node->input_count; i++) {
+            uint32_t id = node->inputs[i];
+            connx_Tensor* tensor = graph->value_infos[id];
+            connx_Tensor_unref(tensor);
+            graph->value_infos[id] = NULL;
+        }
     }
 
     // Set outputs
