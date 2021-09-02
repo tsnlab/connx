@@ -109,21 +109,17 @@ static int write_tensor(connx_Tensor* tensor) {
     return CONNX_OK;
 }
 
-static int run_from_pipe(connx_Model* model, char* tensorin, char* tensorout) {
+static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
     int ret;
 
-    if (tensorin != NULL) {
-        ret = connx_set_tensorin(tensorin);
-        if (ret != 0) {
-            return ret;
-        }
+    ret = connx_set_tensorin(tensorin);
+    if (ret != 0) {
+        return ret;
     }
 
-    if (tensorout != NULL) {
-        ret = connx_set_tensorout(tensorout);
-        if (ret != 0) {
-            return ret;
-        }
+    ret = connx_set_tensorout(tensorout);
+    if (ret != 0) {
+        return ret;
     }
 
     // loop: input -> inference -> output
@@ -209,7 +205,7 @@ static int run_from_pipe(connx_Model* model, char* tensorin, char* tensorout) {
     return CONNX_OK;
 }
 
-static int run_from_file(connx_Model* model, int input_count, char** input_files) {
+static int run_from_file(connx_Model* model, int input_count, char** input_files, int output_type, char* output_path) {
     int ret;
 
     // Read input tensors
@@ -248,17 +244,73 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
         return ret;
     }
 
-    for (uint32_t i = 0; i < output_count; i++) {
-        connx_Tensor_dump(outputs[i]);
-        connx_Tensor_unref(outputs[i]);
+    if (output_type == 0 && strncmp("-", output_path, 2) != 0) { // Output to FIFO
+        ret = connx_set_tensorout(output_path);
+        if (ret != 0) {
+            return ret;
+        }
+
+        // Write outputs
+        // Write output count
+        if (connx_write(&output_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
+            connx_error("Cannot write output data to Tensor I/O moudle.\n");
+
+            ret = -CONNX_IO_ERROR;
+            connx_write(&ret, sizeof(int32_t));
+
+            return CONNX_IO_ERROR;
+        }
+
+        for (uint32_t i = 0; i < output_count; i++) {
+            ret = write_tensor(outputs[i]);
+
+            if (ret != CONNX_OK) {
+                int code = -ret;
+                connx_write(&code, sizeof(int32_t));
+
+                return ret;
+            }
+        }
+
+        for (uint32_t i = 0; i < output_count; i++) {
+            connx_Tensor_unref(outputs[i]);
+        }
+    } else { // Output to stdout
+        for (uint32_t i = 0; i < output_count; i++) {
+            connx_Tensor_dump(outputs[i]);
+            connx_Tensor_unref(outputs[i]);
+        }
     }
 
     return CONNX_OK;
 }
 
+static int get_file_type(char* path) {
+    if (strncmp("-", path, 2) == 0)
+        return 0; // FIFO
+
+    int ret;
+    struct stat st;
+    if ((ret = stat(path, &st)) != 0) {
+        return -2; // error
+    }
+
+    if (S_ISREG(st.st_mode)) { // regular file
+        return 1;
+    } else if (S_ISFIFO(st.st_mode)) { // fifo
+        return 0;
+    } else { // Unknown
+        return -1;
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
-        connx_info("Usage: connx [connx model path] [[tensor in pipe] tensor out pipe] or [input tensor file]+]\n");
+        connx_info("Usage: connx [connx model path] [input]* [output]?\n");
+        connx_info("       input  - tensor file, fifo or '-' for stdin(without ' mark)\n");
+        connx_info("                input can be omitted only when output is omitted\n");
+        connx_info("       output - tensor file, fifo or '-' for stdout(without ' mark)\n");
+        connx_info("                if output is omitted, tensor will be dump to text\n");
         return 0;
     }
 
@@ -270,27 +322,93 @@ int main(int argc, char** argv) {
         return ret;
     }
 
-    int input_type = 0; // 1: input from file, 2: input from FIFO, 3: std I/O
-
     // Parse args
-    if (argc > 2) {
-        struct stat st;
-        if ((ret = stat(argv[2], &st)) != 0) {
-            connx_error("Cannot get file status: %s\n", argv[2]);
-            return ret;
-        }
+    char* tmp[] = {"-"};
 
-        if (S_ISREG(st.st_mode)) {
-            input_type = 1;
-        } else if (S_ISFIFO(st.st_mode)) {
-            input_type = 2;
-        } else {
-            connx_error("Unknown file type: %s\n", argv[2]);
-            return -1;
+    int input_count = 1;
+    int input_type = 0; // 0: fifo, 1: file
+    char** input_paths = tmp;
+    int output_type = 0;
+    char* output_path = tmp[0];
+
+    // 0: both omitted
+    // 1: first input
+    // 2: file inputs
+    // 3: fifo output
+    // 9: done
+    int state = 0;
+
+    for (int i = 2; i < argc; i++) {
+        switch (state) {
+        case 0:
+            state = 1;
+            i--;
+            break;
+        case 1:
+            switch (get_file_type(argv[i])) {
+                case -2: // I/O error
+                    connx_error("Cannot get file state: '%s'\n", argv[i]);
+                    break;
+                case -1: // Unsupported file type
+                    connx_error("Unknown file type: '%s'\n", argv[i]);
+                    break;
+                case 0: // FIFO
+                    input_type = 0;
+                    input_count = 1;
+                    input_paths = argv + i;
+                    state = 3;
+                    break;
+                case 1: // regular file
+                    input_type = 1;
+                    input_count = 1;
+                    input_paths = argv + i;
+                    state = 2;
+                    break;
+                default:;
+                    // Do nothing
+            }
+            break;
+        case 2:
+            switch (get_file_type(argv[i])) {
+                case 1: // regular file
+                    input_count++;
+                    break;
+                default:
+                    i--;
+                    state = 3;
+            }
+            break;
+        case 3:
+            switch (get_file_type(argv[i])) {
+                case -2: // I/O error
+                    connx_error("Cannot get file state: '%s'\n", argv[i]);
+                    break;
+                case -1: // Unsupported file type
+                    connx_error("Unknown file type: '%s'\n", argv[i]);
+                    break;
+                case 0: // FIFO
+                    output_type = 0;
+                    output_path = argv[i];
+                    state = 9;
+                    break;
+                default:
+                    state = 9;
+            }
+            break;
+        default:
+            break;
         }
-    } else {
-        input_type = 3;
     }
+
+    /*
+    printf("input_count: %d\n", input_count);
+    printf("input_type: %d\n", input_type);
+    for (int i = 0; i < input_count; i++)
+        printf("input_path[%d]=%s\n", i, input_paths[i]);
+
+    printf("output_type: %d\n", output_type);
+    printf("output_path=%s\n", output_path);
+    */
 
     // Parse connx model
     connx_Model model;
@@ -300,16 +418,13 @@ int main(int argc, char** argv) {
     }
 
     switch (input_type) {
-    case 1: // input from file
-        ret = run_from_file(&model, argc - 2, argv + 2);
-        break;
-    case 2: // input from PIPE
-        ret = run_from_pipe(&model, argv[2], argv[3]);
-        break;
-    case 3: // input from std I/O
-        ret = run_from_pipe(&model, NULL, NULL);
-        break;
-    default:; // Do nothing
+        case 0: // fifo
+            ret = run_from_fifo(&model, input_paths[0], output_path);
+            break;
+        case 1: // file
+            ret = run_from_file(&model, input_count, input_paths, output_type, output_path);
+            break;
+        default: ;
     }
 
     connx_Model_destroy(&model);

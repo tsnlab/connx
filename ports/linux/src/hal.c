@@ -73,7 +73,12 @@ int connx_set_tensorin(const char* path) {
         _tensorin = NULL;
         return CONNX_OK;
     } else {
-        _tensorin = fopen(path, "r");
+        if (strncmp("-", path, 2) == 0) {
+            _tensorin = stdin;
+        } else {
+            _tensorin = fopen(path, "r");
+        }
+
         if (_tensorin != NULL) {
             return CONNX_OK;
         } else {
@@ -89,7 +94,12 @@ int connx_set_tensorout(const char* path) {
         _tensorout = NULL;
         return CONNX_OK;
     } else {
-        _tensorout = fopen(path, "w");
+        if (strncmp("-", path, 2) == 0) {
+            _tensorout = stdout;
+        } else {
+            _tensorout = fopen(path, "w");
+        }
+
         if (_tensorout != NULL) {
             return CONNX_OK;
         } else {
