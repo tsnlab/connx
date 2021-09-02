@@ -18,25 +18,6 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-TEMPLATE_START(FLOAT16, FLOAT32, FLOAT64, UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-#define TEMPLATE_DTYPE_MIN FLOAT32
-TEMPLATE_TYPE _clip_TEMPLATE_NAME(TEMPLATE_TYPE x, TEMPLATE_TYPE min_val, TEMPLATE_TYPE max_val) {
-    if (x < min_val) {
-        x = min_val;
-    }
-
-    if (x > max_val) {
-        x = max_val;
-    }
-
-    return x;
-}
-TEMPLATE_END()
-
 int Clip(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
          __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     // input
@@ -75,14 +56,17 @@ int Clip(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
             max_val = *(TEMPLATE_TYPE*)max->buffer;
         }
 
-        int32_t total = 1;
-        for (int32_t i = 0; i < X->ndim; i++) {
-            total *= X->shape[i];
-        }
-
+        int32_t total = connx_Int32_product(X->ndim, X->shape);
         for (int32_t i = 0; i < total; i++) {
             TEMPLATE_TYPE x = *X_base++;
-            x = _clip_TEMPLATE_NAME(x, min_val, max_val);
+            if (x < min_val) {
+                x = min_val;
+            }
+
+            if (x > max_val) {
+                x = max_val;
+            }
+
             *Y_base++ = x;
         }
 
