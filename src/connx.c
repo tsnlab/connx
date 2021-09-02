@@ -567,7 +567,9 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
         for (uint32_t i = 0; i < node->input_count; i++) {
             uint32_t id = node->inputs[i];
             connx_Tensor* tensor = graph->value_infos[id];
-            connx_Tensor_unref(tensor);
+            if (tensor != NULL) {
+                connx_Tensor_unref(tensor);
+            }
             graph->value_infos[id] = NULL;
         }
     }
