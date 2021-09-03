@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
@@ -263,6 +264,8 @@ static int parse_Graph(connx_Graph* graph, char* text) {
         }
 
         graph->initializers[i] = tensor;
+        connx_Tensor_ref_child(tensor);
+        connx_Tensor_unref(tensor);
     }
 
     // prase output
@@ -530,7 +533,7 @@ int connx_Graph_destroy(connx_Graph* graph) {
     if (graph->initializers != NULL) {
         for (uint32_t i = 0; i < graph->initializer_count; i++) {
             if (graph->initializers[i] != NULL) {
-                connx_Tensor_unref(graph->initializers[i]);
+                connx_Tensor_unref_child(graph->initializers[i]);
             }
         }
         connx_free(graph->initializers);
@@ -551,9 +554,8 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
 
     // Initialize value_infos
     for (uint32_t i = 0; i < graph->initializer_count; i++) {
-        if (graph->value_infos[i + 1] == NULL) {
-            graph->value_infos[i + 1] = connx_Tensor_copy(graph->initializers[i]);
-        }
+        graph->value_infos[i + 1] = graph->initializers[i];
+        connx_Tensor_ref(graph->value_infos[i + 1]);
     }
 
     // Execute operators
@@ -589,9 +591,10 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
     for (uint32_t i = 0; i < graph->value_info_count; i++) {
         if (graph->value_infos[i] != NULL) {
             connx_Tensor_unref(graph->value_infos[i]);
-            graph->value_infos[i] = NULL;
         }
     }
+
+    bzero(graph->value_infos, graph->value_info_count * sizeof(uint32_t));
 
     return CONNX_OK;
 }
