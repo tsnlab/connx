@@ -17,7 +17,6 @@
  */
 #include <connx/accel.h>
 #include <connx/connx.h>
-#include <stdlib.h>
 
 int Clip(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
          __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {

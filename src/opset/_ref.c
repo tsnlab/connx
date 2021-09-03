@@ -18,7 +18,7 @@
 #include <connx/connx.h>
 
 int _ref(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, __attribute__((unused)) uint32_t* outputs,
-        __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
+         __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
 
     connx_Tensor* tensor = connx_Graph_get(graph, inputs[0]);
     int32_t ref_count = *(int32_t*)attributes[0];
