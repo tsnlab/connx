@@ -238,22 +238,15 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
     uint32_t output_count = 16;
     connx_Tensor* outputs[output_count];
 
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < input_count; j++) {
-            connx_Tensor_ref(inputs[j]);
-            connx_Tensor_ref(inputs[j]);
-        }
+    ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
+    if (ret != CONNX_OK) {
+        connx_error("Cannot run model\n");
+        return ret;
+    }
 
-        ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
-        if (ret != CONNX_OK) {
-            connx_error("Cannot run model\n");
-            return ret;
-        }
-
-        for (uint32_t j = 0; j < output_count; j++) {
-            connx_Tensor_dump(outputs[j]);
-            connx_Tensor_unref(outputs[j]);
-        }
+    for (uint32_t j = 0; j < output_count; j++) {
+        connx_Tensor_dump(outputs[j]);
+        connx_Tensor_unref(outputs[j]);
     }
 
     return 0;
