@@ -17,20 +17,14 @@
  */
 #include <connx/accel.h>
 #include <connx/connx.h>
+#include <stdlib.h>
 
 int Clip(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
          __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     // input
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
-    connx_Tensor* min = NULL;
-    connx_Tensor* max = NULL;
-
-    if (input_count >= 2) {
-        min = connx_Graph_get(graph, inputs[1]);
-        if (input_count == 3) {
-            max = connx_Graph_get(graph, inputs[2]);
-        }
-    }
+    connx_Tensor* min = input_count >= 2 && inputs[1] != 0 ? connx_Graph_get(graph, inputs[1]) : NULL;
+    connx_Tensor* max = input_count >= 3 && inputs[2] != 0 ? connx_Graph_get(graph, inputs[2]) : NULL;
 
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, X->shape);
 

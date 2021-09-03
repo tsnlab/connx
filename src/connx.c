@@ -107,7 +107,7 @@ static int parse_Model(connx_Model* model, char* metadata) {
 
     model->version = next_integer(token);
 
-    if (model->version <= 0 || model->version > 1) {
+    if (model->version != 3) {
         connx_error("Not supported CONNX version: %u\n", model->version);
         return CONNX_NOT_SUPPORTED_CONNX_VERSION;
     }

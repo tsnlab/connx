@@ -1,6 +1,0 @@
-value_info 6
-initializer 4
-output 1 6
-input 5 5 1 2 3 4
-node 1
-BatchNormalization 1 5 3 6 5 1 2 3 4 7 epsilon 1 0.0010000000474974513 8 momentum 1 0.20000000298023224 13 training_mode 2 0
