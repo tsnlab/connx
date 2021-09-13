@@ -65,4 +65,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
  * Raspberry pi 3 (32-bit O/S)
 
 # License
-CONNX is licensed under GPLv3. See [LICENSE](LICENSE)
+CONNX is licensed under GPLv3. See [LICENSE](LICENSE)  
+If you need other license than GPLv3 for proprietary use or professional support, please mail us to contact at tsnlab dot com.
