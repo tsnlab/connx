@@ -1,3 +1,6 @@
+# Notice
+We are hiring paid employee. Please contact us: contact at tsnlab dot com
+
 # CONNX
 C implementation of Open Neural Network Exchange Runtime
 
