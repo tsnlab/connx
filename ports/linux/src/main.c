@@ -15,8 +15,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#define _POSIX_C_SOURCE 199309L // clock_gettime
+#include <locale.h>             // setlocale
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h> // clock_gettime
 
 #include <sys/stat.h>
 
@@ -205,7 +209,7 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
     return CONNX_OK;
 }
 
-static int run_from_file(connx_Model* model, int input_count, char** input_files, int output_type, char* output_path) {
+static int run_from_file(connx_Model* model, int input_count, char** input_files, int loop) {
     int ret;
 
     // Read input tensors
@@ -238,54 +242,49 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
     uint32_t output_count = 16;
     connx_Tensor* outputs[output_count];
 
-    ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
-    if (ret != CONNX_OK) {
-        connx_error("Cannot run model\n");
-        return ret;
-    }
+    if (loop > 0) { // performance test
+        setlocale(LC_NUMERIC, "");
 
-    for (uint32_t j = 0; j < output_count; j++) {
-        connx_Tensor_dump(outputs[j]);
-        connx_Tensor_unref(outputs[j]);
-    }
+        for (int i = 0; i < input_count; i++) {
+            connx_Tensor_ref_child(inputs[i]);
+        }
 
-    return 0;
+        ret = CONNX_OK;
 
-    if (output_type == 0 && strncmp("-", output_path, 2) != 0) { // Output to FIFO
-        ret = connx_set_tensorout(output_path);
-        if (ret != 0) {
+        uint64_t total = 0;
+        struct timespec start = {0, 0};
+        struct timespec end = {0, 0};
+
+        for (int i = 0; i < loop && ret == CONNX_OK; i++) {
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
+            clock_gettime(CLOCK_MONOTONIC, &end);
+
+            uint64_t st = start.tv_sec * 1000000000ull + start.tv_nsec;
+            uint64_t et = end.tv_sec * 1000000000ull + end.tv_nsec;
+            uint64_t dt = et - st;
+            total += dt;
+            printf("%u: %'lu ns\n", i, dt);
+
+            for (uint32_t j = 0; j < output_count; j++) {
+                connx_Tensor_unref(outputs[j]);
+            }
+        }
+        printf("total: %'lu ns\n\n", total);
+
+        for (int i = 0; i < input_count; i++) {
+            connx_Tensor_unref_child(inputs[i]);
+        }
+    } else {
+        ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
+        if (ret != CONNX_OK) {
+            connx_error("Cannot run model\n");
             return ret;
         }
 
-        // Write outputs
-        // Write output count
-        if (connx_write(&output_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
-            connx_error("Cannot write output data to Tensor I/O moudle.\n");
-
-            ret = -CONNX_IO_ERROR;
-            connx_write(&ret, sizeof(int32_t));
-
-            return CONNX_IO_ERROR;
-        }
-
-        for (uint32_t i = 0; i < output_count; i++) {
-            ret = write_tensor(outputs[i]);
-
-            if (ret != CONNX_OK) {
-                int code = -ret;
-                connx_write(&code, sizeof(int32_t));
-
-                return ret;
-            }
-        }
-
-        for (uint32_t i = 0; i < output_count; i++) {
-            connx_Tensor_unref(outputs[i]);
-        }
-    } else { // Output to stdout
-        for (uint32_t i = 0; i < output_count; i++) {
-            connx_Tensor_dump(outputs[i]);
-            connx_Tensor_unref(outputs[i]);
+        for (uint32_t j = 0; j < output_count; j++) {
+            connx_Tensor_dump(outputs[j]);
+            connx_Tensor_unref(outputs[j]);
         }
     }
 
@@ -313,11 +312,12 @@ static int get_file_type(char* path) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        connx_info("Usage: connx [connx model path] [input]* [output]?\n");
+        connx_info("Usage: connx [connx model path] [input]* [output]? [-p number]?\n");
         connx_info("       input  - tensor file, fifo or '-' for stdin(without ' mark)\n");
         connx_info("                input can be omitted only when output is omitted\n");
         connx_info("       output - tensor file, fifo or '-' for stdout(without ' mark)\n");
         connx_info("                if output is omitted, tensor will be dump to text\n");
+        connx_info("       -p - performance test number of times\n");
         return 0;
     }
 
@@ -332,10 +332,10 @@ int main(int argc, char** argv) {
     // Parse args
     char* tmp[] = {"-"};
 
+    int loop = 0;
     int input_count = 1;
     int input_type = 0; // 0: fifo, 1: file
     char** input_paths = tmp;
-    int output_type = 0;
     char* output_path = tmp[0];
 
     // 0: both omitted
@@ -346,6 +346,12 @@ int main(int argc, char** argv) {
     int state = 0;
 
     for (int i = 2; i < argc; i++) {
+        if (strncmp(argv[i], "-p", 2) == 0) {
+            i++;
+            loop = strtol(argv[i++], NULL, 10);
+            continue;
+        }
+
         switch (state) {
         case 0:
             state = 1;
@@ -394,7 +400,6 @@ int main(int argc, char** argv) {
                 connx_error("Unknown file type: '%s'\n", argv[i]);
                 break;
             case 0: // FIFO
-                output_type = 0;
                 output_path = argv[i];
                 state = 9;
                 break;
@@ -406,16 +411,6 @@ int main(int argc, char** argv) {
             break;
         }
     }
-
-    /*
-    printf("input_count: %d\n", input_count);
-    printf("input_type: %d\n", input_type);
-    for (int i = 0; i < input_count; i++)
-        printf("input_path[%d]=%s\n", i, input_paths[i]);
-
-    printf("output_type: %d\n", output_type);
-    printf("output_path=%s\n", output_path);
-    */
 
     // Parse connx model
     connx_Model model;
@@ -429,7 +424,7 @@ int main(int argc, char** argv) {
         ret = run_from_fifo(&model, input_paths[0], output_path);
         break;
     case 1: // file
-        ret = run_from_file(&model, input_count, input_paths, output_type, output_path);
+        ret = run_from_file(&model, input_count, input_paths, loop);
         break;
     default:;
     }
