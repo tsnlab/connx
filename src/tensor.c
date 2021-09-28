@@ -82,7 +82,7 @@ void connx_Iterator_init_batch(connx_Iterator* iterator, int32_t batch) {
         slices[i].idx = slices[i].start;
     }
 
-    for (int32_t i = ndim - 1; i >= 0 && batch > 1; i--) {
+    for (int32_t i = ndim - 1; i >= 0; i--) {
         int32_t unit = slices[i].end - slices[i].start;
         if (batch >= unit) {
             slices[i].idx -= unit;
@@ -91,6 +91,9 @@ void connx_Iterator_init_batch(connx_Iterator* iterator, int32_t batch) {
             slices[i].idx -= batch;
             batch = 1;
         }
+
+        if (batch == 1)
+            break;
     }
 }
 
@@ -174,6 +177,8 @@ int32_t connx_Iterator_get_batch_size(connx_Iterator* iterator, int32_t* shape) 
             if (slices[i].start != 0 || slices[i].end != shape[i]) {
                 break;
             }
+        } else {
+            return slices[i].step > 0 ? 1 : 0;
         }
     }
 
@@ -431,26 +436,35 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
     return sliced;
 }
 
-static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs) {
-    for (int32_t i = 0; i < tensor->ndim; i++) {
-        int32_t step = slices[i].step;
-
-        if (step == 0) {
-            return CONNX_OUT_OF_INDEX;
-        }
+static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Iterator* tensor_iter, connx_Tensor* rhs) {
+    int32_t units[tensor->ndim];
+    units[tensor->ndim - 1] = 1;
+    for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
+        units[i] = units[i + 1] * tensor->shape[i + 1];
     }
-
-    connx_Iterator tensor_iter = {tensor->ndim, slices};
-    connx_Iterator_init(&tensor_iter);
-
-    int32_t batch = connx_Iterator_get_batch_size(&tensor_iter, tensor->shape);
-    connx_Iterator_init_batch(&tensor_iter, batch);
 
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     int32_t rhs_offset = 0;
 
-    while (connx_Iterator_next_batch(&tensor_iter, batch)) {
-        int32_t tensor_offset = connx_Iterator_offset(&tensor_iter, tensor->shape);
+    while (connx_Iterator_next(tensor_iter)) {
+        int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
+
+        memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
+        rhs_offset++;
+    }
+
+    return CONNX_OK;
+}
+
+static int _connx_Tensor_set_by_slice_batch(connx_Tensor* tensor, connx_Iterator* tensor_iter, connx_Tensor* rhs,
+                                            int32_t batch) {
+    connx_Iterator_init_batch(tensor_iter, batch);
+
+    uint32_t data_size = connx_DataType_size(tensor->dtype);
+    int32_t rhs_offset = 0;
+
+    while (connx_Iterator_next_batch(tensor_iter, batch)) {
+        int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
 
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, batch * data_size);
         rhs_offset += batch;
@@ -459,27 +473,8 @@ static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices,
     return CONNX_OK;
 }
 
-static int _connx_Tensor_set_by_slice_tensor(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs,
-                                             connx_Slice* rhs_slices) {
-    // Step size check
-    for (int32_t i = 0; i < tensor->ndim; i++) {
-        if (slices[i].step == 0) {
-            return CONNX_OUT_OF_INDEX;
-        }
-    }
-
-    for (int32_t i = 0; i < rhs->ndim; i++) {
-        if (rhs_slices[i].step == 0) {
-            return CONNX_OUT_OF_INDEX;
-        }
-    }
-
-    connx_Iterator tensor_iter = {tensor->ndim, slices};
-    connx_Iterator_init(&tensor_iter);
-
-    connx_Iterator rhs_iter = {rhs->ndim, rhs_slices};
-    connx_Iterator_init(&rhs_iter);
-
+static int _connx_Tensor_set_by_slice2(connx_Tensor* tensor, connx_Iterator* tensor_iter, connx_Tensor* rhs,
+                                       connx_Iterator* rhs_iter) {
     int32_t tensor_units[tensor->ndim];
     tensor_units[tensor->ndim - 1] = 1;
     for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
@@ -492,25 +487,55 @@ static int _connx_Tensor_set_by_slice_tensor(connx_Tensor* tensor, connx_Slice* 
         rhs_units[i] = rhs_units[i + 1] * rhs->shape[i + 1];
     }
 
-    int32_t tensor_batch = connx_Iterator_get_batch_size(&tensor_iter, tensor->shape);
-    int32_t rhs_batch = connx_Iterator_get_batch_size(&rhs_iter, rhs->shape);
-    int32_t batch = tensor_batch < rhs_batch ? tensor_batch : rhs_batch;
-
-    connx_Iterator_init_batch(&tensor_iter, batch);
-    connx_Iterator_init_batch(&rhs_iter, batch);
-
     uint32_t data_size = connx_DataType_size(tensor->dtype);
 
-    while (connx_Iterator_next_batch(&tensor_iter, batch) && connx_Iterator_next_batch(&rhs_iter, batch)) {
+    while (connx_Iterator_next(tensor_iter) && connx_Iterator_next(rhs_iter)) {
         int32_t tensor_offset = 0;
         int32_t rhs_offset = 0;
 
         for (int i = 0; i < tensor->ndim; i++) {
-            tensor_offset += tensor_units[i] * tensor_iter.slices[i].idx;
+            tensor_offset += tensor_units[i] * tensor_iter->slices[i].idx;
         }
 
         for (int i = 0; i < rhs->ndim; i++) {
-            rhs_offset += rhs_units[i] * rhs_iter.slices[i].idx;
+            rhs_offset += rhs_units[i] * rhs_iter->slices[i].idx;
+        }
+
+        memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
+    }
+
+    return CONNX_OK;
+}
+
+static int _connx_Tensor_set_by_slice_batch2(connx_Tensor* tensor, connx_Iterator* tensor_iter, connx_Tensor* rhs,
+                                             connx_Iterator* rhs_iter, int32_t batch) {
+    int32_t tensor_units[tensor->ndim];
+    tensor_units[tensor->ndim - 1] = 1;
+    for (int32_t i = tensor->ndim - 2; i >= 0; i--) {
+        tensor_units[i] = tensor_units[i + 1] * tensor->shape[i + 1];
+    }
+
+    int32_t rhs_units[rhs->ndim];
+    rhs_units[rhs->ndim - 1] = 1;
+    for (int32_t i = rhs->ndim - 2; i >= 0; i--) {
+        rhs_units[i] = rhs_units[i + 1] * rhs->shape[i + 1];
+    }
+
+    connx_Iterator_init_batch(tensor_iter, batch);
+    connx_Iterator_init_batch(rhs_iter, batch);
+
+    uint32_t data_size = connx_DataType_size(tensor->dtype);
+
+    while (connx_Iterator_next_batch(tensor_iter, batch) && connx_Iterator_next_batch(rhs_iter, batch)) {
+        int32_t tensor_offset = 0;
+        int32_t rhs_offset = 0;
+
+        for (int i = 0; i < tensor->ndim; i++) {
+            tensor_offset += tensor_units[i] * tensor_iter->slices[i].idx;
+        }
+
+        for (int i = 0; i < rhs->ndim; i++) {
+            rhs_offset += rhs_units[i] * rhs_iter->slices[i].idx;
         }
 
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, batch * data_size);
@@ -520,9 +545,28 @@ static int _connx_Tensor_set_by_slice_tensor(connx_Tensor* tensor, connx_Slice* 
 }
 
 int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs, connx_Slice* rhs_slices) {
+    connx_Iterator tensor_iter = {tensor->ndim, slices};
+    connx_Iterator_init(&tensor_iter);
+
+    connx_Iterator rhs_iter = {rhs != NULL ? rhs->ndim : 0, rhs_slices};
+    connx_Iterator_init(&rhs_iter);
+
+    int32_t tensor_batch = connx_Iterator_get_batch_size(&tensor_iter, tensor->shape);
+    int32_t rhs_batch = rhs_slices != NULL ? connx_Iterator_get_batch_size(&rhs_iter, rhs->shape)
+                                           : connx_Int32_product(rhs->ndim, rhs->shape);
+    int32_t batch = tensor_batch < rhs_batch ? tensor_batch : rhs_batch;
+
     if (rhs_slices == NULL) {
-        return _connx_Tensor_set_by_slice(tensor, slices, rhs);
+        if (batch > 1) {
+            return _connx_Tensor_set_by_slice_batch(tensor, &tensor_iter, rhs, batch);
+        } else {
+            return _connx_Tensor_set_by_slice(tensor, &tensor_iter, rhs);
+        }
     } else {
-        return _connx_Tensor_set_by_slice_tensor(tensor, slices, rhs, rhs_slices);
+        if (batch > 1) {
+            return _connx_Tensor_set_by_slice_batch2(tensor, &tensor_iter, rhs, &rhs_iter, batch);
+        } else {
+            return _connx_Tensor_set_by_slice2(tensor, &tensor_iter, rhs, &rhs_iter);
+        }
     }
 }
