@@ -36,8 +36,35 @@ typedef struct _connx_Iterator {
     connx_Slice* slices; // slices
 } connx_Iterator;
 
+/**
+ * Initialize iterator
+ *
+ * @param iterator iterator for a tensor
+ */
 void connx_Iterator_init(connx_Iterator* iterator);
+/**
+ * Initialize iterator with batch
+ *
+ * @param iterator iterator for a tensor
+ * @param batch batch size
+ */
+void connx_Iterator_init_batch(connx_Iterator* iterator, int32_t batch);
+/**
+ * Move iterator cursor to next element.
+ *
+ * @param iterator iterator for a tensor
+ * @return true if there is a next element, or false
+ */
 bool connx_Iterator_next(connx_Iterator* iterator);
+/**
+ * Move iterator cursor to next number of batch elements.
+ * Batch size MUST equals or less than maximum batch size. @seeAlso connx_Iterator_get_batch_size
+ *
+ * @param iterator iterator for a tensor
+ * @param batch batch size
+ * @return true if there is a next element, or false
+ */
+bool connx_Iterator_next_batch(connx_Iterator* iterator, int32_t batch);
 /**
  * Get offset of data from linear array.
  *
@@ -46,6 +73,14 @@ bool connx_Iterator_next(connx_Iterator* iterator);
  * @return offset of data which iterator is pointing
  */
 int32_t connx_Iterator_offset(connx_Iterator* iterator, int32_t* shape);
+/**
+ * Get maximum batch size.
+ *
+ * @param iterator iterator for a tensor
+ * @param shape shape of a tensor
+ * @return offset of data which iterator is pointing
+ */
+int32_t connx_Iterator_get_batch_size(connx_Iterator* iterator, int32_t* shape);
 
 // tensor structure follow Numpy's ndarray
 typedef struct _connx_Tensor {
