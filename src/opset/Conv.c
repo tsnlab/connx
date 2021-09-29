@@ -71,7 +71,7 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
         for (int32_t i = 0; i < feature_dim; i++) {
             int32_t x_idx = x_iter->slices[i].idx;
             int32_t x_start = x_idx < 0 ? -x_idx % dilations[i] : x_idx;
-            int32_t end = x_idx + (kernel_shape[i] - 1) * dilations[i] + 1;//kernel_shape[i] + (kernel_shape[i] - 1) * (dilations[i] - 1);
+            int32_t end = x_idx + (kernel_shape[i] - 1) * dilations[i] + 1;
             int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
             connx_Slice_init(&x_slices[i + 2], x_start, x_end, dilations[i], x_start);
 
