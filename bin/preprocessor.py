@@ -138,7 +138,7 @@ with open(output_source, 'w') as output:
                 line = input.readline()
                 template = []
                 while 'TEMPLATE_END()' not in line:
-                    if line[0] == '#':
+                    if line[0] == '#' and 'CONNX(alive)' not in line:
                         template.append('\n')
                     else:
                         template.append(line)

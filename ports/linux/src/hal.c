@@ -34,6 +34,17 @@ static FILE* _tensorout;
 
 // Lifecycle
 void connx_init() {
+#ifdef __SSE__
+    fprintf(stderr, "SSE is supported\n");
+#endif
+
+#ifdef __AVX__
+    fprintf(stderr, "AVX is supported\n");
+#endif
+
+#ifdef __AVX2__
+    fprintf(stderr, "AVX2 is supported\n");
+#endif
 }
 
 void connx_destroy() {

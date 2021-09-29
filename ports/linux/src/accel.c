@@ -15,9 +15,31 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <immintrin.h>
 #include <string.h>
 
 #include <connx/accel.h>
+
+// Ref: https://newbedev.com/fastest-way-to-do-horizontal-sse-vector-sum-or-other-reduction
+#ifdef __SSE__
+float hsum_ps(__m128 v) {
+    __m128 shuf = _mm_movehdup_ps(v); // broadcast elements 3,1 to 2,0
+    __m128 sums = _mm_add_ps(v, shuf);
+    shuf = _mm_movehl_ps(shuf, sums); // high half -> low half
+    sums = _mm_add_ss(sums, shuf);
+    return _mm_cvtss_f32(sums);
+}
+#endif
+
+#ifdef __AVX__
+float hsum256_ps(__m256 v) {
+    __m128 vlow = _mm256_castps256_ps128(v);
+    __m128 vhigh = _mm256_extractf128_ps(v, 1); // high 128
+    vlow = _mm_add_ps(vlow, vhigh);             // add the low 128
+    return hsum_ps(vlow);                       // and inline the sse3 version, which is optimal for AVX
+    // (no wasted instructions, and all of them are the 4B minimum)
+}
+#endif
 
 // Array utilities
 TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64)
@@ -48,6 +70,61 @@ void connx_TEMPLATE_NAME_mul(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, 
 
 TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
     TEMPLATE_TYPE sum = 0;
+
+#if TEMPLATE_DTYPE == 1 // if FLOAT32 CONNX(alive)
+#ifdef __AVX2__         // CONNX(alive)
+    while (count >= 16) {
+        __m512 va = _mm512_loadu_ps(a);
+        __m512 vb = _mm512_loadu_ps(b);
+
+        __m512 vc = _mm512_mul_ps(va, vb);
+
+        // sum += hsum512_ps(vc); TODO implement it
+        float c[16];
+        _mm512_storeu_ps(c, vc);
+
+        __m256 vc1 = _mm256_loadu_ps(c);
+        __m256 vc2 = _mm256_loadu_ps(c + 8);
+
+        sum += hsum256_ps(vc1);
+        sum += hsum256_ps(vc2);
+
+        count -= 16;
+        a += 16;
+        b += 16;
+    }
+#endif // CONNX(alive)
+
+#ifdef __AVX__ // CONNX(alive)
+    while (count >= 8) {
+        __m256 va = _mm256_loadu_ps(a);
+        __m256 vb = _mm256_loadu_ps(b);
+
+        __m256 vc = _mm256_mul_ps(va, vb);
+
+        sum += hsum256_ps(vc);
+
+        count -= 8;
+        a += 8;
+        b += 8;
+    }
+#endif // CONNX(alive)
+
+#ifdef __SSE__ // CONNX(alive)
+    while (count >= 4) {
+        __m128 va = _mm_loadu_ps(a);
+        __m128 vb = _mm_loadu_ps(b);
+
+        __m128 vc = _mm_mul_ps(va, vb);
+
+        sum += hsum_ps(vc);
+
+        count -= 4;
+        a += 4;
+        b += 4;
+    }
+#endif // CONNX(alive)
+#endif // CONNX(alive)
 
     for (int32_t i = 0; i < count; i++) {
         sum += a[i] * b[i];
