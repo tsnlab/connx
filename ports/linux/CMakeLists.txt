@@ -39,8 +39,15 @@ add_custom_command(
 )
 
 # compile
-set(CMAKE_C_FLAGS_DEBUG "-pg -O0 -g -DDEBUG=1 -fsanitize=address -march=native -mavx")
-set(CMAKE_C_FLAGS_RELEASE "-O3 -march=native -mavx")
+set(CMAKE_C_FLAGS_DEBUG "-pg -O0 -g -DDEBUG=1 -fsanitize=address")
+set(CMAKE_C_FLAGS_RELEASE "-O3")
+
+option(ENABLE_AVX "Enable/Disable AVX" OFF)
+if(ENABLE_AVX)
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -mavx")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mavx")
+    message(STATUS "Enabling AVX")
+endif()
 
 add_executable(${PROJECT_NAME} ${SRC})
 

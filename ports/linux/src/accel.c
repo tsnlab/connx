@@ -15,7 +15,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifdef __SSE__
 #include <immintrin.h>
+#endif /* __SSE__ */
+
 #include <string.h>
 
 #include <connx/accel.h>
@@ -29,7 +32,7 @@ float hsum_ps(__m128 v) {
     sums = _mm_add_ss(sums, shuf);
     return _mm_cvtss_f32(sums);
 }
-#endif
+#endif /* __SSE__ */
 
 #ifdef __AVX__
 float hsum256_ps(__m256 v) {
@@ -39,7 +42,7 @@ float hsum256_ps(__m256 v) {
     return hsum_ps(vlow);                       // and inline the sse3 version, which is optimal for AVX
     // (no wasted instructions, and all of them are the 4B minimum)
 }
-#endif
+#endif /* __AVX__ */
 
 // Array utilities
 TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64)
@@ -93,7 +96,7 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
         a += 16;
         b += 16;
     }
-#endif // CONNX(alive)
+#endif /* __AVX2__ */ // CONNX(alive)
 
 #ifdef __AVX__ // CONNX(alive)
     while (count >= 8) {
@@ -108,7 +111,7 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
         a += 8;
         b += 8;
     }
-#endif // CONNX(alive)
+#endif /* __AVX__ */ // CONNX(alive)
 
 #ifdef __SSE__ // CONNX(alive)
     while (count >= 4) {
@@ -123,8 +126,8 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
         a += 4;
         b += 4;
     }
-#endif // CONNX(alive)
-#endif // CONNX(alive)
+#endif /* __SSE__ */ // CONNX(alive)
+#endif /* TEMPLATE_DTYPE == 1 */ // CONNX(alive)
 
     for (int32_t i = 0; i < count; i++) {
         sum += a[i] * b[i];
