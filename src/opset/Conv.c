@@ -37,73 +37,60 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
     int32_t kernel_dim = W->ndim - 2;
     int32_t* kernel_shape = W->shape + 2;
+    int32_t kernel_size = connx_Int32_product(kernel_dim, kernel_shape);
 
-    // Figure out dilated kernel shape
-    int32_t new_kernel_shape[kernel_dim];
-    for (int32_t i = 0; i < kernel_dim; i++) {
-        new_kernel_shape[i] = dilations[i] * kernel_shape[i];
-        if (dilations[i] != 1) {
-            new_kernel_shape[i] -= 1;
-        }
-    }
-    int32_t kernel_size = connx_Int32_product(kernel_dim, new_kernel_shape);
-
-    // Make kernel slice from W(kernel[tuple(slicers)])
-    connx_Tensor* kernel = connx_Tensor_alloc(W->dtype, kernel_dim, new_kernel_shape);
-    connx_Slice k_slices[kernel_dim];
+    // Calculate weight offset
     connx_Slice w_slices[W->ndim];
     connx_Slice_init(&w_slices[0], feature_map, feature_map + 1, 1, feature_map);
     connx_Slice_init(&w_slices[1], w_channel, w_channel + 1, 1, w_channel);
-
     for (int32_t i = 0; i < kernel_dim; i++) {
-        connx_Slice_init(&k_slices[i], 0, new_kernel_shape[i], dilations[i], 0);
-        connx_Slice_init(&w_slices[i + 2], 0, kernel_shape[i], 1, 0);
+        connx_Slice_init(&w_slices[2 + i], 0, kernel_shape[i], 1, 0);
     }
 
-    // kernel[tuple(slicers)] = W[feature_map, w_channel]
-    connx_Tensor_set_by_slice(kernel, k_slices, W, w_slices);
+    int32_t data_size = connx_DataType_size(W->dtype);
+    connx_Iterator w_iter = {W->ndim, w_slices};
+    int32_t w_offset = connx_Iterator_offset(&w_iter, W->shape) * data_size;
 
     // Make slice of X(x = X[batch, x_channel])
     connx_Slice x_slices[X->ndim];
     connx_Slice_init(&x_slices[0], batch, batch + 1, 1, batch);
     connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, 1, x_channel);
 
+    connx_Tensor* x_patch = connx_Tensor_alloc(X->dtype, kernel_dim, kernel_shape);
+
     TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
-    connx_Tensor* x_patch = connx_Tensor_alloc(X->dtype, kernel_dim, new_kernel_shape);
-    uint32_t total = kernel_size * connx_DataType_size(X->dtype);
 
     while (connx_Iterator_next(x_iter)) {
         TEMPLATE_TYPE y = 0;
 
-        // Make padded x patch
-        bzero(x_patch->buffer, total);
+        // Clear x patch
+        bzero(x_patch->buffer, x_patch->size);
 
-        // Make a slice for copying patch of X[batch, channel] on to padded x patch
-        connx_Slice x_padded_slices[feature_dim];
+        // Make a slice for copying patch of X[batch, channel] to x_patch
+        connx_Slice x_patch_slices[feature_dim];
         for (int32_t i = 0; i < feature_dim; i++) {
             int32_t x_idx = x_iter->slices[i].idx;
-            int32_t x_start = x_idx < 0 ? 0 : x_idx;
-            int32_t end = x_idx + new_kernel_shape[i];
+            int32_t x_start = x_idx < 0 ? -x_idx % dilations[i] : x_idx;
+            int32_t end = x_idx + (kernel_shape[i] - 1) * dilations[i] + 1;//kernel_shape[i] + (kernel_shape[i] - 1) * (dilations[i] - 1);
             int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
-            connx_Slice_init(&x_slices[i + 2], x_start, x_end, 1, x_start);
+            connx_Slice_init(&x_slices[i + 2], x_start, x_end, dilations[i], x_start);
 
-            int32_t x_padded_start = x_idx < 0 ? -x_idx : 0;
-            int32_t x_padded_end = x_padded_start + (x_end - x_start);
-            connx_Slice_init(&x_padded_slices[i], x_padded_start, x_padded_end, 1, x_padded_start);
+            int32_t x_patch_start = x_idx < 0 ? -x_idx : 0;
+            int32_t x_patch_end = x_patch_start + (x_end - x_start + dilations[i] - 1) / dilations[i];
+            connx_Slice_init(&x_patch_slices[i], x_patch_start, x_patch_end, 1, x_patch_start);
         }
 
-        // Get slice of X. X[tuple(x_slices)]. x_patch[x_padded_slices] = X[tuple(x_slices)]
-        connx_Tensor_set_by_slice(x_patch, x_padded_slices, X, x_slices);
+        // Get slice of X. X[tuple(x_slices)]. x_patch[x_patch_slices] = X[tuple(x_slices)]
+        connx_Tensor_set_by_slice(x_patch, x_patch_slices, X, x_slices);
 
         // Convolute
-        y = connx_TEMPLATE_NAME_mul_and_sum(kernel_size, x_patch->buffer, kernel->buffer);
+        y = connx_TEMPLATE_NAME_mul_and_sum(kernel_size, x_patch->buffer, W->buffer + w_offset);
 
         Y_flatten[y_idx] += y;
         y_idx++;
     }
 
     connx_Tensor_unref(x_patch);
-    connx_Tensor_unref(kernel);
 }
 TEMPLATE_END()
 

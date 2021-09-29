@@ -426,7 +426,7 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
 
     while (connx_Iterator_next(&tensor_iter)) {
         int32_t d_offset = 0;
-        for (int i = 0; i < tensor->ndim; i++) {
+        for (int32_t i = 0; i < tensor->ndim; i++) {
             d_offset += units[i] * tensor_iter.slices[i].idx;
         }
         memcpy(sliced->buffer + sliced_offset * data_size, tensor->buffer + d_offset * data_size, data_size);
@@ -447,7 +447,10 @@ static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Iterator* tens
     int32_t rhs_offset = 0;
 
     while (connx_Iterator_next(tensor_iter)) {
-        int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
+        int32_t tensor_offset = 0;
+        for (int32_t i = 0; i < tensor->ndim; i++) {
+            tensor_offset += units[i] * tensor_iter->slices[i].idx;
+        }
 
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
         rhs_offset++;
@@ -493,11 +496,11 @@ static int _connx_Tensor_set_by_slice2(connx_Tensor* tensor, connx_Iterator* ten
         int32_t tensor_offset = 0;
         int32_t rhs_offset = 0;
 
-        for (int i = 0; i < tensor->ndim; i++) {
+        for (int32_t i = 0; i < tensor->ndim; i++) {
             tensor_offset += tensor_units[i] * tensor_iter->slices[i].idx;
         }
 
-        for (int i = 0; i < rhs->ndim; i++) {
+        for (int32_t i = 0; i < rhs->ndim; i++) {
             rhs_offset += rhs_units[i] * rhs_iter->slices[i].idx;
         }
 
@@ -530,11 +533,11 @@ static int _connx_Tensor_set_by_slice_batch2(connx_Tensor* tensor, connx_Iterato
         int32_t tensor_offset = 0;
         int32_t rhs_offset = 0;
 
-        for (int i = 0; i < tensor->ndim; i++) {
+        for (int32_t i = 0; i < tensor->ndim; i++) {
             tensor_offset += tensor_units[i] * tensor_iter->slices[i].idx;
         }
 
-        for (int i = 0; i < rhs->ndim; i++) {
+        for (int32_t i = 0; i < rhs->ndim; i++) {
             rhs_offset += rhs_units[i] * rhs_iter->slices[i].idx;
         }
 
