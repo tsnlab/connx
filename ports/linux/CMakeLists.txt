@@ -40,7 +40,7 @@ add_custom_command(
 
 # compile
 set(CMAKE_C_FLAGS_DEBUG "-pg -O0 -g -DDEBUG=1 -fsanitize=address")
-set(CMAKE_C_FLAGS_RELEASE "-O3")
+set(CMAKE_C_FLAGS_RELEASE "-O3 -march=native")
 
 option(ENABLE_AVX "Enable/Disable AVX" OFF)
 if(ENABLE_AVX)
