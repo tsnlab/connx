@@ -24,7 +24,7 @@
 #include <connx/accel.h>
 
 // Ref: https://newbedev.com/fastest-way-to-do-horizontal-sse-vector-sum-or-other-reduction
-#ifdef __SSE__
+#ifdef __SSE3__
 float hsum_ps(__m128 v) {
     __m128 shuf = _mm_movehdup_ps(v); // broadcast elements 3,1 to 2,0
     __m128 sums = _mm_add_ps(v, shuf);
@@ -32,7 +32,7 @@ float hsum_ps(__m128 v) {
     sums = _mm_add_ss(sums, shuf);
     return _mm_cvtss_f32(sums);
 }
-#endif /* __SSE__ */
+#endif /* __SSE3__ */
 
 #ifdef __AVX__
 float hsum256_ps(__m256 v) {
@@ -113,7 +113,7 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
     }
 #endif /* __AVX__ */ // CONNX(alive)
 
-#ifdef __SSE__ // CONNX(alive)
+#ifdef __SSE3__ // CONNX(alive)
     while (count >= 4) {
         __m128 va = _mm_loadu_ps(a);
         __m128 vb = _mm_loadu_ps(b);
@@ -126,7 +126,7 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
         a += 4;
         b += 4;
     }
-#endif /* __SSE__ */ // CONNX(alive)
+#endif /* __SSE3__ */            // CONNX(alive)
 #endif /* TEMPLATE_DTYPE == 1 */ // CONNX(alive)
 
     for (int32_t i = 0; i < count; i++) {
