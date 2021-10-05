@@ -177,17 +177,18 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
             for (int32_t channel = 0; channel < channel_count; channel++) {
                 // x_iter
                 connx_Slice x_slices[feature_dim];
-                connx_Iterator x_iter = {feature_dim, x_slices};
+                connx_Iterator x_iter;
+                x_iter.ndim = feature_dim;
+                x_iter.slices = x_slices;
 
                 for (int32_t i = 0; i < feature_dim; i++) {
-                    connx_Slice_init(&x_slices[i], -pads[i], -pads[i] + output_shape[i] * strides[i], strides[i],
-                                     -pads[i]);
+                    connx_Slice_init(&x_slices[i], -pads[i], -pads[i] + output_shape[i] * strides[i], strides[i]);
                 }
 
                 connx_Iterator_init(&x_iter);
 
-                connx_Slice_init(&slices[0], batch, batch + 1, 1, batch);
-                connx_Slice_init(&slices[1], channel, channel + 1, 1, channel);
+                connx_Slice_init(&slices[0], batch, batch + 1, 1);
+                connx_Slice_init(&slices[1], channel, channel + 1, 1);
 
                 while (connx_Iterator_next(&x_iter)) {
                     TEMPLATE_TYPE y = 0;
@@ -195,12 +196,14 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                     int32_t k_idx[feature_dim];
 
                     // Make slicers for copy patch of X[batch, channel] on to padded X
+                    int32_t x_idxs[feature_dim];
+                    connx_Iterator_indices(&x_iter, x_idxs);
                     for (int32_t i = 0; i < feature_dim; i++) {
-                        int32_t x_idx = x_iter.slices[i].idx;
+                        int32_t x_idx = x_idxs[i];
                         int32_t x_start = x_idx < 0 ? 0 : x_idx;
                         int32_t end = x_idx + new_kernel_shape[i];
                         int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
-                        connx_Slice_init(&slices[i + 2], x_start, x_end, dilations[i], x_start);
+                        connx_Slice_init(&slices[i + 2], x_start, x_end, dilations[i]);
 
                         int32_t x_padded_start = x_idx < 0 ? -x_idx : 0;
                         k_idx[i] = x_padded_start;
@@ -224,7 +227,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
 
                     // Compute offset of max argmax in X[batch, channel]
                     for (int32_t i = 0; i < feature_dim; i++) {
-                        d_idx[i] = x_iter.slices[i].idx + k_idx[i];
+                        d_idx[i] = x_idxs[i] + k_idx[i];
                         d_offset += d_idx[i] * units[2 + i];
                     }
 

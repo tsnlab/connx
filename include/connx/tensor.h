@@ -26,13 +26,15 @@ typedef struct _connx_Slice {
     int32_t start; // Start index (>=)
     int32_t end;   // Stop index (<)
     int32_t step;  // Step size
-    int32_t idx;   // Current index (used by iterator)
 } connx_Slice;
 
-int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t stop, int32_t end, int32_t idx);
+int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t stop, int32_t end);
 
 typedef struct _connx_Iterator {
-    int32_t ndim;        // number of slices
+    int32_t ndim; // number of slices
+    int32_t idx;
+    int32_t size;
+    int32_t subshape[8];
     connx_Slice* slices; // slices
 } connx_Iterator;
 
@@ -73,6 +75,13 @@ bool connx_Iterator_next_batch(connx_Iterator* iterator, int32_t batch);
  * @return offset of data which iterator is pointing
  */
 int32_t connx_Iterator_offset(connx_Iterator* iterator, int32_t* shape);
+/**
+ * Get index of data from linear array.
+ *
+ * @param iterator iterator for a tensor
+ * @param indices indices of a tensor, sizeof(index) >= iterator->ndim) (output)
+ */
+void connx_Iterator_indices(connx_Iterator* iterator, int32_t* indices);
 /**
  * Get maximum batch size.
  *

@@ -41,20 +41,24 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
     // Calculate weight offset
     connx_Slice w_slices[W->ndim];
-    connx_Slice_init(&w_slices[0], feature_map, feature_map + 1, 1, feature_map);
-    connx_Slice_init(&w_slices[1], w_channel, w_channel + 1, 1, w_channel);
+    connx_Slice_init(&w_slices[0], feature_map, feature_map + 1, 1);
+    connx_Slice_init(&w_slices[1], w_channel, w_channel + 1, 1);
     for (int32_t i = 0; i < kernel_dim; i++) {
-        connx_Slice_init(&w_slices[2 + i], 0, kernel_shape[i], 1, 0);
+        connx_Slice_init(&w_slices[2 + i], 0, kernel_shape[i], 1);
     }
 
     int32_t data_size = connx_DataType_size(W->dtype);
-    connx_Iterator w_iter = {W->ndim, w_slices};
+    connx_Iterator w_iter;
+    w_iter.ndim = W->ndim;
+    w_iter.slices = w_slices;
+    connx_Iterator_init(&w_iter);
+    connx_Iterator_next(&w_iter);
     int32_t w_offset = connx_Iterator_offset(&w_iter, W->shape) * data_size;
 
     // Make slice of X(x = X[batch, x_channel])
     connx_Slice x_slices[X->ndim];
-    connx_Slice_init(&x_slices[0], batch, batch + 1, 1, batch);
-    connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, 1, x_channel);
+    connx_Slice_init(&x_slices[0], batch, batch + 1, 1);
+    connx_Slice_init(&x_slices[1], x_channel, x_channel + 1, 1);
 
     connx_Tensor* x_patch = connx_Tensor_alloc(X->dtype, kernel_dim, kernel_shape);
 
@@ -68,16 +72,18 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
         // Make a slice for copying patch of X[batch, channel] to x_patch
         connx_Slice x_patch_slices[feature_dim];
+        int32_t x_idxs[feature_dim];
+        connx_Iterator_indices(x_iter, x_idxs);
         for (int32_t i = 0; i < feature_dim; i++) {
-            int32_t x_idx = x_iter->slices[i].idx;
+            int32_t x_idx = x_idxs[i];
             int32_t x_start = x_idx < 0 ? -x_idx % dilations[i] : x_idx;
             int32_t end = x_idx + (kernel_shape[i] - 1) * dilations[i] + 1;
             int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
-            connx_Slice_init(&x_slices[i + 2], x_start, x_end, dilations[i], x_start);
+            connx_Slice_init(&x_slices[i + 2], x_start, x_end, dilations[i]);
 
             int32_t x_patch_start = x_idx < 0 ? -x_idx : 0;
             int32_t x_patch_end = x_patch_start + (x_end - x_start + dilations[i] - 1) / dilations[i];
-            connx_Slice_init(&x_patch_slices[i], x_patch_start, x_patch_end, 1, x_patch_start);
+            connx_Slice_init(&x_patch_slices[i], x_patch_start, x_patch_end, 1);
         }
 
         // Get slice of X. X[tuple(x_slices)]. x_patch[x_patch_slices] = X[tuple(x_slices)]
@@ -190,7 +196,9 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 
     // init x_iter
     connx_Slice x_slices[feature_dim];
-    connx_Iterator x_iter = {feature_dim, x_slices};
+    connx_Iterator x_iter;
+    x_iter.ndim = feature_dim;
+    x_iter.slices = x_slices;
 
     for (int32_t i = 0; i < feature_dim; i++) {
         x_slices[i].start = -pads[i];
@@ -202,7 +210,9 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 
     // init w_iter
     connx_Slice w_slices[kernel_dim];
-    connx_Iterator w_iter = {kernel_dim, w_slices};
+    connx_Iterator w_iter;
+    w_iter.ndim = kernel_dim;
+    w_iter.slices = w_slices;
 
     for (int32_t i = 0; i < kernel_dim; i++) {
         w_slices[i].start = 0;
