@@ -252,6 +252,8 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
         ret = CONNX_OK;
 
         uint64_t total = 0;
+        uint64_t minimum = UINT64_MAX;
+        uint64_t maximum = 0;
         struct timespec start = {0, 0};
         struct timespec end = {0, 0};
 
@@ -263,14 +265,27 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
             uint64_t st = start.tv_sec * 1000000000ull + start.tv_nsec;
             uint64_t et = end.tv_sec * 1000000000ull + end.tv_nsec;
             uint64_t dt = et - st;
+
             total += dt;
+
+            if (dt < minimum)
+                minimum = dt;
+
+            if (dt > maximum)
+                maximum = dt;
+
             printf("%u: %'lu ns\n", i, dt);
 
             for (uint32_t j = 0; j < output_count; j++) {
                 connx_Tensor_unref(outputs[j]);
             }
         }
-        printf("total: %'lu ns\n\n", total);
+
+        printf("\n");
+        printf("minimum: %'12lu ns\n", minimum);
+        printf("mean:    %'12lu ns\n", (total / loop));
+        printf("maximum: %'12lu ns\n", maximum);
+        printf("total:   %'12lu ns\n", total);
 
         for (int i = 0; i < input_count; i++) {
             connx_Tensor_unref_child(inputs[i]);
@@ -311,6 +326,8 @@ static int get_file_type(char* path) {
 }
 
 int main(int argc, char** argv) {
+    connx_init();
+
     if (argc < 2) {
         connx_info("Usage: connx [connx model path] [input]* [output]? [-p number]?\n");
         connx_info("       input  - tensor file, fifo or '-' for stdin(without ' mark)\n");

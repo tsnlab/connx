@@ -28,14 +28,23 @@ typedef struct _connx_Slice {
     int32_t step;  // Step size
 } connx_Slice;
 
-int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t stop, int32_t end);
+/**
+ * Set slice
+ *
+ * @param start
+ * @param end
+ * @param step
+ */
+void connx_Slice_set(connx_Slice* slice, int32_t start, int32_t end, int32_t step);
+
+#define CONNX_ITERATOR_MAX_NDIM 8
 
 typedef struct _connx_Iterator {
     int32_t ndim; // number of slices
     int32_t idx;
     int32_t size;
-    int32_t subshape[8];
-    connx_Slice* slices; // slices
+    int32_t subshape[CONNX_ITERATOR_MAX_NDIM];
+    connx_Slice* slices;
 } connx_Iterator;
 
 /**
@@ -43,14 +52,14 @@ typedef struct _connx_Iterator {
  *
  * @param iterator iterator for a tensor
  */
-void connx_Iterator_init(connx_Iterator* iterator);
+void connx_Iterator_init(connx_Iterator* iterator, int32_t ndim, connx_Slice* slices);
 /**
- * Initialize iterator with batch
+ * Rewind cursor to -batch
  *
  * @param iterator iterator for a tensor
  * @param batch batch size
  */
-void connx_Iterator_init_batch(connx_Iterator* iterator, int32_t batch);
+void connx_Iterator_rewind(connx_Iterator* iterator, int32_t batch);
 /**
  * Move iterator cursor to next element.
  *

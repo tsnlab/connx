@@ -53,18 +53,16 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
     }
 }
 
-int connx_Slice_init(connx_Slice* slice, int32_t start, int32_t end, int32_t step) {
+// Iterator
+void connx_Slice_set(connx_Slice* slice, int32_t start, int32_t end, int32_t step) {
     slice->start = start;
     slice->end = end;
     slice->step = step;
-
-    return CONNX_OK;
 }
 
-// Iterator
-void connx_Iterator_init(connx_Iterator* iterator) {
-    int32_t ndim = iterator->ndim;
-    connx_Slice* slices = iterator->slices;
+void connx_Iterator_init(connx_Iterator* iterator, int32_t ndim, connx_Slice* slices) {
+    iterator->ndim = ndim;
+    iterator->slices = slices;
 
     // Move end to multiples of steps
     for (int32_t i = 0; i < ndim; i++) {
@@ -78,10 +76,10 @@ void connx_Iterator_init(connx_Iterator* iterator) {
         iterator->size *= iterator->subshape[i];
     }
 
-    iterator->idx = -1;
+    connx_Iterator_rewind(iterator, 1);
 }
 
-void connx_Iterator_init_batch(connx_Iterator* iterator, int32_t batch) {
+void connx_Iterator_rewind(connx_Iterator* iterator, int32_t batch) {
     iterator->idx = -batch;
 }
 
@@ -91,7 +89,7 @@ bool connx_Iterator_next(connx_Iterator* iterator) {
     if (iterator->idx < iterator->size) {
         return true;
     } else {
-        connx_Iterator_init(iterator);
+        connx_Iterator_rewind(iterator, 1);
         return false;
     }
 }
@@ -102,7 +100,7 @@ bool connx_Iterator_next_batch(connx_Iterator* iterator, int32_t batch) {
     if (iterator->idx < iterator->size) {
         return true;
     } else {
-        connx_Iterator_init_batch(iterator, batch);
+        connx_Iterator_rewind(iterator, batch);
         return false;
     }
 }
@@ -365,9 +363,7 @@ int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data)
 
 connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slices) {
     connx_Iterator tensor_iter;
-    tensor_iter.ndim = tensor->ndim;
-    tensor_iter.slices = slices;
-    connx_Iterator_init(&tensor_iter);
+    connx_Iterator_init(&tensor_iter, tensor->ndim, slices);
 
     // Make a new tensor
     int32_t sliced_shape[tensor->ndim];
@@ -417,7 +413,7 @@ static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Iterator* tens
 
 static int _connx_Tensor_set_by_slice_batch(connx_Tensor* tensor, connx_Iterator* tensor_iter, connx_Tensor* rhs,
                                             int32_t batch) {
-    connx_Iterator_init_batch(tensor_iter, batch);
+    connx_Iterator_rewind(tensor_iter, batch);
 
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     int32_t rhs_offset = 0;
@@ -448,8 +444,8 @@ static int _connx_Tensor_set_by_slice2(connx_Tensor* tensor, connx_Iterator* ten
 
 static int _connx_Tensor_set_by_slice_batch2(connx_Tensor* tensor, connx_Iterator* tensor_iter, connx_Tensor* rhs,
                                              connx_Iterator* rhs_iter, int32_t batch) {
-    connx_Iterator_init_batch(tensor_iter, batch);
-    connx_Iterator_init_batch(rhs_iter, batch);
+    connx_Iterator_rewind(tensor_iter, batch);
+    connx_Iterator_rewind(rhs_iter, batch);
 
     uint32_t data_size = connx_DataType_size(tensor->dtype);
 
@@ -464,14 +460,10 @@ static int _connx_Tensor_set_by_slice_batch2(connx_Tensor* tensor, connx_Iterato
 
 int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs, connx_Slice* rhs_slices) {
     connx_Iterator tensor_iter;
-    tensor_iter.ndim = tensor->ndim;
-    tensor_iter.slices = slices;
-    connx_Iterator_init(&tensor_iter);
+    connx_Iterator_init(&tensor_iter, tensor->ndim, slices);
 
     connx_Iterator rhs_iter;
-    rhs_iter.ndim = rhs != NULL ? rhs->ndim : 0;
-    rhs_iter.slices = rhs_slices;
-    connx_Iterator_init(&rhs_iter);
+    connx_Iterator_init(&rhs_iter, rhs != NULL ? rhs->ndim : 0, rhs_slices);
 
     int32_t tensor_batch = connx_Iterator_get_batch_size(&tensor_iter, tensor->shape);
     int32_t rhs_batch = rhs_slices != NULL ? connx_Iterator_get_batch_size(&rhs_iter, rhs->shape)

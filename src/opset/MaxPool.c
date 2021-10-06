@@ -151,8 +151,6 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
         }
     }
 
-    connx_Slice slices[X->ndim];
-
     int32_t units[2 + feature_dim]; // batch_unit, channel_unit, feature units
 
     units[X->ndim - 1] = 1;
@@ -164,6 +162,8 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
     int32_t batch_count = X->shape[0];
     int32_t channel_count = X->shape[1];
 
+    connx_Slice x_patch_slices[X->ndim];
+
     switch (X->dtype) {
         TEMPLATE_START(UINT8, UINT16, FLOAT32, FLOAT64)
 #undef TEMPLATE_DTYPE
@@ -174,21 +174,19 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
         TEMPLATE_TYPE* Y_array = (TEMPLATE_TYPE*)Y->buffer;
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
+            connx_Slice_set(&x_patch_slices[0], batch, batch + 1, 1);
+
             for (int32_t channel = 0; channel < channel_count; channel++) {
+                connx_Slice_set(&x_patch_slices[1], channel, channel + 1, 1);
+
                 // x_iter
                 connx_Slice x_slices[feature_dim];
-                connx_Iterator x_iter;
-                x_iter.ndim = feature_dim;
-                x_iter.slices = x_slices;
-
                 for (int32_t i = 0; i < feature_dim; i++) {
-                    connx_Slice_init(&x_slices[i], -pads[i], -pads[i] + output_shape[i] * strides[i], strides[i]);
+                    connx_Slice_set(&x_slices[i], -pads[i], -pads[i] + output_shape[i] * strides[i], strides[i]);
                 }
 
-                connx_Iterator_init(&x_iter);
-
-                connx_Slice_init(&slices[0], batch, batch + 1, 1);
-                connx_Slice_init(&slices[1], channel, channel + 1, 1);
+                connx_Iterator x_iter;
+                connx_Iterator_init(&x_iter, feature_dim, x_slices);
 
                 while (connx_Iterator_next(&x_iter)) {
                     TEMPLATE_TYPE y = 0;
@@ -203,14 +201,14 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                         int32_t x_start = x_idx < 0 ? 0 : x_idx;
                         int32_t end = x_idx + new_kernel_shape[i];
                         int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
-                        connx_Slice_init(&slices[i + 2], x_start, x_end, dilations[i]);
+                        connx_Slice_set(&x_patch_slices[i + 2], x_start, x_end, dilations[i]);
 
                         int32_t x_padded_start = x_idx < 0 ? -x_idx : 0;
                         k_idx[i] = x_padded_start;
                     }
 
                     // Get patch of X[batch, channel]
-                    connx_Tensor* x_patch = connx_Tensor_get_by_slice(X, slices);
+                    connx_Tensor* x_patch = connx_Tensor_get_by_slice(X, x_patch_slices);
                     int32_t tmp_size = connx_Int32_product(feature_dim, x_patch->shape + 2);
                     int32_t kernel_offset = connx_TEMPLATE_NAME_argmax(tmp_size, &y, x_patch->buffer);
 
