@@ -8,6 +8,8 @@ import numpy as np
 from run import run, read_tensor
 
 
+np.set_printoptions(suppress=True, linewidth=160, threshold=sys.maxsize)
+
 if len(sys.argv) < 3:
     print('Usage: {} [connx path] [connx home path] [[test case] ...]'.format(sys.argv[0]))
     sys.exit(0)
