@@ -2,7 +2,10 @@
 
 import sys
 from run import read_tensor
+import numpy as np
 
+
+np.set_printoptions(suppress=True, linewidth=160, threshold=sys.maxsize)
 
 if len(sys.argv) < 2:
     print('Usage: {} [data file]'.format(sys.argv[0]))
@@ -10,4 +13,5 @@ if len(sys.argv) < 2:
 
 with open(sys.argv[1], 'rb') as io:
     tensor = read_tensor(io)
+    print(tensor.shape)
     print(tensor)
