@@ -11,13 +11,16 @@ if len(sys.argv) < 2:
 
 locale.setlocale(locale.LC_ALL, '')
 
-DATA_PATH = sys.argv[1]
-input_data = None
-with open(DATA_PATH, 'rb') as io:
-    input_tensor = read_tensor(io).astype(np.uint8)
+with open(sys.argv[1], 'rb') as io:
+    input_tensor = read_tensor(io)
+    input_tensor = input_tensor.astype(np.uint8)
+    print(input_tensor.shape)
+    print(np.min(input_tensor[0, 0]), np.max(input_tensor[0, 0]))
+    print(np.min(input_tensor[0, 1]), np.max(input_tensor[0, 1]))
+    print(np.min(input_tensor[0, 2]), np.max(input_tensor[0, 2]))
     b, c, h, w = input_tensor.shape
 
-    img = input_tensor[0].reshape((h, w, c))
+    img = input_tensor[0, 0].reshape((h, w, 1))
 
 
 if img is not None:
