@@ -396,7 +396,8 @@ int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_T
 
     int32_t tensor_batch = connx_Iterator_get_batch_size(&tensor_iter, tensor->shape);
     int32_t rhs_batch = connx_Iterator_get_batch_size(&rhs_iter, rhs->shape);
-    int32_t batch = tensor_batch < rhs_batch ? tensor_batch : rhs_batch; // TODO: Check batch must multiples of bigger batch
+    // TODO: Check batch must multiples of bigger batch
+    int32_t batch = tensor_batch < rhs_batch ? tensor_batch : rhs_batch;
 
     connx_Iterator_rewind(&tensor_iter, batch);
     connx_Iterator_rewind(&rhs_iter, batch);
