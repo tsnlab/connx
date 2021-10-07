@@ -188,7 +188,7 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                 connx_Iterator x_iter;
                 connx_Iterator_init(&x_iter, feature_dim, x_slices);
 
-                while (connx_Iterator_next(&x_iter)) {
+                while (connx_Iterator_next(&x_iter, 1)) {
                     TEMPLATE_TYPE y = 0;
                     int64_t argmax_idx = -1;
                     int32_t k_idx[feature_dim];

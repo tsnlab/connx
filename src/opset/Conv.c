@@ -50,7 +50,7 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
     connx_Iterator w_iter;
     connx_Iterator_init(&w_iter, W->ndim, w_slices);
-    connx_Iterator_next(&w_iter);
+    connx_Iterator_next(&w_iter, 1);
 
     int32_t data_size = connx_DataType_size(TEMPLATE_DTYPE);
     int32_t w_offset = connx_Iterator_offset(&w_iter, W->shape) * data_size;
@@ -64,7 +64,7 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
 
     TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
 
-    while (connx_Iterator_next(x_iter)) {
+    while (connx_Iterator_next(x_iter, 1)) {
         TEMPLATE_TYPE y = 0;
 
         // Clear x patch

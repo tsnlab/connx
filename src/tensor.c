@@ -83,18 +83,7 @@ void connx_Iterator_rewind(connx_Iterator* iterator, int32_t batch) {
     iterator->idx = -batch;
 }
 
-bool connx_Iterator_next(connx_Iterator* iterator) {
-    iterator->idx++;
-
-    if (iterator->idx < iterator->size) {
-        return true;
-    } else {
-        connx_Iterator_rewind(iterator, 1);
-        return false;
-    }
-}
-
-bool connx_Iterator_next_batch(connx_Iterator* iterator, int32_t batch) {
+bool connx_Iterator_next(connx_Iterator* iterator, int32_t batch) {
     iterator->idx += batch;
 
     if (iterator->idx < iterator->size) {
@@ -389,7 +378,7 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
     int32_t sliced_offset = 0;
     uint32_t data_size = connx_DataType_size(tensor->dtype);
 
-    while (connx_Iterator_next(&tensor_iter)) {
+    while (connx_Iterator_next(&tensor_iter, 1)) {
         int32_t d_offset = connx_Iterator_offset(&tensor_iter, tensor->shape);
         memcpy(sliced->buffer + sliced_offset * data_size, tensor->buffer + d_offset * data_size, data_size);
         sliced_offset++;
@@ -402,7 +391,7 @@ static int _connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Iterator* tens
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     int32_t rhs_offset = 0;
 
-    while (connx_Iterator_next(tensor_iter)) {
+    while (connx_Iterator_next(tensor_iter, 1)) {
         int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
         rhs_offset++;
@@ -418,7 +407,7 @@ static int _connx_Tensor_set_by_slice_batch(connx_Tensor* tensor, connx_Iterator
     uint32_t data_size = connx_DataType_size(tensor->dtype);
     int32_t rhs_offset = 0;
 
-    while (connx_Iterator_next_batch(tensor_iter, batch)) {
+    while (connx_Iterator_next(tensor_iter, batch)) {
         int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
 
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, batch * data_size);
@@ -433,7 +422,7 @@ static int _connx_Tensor_set_by_slice2(connx_Tensor* tensor, connx_Iterator* ten
 
     uint32_t data_size = connx_DataType_size(tensor->dtype);
 
-    while (connx_Iterator_next(tensor_iter) && connx_Iterator_next(rhs_iter)) {
+    while (connx_Iterator_next(tensor_iter, 1) && connx_Iterator_next(rhs_iter, 1)) {
         int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
         int32_t rhs_offset = connx_Iterator_offset(rhs_iter, rhs->shape);
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, data_size);
@@ -449,7 +438,7 @@ static int _connx_Tensor_set_by_slice_batch2(connx_Tensor* tensor, connx_Iterato
 
     uint32_t data_size = connx_DataType_size(tensor->dtype);
 
-    while (connx_Iterator_next_batch(tensor_iter, batch) && connx_Iterator_next_batch(rhs_iter, batch)) {
+    while (connx_Iterator_next(tensor_iter, batch) && connx_Iterator_next(rhs_iter, batch)) {
         int32_t tensor_offset = connx_Iterator_offset(tensor_iter, tensor->shape);
         int32_t rhs_offset = connx_Iterator_offset(rhs_iter, rhs->shape);
         memcpy(tensor->buffer + tensor_offset * data_size, rhs->buffer + rhs_offset * data_size, batch * data_size);

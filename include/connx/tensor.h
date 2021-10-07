@@ -64,18 +64,10 @@ void connx_Iterator_rewind(connx_Iterator* iterator, int32_t batch);
  * Move iterator cursor to next element.
  *
  * @param iterator iterator for a tensor
- * @return true if there is a next element, or false
- */
-bool connx_Iterator_next(connx_Iterator* iterator);
-/**
- * Move iterator cursor to next number of batch elements.
- * Batch size MUST equals or less than maximum batch size. @seeAlso connx_Iterator_get_batch_size
- *
- * @param iterator iterator for a tensor
  * @param batch batch size
  * @return true if there is a next element, or false
  */
-bool connx_Iterator_next_batch(connx_Iterator* iterator, int32_t batch);
+bool connx_Iterator_next(connx_Iterator* iterator, int32_t batch);
 /**
  * Get offset of data from linear array.
  *
