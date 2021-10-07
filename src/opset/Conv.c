@@ -35,68 +35,77 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
     int32_t feature_dim = X->ndim - 2;
     int32_t* feature_shape = X->shape + 2;
 
-    int32_t kernel_dim = W->ndim - 2;
     int32_t* kernel_shape = W->shape + 2;
-    int32_t kernel_size = connx_Int32_product(kernel_dim, kernel_shape);
 
-    // Calculate weight offset
-    connx_Slice w_slices[W->ndim];
-    connx_Slice_set(&w_slices[0], feature_map, feature_map + 1, 1);
-    connx_Slice_set(&w_slices[1], w_channel, w_channel + 1, 1);
+    // Calculate X_flatten, W_flatten, Y_flatten
+    int32_t X_channel_unit = connx_Int32_product(X->ndim - 2, X->shape + 2);
+    int32_t X_batch_unit = X->shape[1] * X_channel_unit;
+    TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer + batch * X_batch_unit + x_channel * X_channel_unit;
 
-    for (int32_t i = 0; i < kernel_dim; i++) {
-        connx_Slice_set(&w_slices[2 + i], 0, kernel_shape[i], 1);
-    }
-
-    connx_Iterator w_iter;
-    connx_Iterator_init(&w_iter, W->ndim, w_slices);
-    connx_Iterator_next(&w_iter, 1);
-
-    int32_t data_size = connx_DataType_size(TEMPLATE_DTYPE);
-    int32_t w_offset = connx_Iterator_offset(&w_iter, W->shape) * data_size;
-
-    // Make slice of X(x = X[batch, x_channel])
-    connx_Slice x_slices[X->ndim];
-    connx_Slice_set(&x_slices[0], batch, batch + 1, 1);
-    connx_Slice_set(&x_slices[1], x_channel, x_channel + 1, 1);
-
-    connx_Tensor* x_patch = connx_Tensor_alloc(X->dtype, kernel_dim, kernel_shape);
+    int32_t W_channel_unit = connx_Int32_product(W->ndim - 2, W->shape + 2);
+    int32_t W_feature_unit = W->shape[1] * W_channel_unit;
+    TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer + feature_map * W_feature_unit + w_channel * W_channel_unit;
 
     TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
 
     while (connx_Iterator_next(x_iter, 1)) {
         TEMPLATE_TYPE y = 0;
 
-        // Clear x patch
-        bzero(x_patch->buffer, x_patch->size);
-
-        // Make a slice for copying patch of X[batch, channel] to x_patch
+        // Calculate x_patch_slices and w_slices
         connx_Slice x_patch_slices[feature_dim];
+        connx_Slice w_slices[feature_dim];
+
         int32_t x_idxs[feature_dim];
         connx_Iterator_indices(x_iter, x_idxs);
-        for (int32_t i = 0; i < feature_dim; i++) {
-            int32_t x_idx = x_idxs[i];
-            int32_t x_start = x_idx < 0 ? -x_idx % dilations[i] : x_idx;
-            int32_t end = x_idx + (kernel_shape[i] - 1) * dilations[i] + 1;
-            int32_t x_end = feature_shape[i] < end ? feature_shape[i] : end;
-            connx_Slice_set(&x_slices[i + 2], x_start, x_end, dilations[i]);
 
-            int32_t x_patch_start = x_idx < 0 ? -x_idx : 0;
-            int32_t x_patch_end = x_patch_start + (x_end - x_start + dilations[i] - 1) / dilations[i];
-            connx_Slice_set(&x_patch_slices[i], x_patch_start, x_patch_end, 1);
+        for (int32_t i = 0; i < feature_dim; i++) {
+            int32_t x_patch_start = x_idxs[i];
+            int32_t x_patch_end = x_idxs[i] + kernel_shape[i] * dilations[i];
+            int32_t x_patch_step = dilations[i];
+
+            int32_t w_start = 0;
+            int32_t w_end = kernel_shape[i];
+            int32_t w_step = 1;
+
+            if (x_patch_start < 0) {
+                x_patch_start = (x_idxs[i] + 2 * dilations[i]) % dilations[i]; // WARN: x_idxs[i] + 2 * dilations[i] >= 0
+                w_start += (x_patch_start - x_idxs[i]) / dilations[i];
+            }
+
+            if (x_patch_end > feature_shape[i]) {
+                int32_t end = x_patch_end;
+                x_patch_end = feature_shape[i];
+                w_end -= (end - x_patch_end) / dilations[i];
+            }
+
+            connx_Slice_set(&x_patch_slices[i], x_patch_start, x_patch_end, x_patch_step);
+            connx_Slice_set(&w_slices[i], w_start, w_end, w_step);
         }
 
-        // Get slice of X. X[tuple(x_slices)]. x_patch[x_patch_slices] = X[tuple(x_slices)]
-        connx_Tensor_set_by_slice(x_patch, x_patch_slices, X, x_slices);
+        // Convolution by iteration
+        connx_Iterator x_patch_iter;
+        connx_Iterator_init(&x_patch_iter, feature_dim, x_patch_slices);
 
-        // Convolute
-        y = connx_TEMPLATE_NAME_mul_and_sum(kernel_size, x_patch->buffer, W->buffer + w_offset);
+        connx_Iterator w_iter;
+        connx_Iterator_init(&w_iter, feature_dim, w_slices);
+
+        int32_t x_patch_batch = connx_Iterator_get_batch_size(&x_patch_iter, feature_shape);
+        int32_t w_batch = connx_Iterator_get_batch_size(&w_iter, kernel_shape);
+        int32_t mini_batch = x_patch_batch < w_batch ? x_patch_batch : w_batch;
+
+        connx_Iterator_rewind(&x_patch_iter, mini_batch);
+        connx_Iterator_rewind(&w_iter, mini_batch);
+
+        while (connx_Iterator_next(&x_patch_iter, mini_batch) && connx_Iterator_next(&w_iter, mini_batch)) {
+            int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
+            int32_t w_offset = connx_Iterator_offset(&w_iter, kernel_shape);
+
+            y += connx_TEMPLATE_NAME_mul_and_sum(mini_batch, (TEMPLATE_TYPE*)X_flatten + x_patch_offset, (TEMPLATE_TYPE*)W_flatten + w_offset);
+        }
 
         Y_flatten[y_idx] += y;
         y_idx++;
     }
-
-    connx_Tensor_unref(x_patch);
 }
 TEMPLATE_END()
 
