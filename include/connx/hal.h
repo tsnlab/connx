@@ -66,4 +66,8 @@ void connx_error(const char* format, ...);
 void connx_Iterator_dump(int32_t* iterator);
 void connx_Tensor_dump(struct _connx_Tensor* tensor);
 
+void connx_watch_start(int32_t idx);
+void connx_watch_stop(int32_t idx);
+void connx_watch_dump();
+
 #endif /* __CONNX_HAL_H__ */

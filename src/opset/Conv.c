@@ -17,7 +17,6 @@
  */
 #include <math.h>
 #include <string.h>
-#include <strings.h> // bzero
 
 #include <connx/accel.h>
 #include <connx/connx.h>
@@ -68,7 +67,8 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
             int32_t w_step = 1;
 
             if (x_patch_start < 0) {
-                x_patch_start = (x_idxs[i] + 2 * dilations[i]) % dilations[i]; // WARN: x_idxs[i] + 2 * dilations[i] >= 0
+                // WARN: x_idxs[i] + 2 * dilations[i] >= 0
+                x_patch_start = (x_idxs[i] + 2 * dilations[i]) % dilations[i];
                 w_start += (x_patch_start - x_idxs[i]) / dilations[i];
             }
 
@@ -100,7 +100,8 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
             int32_t w_offset = connx_Iterator_offset(&w_iter, kernel_shape);
 
-            y += connx_TEMPLATE_NAME_mul_and_sum(mini_batch, (TEMPLATE_TYPE*)X_flatten + x_patch_offset, (TEMPLATE_TYPE*)W_flatten + w_offset);
+            y += connx_TEMPLATE_NAME_mul_and_sum(mini_batch, (TEMPLATE_TYPE*)X_flatten + x_patch_offset,
+                                                 (TEMPLATE_TYPE*)W_flatten + w_offset);
         }
 
         Y_flatten[y_idx] += y;
@@ -164,7 +165,6 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 
     // output_spatial_shape
     int32_t output_shape[feature_dim];
-    bzero(output_shape, sizeof(int32_t) * feature_dim);
 
     if (strcmp(auto_pad, "SAME_UPPER") == 0) {
         for (int i = 0; i < feature_dim; i++) {

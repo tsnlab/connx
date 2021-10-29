@@ -290,6 +290,9 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
         for (int i = 0; i < input_count; i++) {
             connx_Tensor_unref_child(inputs[i]);
         }
+
+        printf("\n");
+        connx_watch_dump();
     } else {
         ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
         if (ret != CONNX_OK) {

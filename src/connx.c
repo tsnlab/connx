@@ -15,12 +15,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#define _POSIX_C_SOURCE 199309L // clock_gettime
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h> // clock_gettime
 
 #include <connx/accel.h>
 #include <connx/connx.h>
@@ -40,6 +42,10 @@ int connx_version_minor = CONNX_VERSION_MINOR;
 int connx_version_micro = CONNX_VERSION_MICRO;
 char* connx_version_commit = CONNX_VERSION_COMMIT;
 char* connx_version = CONNX_VERSION;
+
+#define CONNX_WATCH_COUNT 20
+static uint64_t _connx_watch_start[CONNX_WATCH_COUNT];
+static uint64_t _connx_watch[CONNX_WATCH_COUNT];
 
 static char* _strdup(char* str) {
     int len = strlen(str);
@@ -612,4 +618,29 @@ void connx_Graph_set(connx_Graph* graph, uint32_t id, connx_Tensor* tensor) {
     }
 
     graph->value_infos[id] = tensor;
+}
+
+static uint64_t get_time() {
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+
+    return time.tv_sec * 1000000000ull + time.tv_nsec;
+}
+
+void connx_watch_start(int32_t idx) {
+    if (idx >= 0 && idx < CONNX_WATCH_COUNT) {
+        _connx_watch_start[idx] = get_time();
+    }
+}
+
+void connx_watch_stop(int32_t idx) {
+    if (idx >= 0 && idx < CONNX_WATCH_COUNT) {
+        _connx_watch[idx] += get_time() - _connx_watch_start[idx];
+    }
+}
+
+void connx_watch_dump() {
+    for (int32_t i = 0; i < CONNX_WATCH_COUNT; i++) {
+        fprintf(stderr, "Watch[%d] = %lu\n", i, _connx_watch[i]);
+    }
 }
