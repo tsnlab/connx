@@ -28,16 +28,9 @@ TEMPLATE_START(FLOAT32, FLOAT64)
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_add connx_Float32_add
-static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, connx_Tensor* X, int32_t feature_dim, int32_t* feature_shape, connx_Iterator* x_iter,
-                                connx_Tensor* W, int32_t* kernel_shape, int32_t batch, int32_t x_channel, int32_t w_channel,
-                                int32_t feature_map, int32_t* dilations) {
+static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, TEMPLATE_TYPE* X_flatten, int32_t feature_dim, int32_t* feature_shape, connx_Iterator* x_iter, connx_Tensor* W, int32_t* kernel_shape, int32_t w_channel, int32_t feature_map, int32_t* dilations) {
 
     //printf("batch: %d, x_channel: %d, w_channel: %d, feature_map: %d\n", batch, x_channel, w_channel, feature_map);
-    // Calculate X_flatten, W_flatten, Y_flatten
-    int32_t X_channel_unit = connx_Int32_product(X->ndim - 2, X->shape + 2);
-    int32_t X_batch_unit = X->shape[1] * X_channel_unit;
-    TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer + batch * X_batch_unit + x_channel * X_channel_unit;
-
     int32_t W_channel_unit = connx_Int32_product(W->ndim - 2, W->shape + 2);
     int32_t W_feature_unit = W->shape[1] * W_channel_unit;
     TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer + feature_map * W_feature_unit + w_channel * W_channel_unit;
@@ -237,6 +230,7 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 #define connx_TEMPLATE_NAME_add connx_Float32_add
 #define connx_TEMPLATE_NAME_broadcast connx_Float32_broadcast
     case TEMPLATE_DTYPE: {
+        TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer;
         TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
         TEMPLATE_TYPE* B_flatten = NULL;
         if (B != NULL) {
@@ -247,13 +241,15 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
         int32_t channel_count = W->shape[1];
         int32_t feature_group = W->shape[0] / group;
 
+        int32_t X_unit = connx_Int32_product(feature_dim, feature_shape);
+        int32_t X_batch_unit = X->shape[1] * X_unit;
         int32_t y_unit = connx_Int32_product(feature_dim, output_shape);
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
             for (int32_t g = 0; g < group; g++) {
                 for (int32_t feature_map = g * feature_group; feature_map < (g + 1) * feature_group; feature_map++) {
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y_flatten, X, feature_dim, feature_shape, &x_iter, W, kernel_shape, batch, g * channel_count + channel, channel, feature_map, dilations);
+                        _conv_TEMPLATE_NAME(Y_flatten, X_flatten + (g * channel_count + channel) * X_unit, feature_dim, feature_shape, &x_iter, W, kernel_shape, channel, feature_map, dilations);
                     }
                     //printf("\n");
 
@@ -266,6 +262,8 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
                     Y_flatten += y_unit;
                 }
             }
+
+            X_flatten += X_batch_unit;
         }
 
         break;
