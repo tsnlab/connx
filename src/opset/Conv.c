@@ -230,7 +230,6 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
         if (B != NULL) {
             B_flatten = (TEMPLATE_TYPE*)B->buffer;
         }
-        TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer;
 
         int32_t batch_count = X->shape[0];
         int32_t channel_count = W->shape[1];
@@ -242,10 +241,12 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
         int32_t W_feature_unit = W->shape[1] * W_unit;
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
+            TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer;
+
             for (int32_t g = 0, feature_map = 0; g < group; g++) {
                 for (int32_t f = 0; f < feature_group; f++, feature_map++) {
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape, &x_iter, W_flatten + feature_map * W_feature_unit + channel * W_unit, kernel_shape, dilations);
+                        _conv_TEMPLATE_NAME(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape, &x_iter, W_flatten + channel * W_unit, kernel_shape, dilations);
                     }
 
                     if (B_flatten != NULL) {
@@ -255,6 +256,7 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
                     }
 
                     Y_flatten += Y_unit;
+                    W_flatten += W_feature_unit;
                 }
 
                 X_flatten += channel_count * X_unit;
