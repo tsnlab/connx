@@ -27,7 +27,9 @@ TEMPLATE_START(FLOAT32, FLOAT64)
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_add connx_Float32_add
-static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, TEMPLATE_TYPE* X_flatten, int32_t feature_dim, int32_t* feature_shape, connx_Iterator* x_iter, TEMPLATE_TYPE* W_flatten, int32_t* kernel_shape, int32_t* dilations) {
+static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, TEMPLATE_TYPE* X_flatten, int32_t feature_dim,
+                                int32_t* feature_shape, connx_Iterator* x_iter, TEMPLATE_TYPE* W_flatten,
+                                int32_t* kernel_shape, int32_t* dilations) {
 
     while (connx_Iterator_next(x_iter, 1)) {
         TEMPLATE_TYPE y = 0;
@@ -246,7 +248,8 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
             for (int32_t g = 0, feature_map = 0; g < group; g++) {
                 for (int32_t f = 0; f < feature_group; f++, feature_map++) {
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape, &x_iter, W_flatten + channel * W_unit, kernel_shape, dilations);
+                        _conv_TEMPLATE_NAME(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape,
+                                            &x_iter, W_flatten + channel * W_unit, kernel_shape, dilations);
                     }
 
                     if (B_flatten != NULL) {

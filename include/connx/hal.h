@@ -58,7 +58,7 @@ void connx_Lock_unlock(connx_Lock* lock);
 
 // Thread pool
 int32_t connx_Thread_alloc(int32_t count, uint32_t* thread_ids);
-void connx_Thread_run(uint32_t thread_id, void*(*run)(void*), void* context);
+void connx_Thread_run(uint32_t thread_id, void* (*run)(void*), void* context);
 void connx_Thread_join(int32_t count, uint32_t* thread_ids);
 void connx_Thread_free(int32_t count, uint32_t* thread_ids);
 

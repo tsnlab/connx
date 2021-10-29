@@ -292,7 +292,7 @@ int32_t connx_Thread_alloc(int32_t count, uint32_t* thread_ids) {
     return idx;
 }
 
-void connx_Thread_run(uint32_t thread_id, void*(*run)(void*), void* context) {
+void connx_Thread_run(uint32_t thread_id, void* (*run)(void*), void* context) {
     struct thread* thread = &_threads[thread_id];
     thread->run = run;
     thread->context = context;
