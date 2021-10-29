@@ -25,6 +25,9 @@ HOME = sys.argv[2]
 
 total = 0  # total time consumption
 
+pass_count = 0
+fail_count = 0
+
 for path in Path(HOME + '/test').rglob('*.connx'):
     if len(sys.argv) > 3:
         is_found = False
@@ -58,6 +61,7 @@ for path in Path(HOME + '/test').rglob('*.connx'):
         if len(outputs) != len(output_paths):
             if is_passed:
                 print(f'{FAIL}Failed{END}')
+                fail_count += 1
 
             print('  Number of output count is different: inferenced: {}, reference: {}'
                   .format(len(outputs), len(output_paths)))
@@ -71,6 +75,7 @@ for path in Path(HOME + '/test').rglob('*.connx'):
             if not np.allclose(output, ref, atol=1e-07, rtol=0.001):
                 if is_passed:
                     print(f'{FAIL}Failed{END}')
+                    fail_count += 1
 
                 print('  data of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
@@ -85,5 +90,6 @@ for path in Path(HOME + '/test').rglob('*.connx'):
             dt = end_time - start_time
             total += dt
             print(f'{dt * 1000:n} ms {PASS}Passed{END}')
+            pass_count += 1
 
-print(f'Time: {total * 1000:n} ms')
+print(f'Time: {total * 1000:n} ms, PASS: {pass_count}, {FAIL if fail_count > 0 else ""}FAIL: {fail_count}{END if fail_count > 0 else ""}')
