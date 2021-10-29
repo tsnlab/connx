@@ -21,16 +21,18 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+#include <stdio.h>
 TEMPLATE_START(FLOAT32, FLOAT64)
 #undef TEMPLATE_DTYPE
 #undef TEMPLATE_TYPE
 #define TEMPLATE_DTYPE FLOAT32
 #define TEMPLATE_TYPE float32_t
 #define connx_TEMPLATE_NAME_add connx_Float32_add
-static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X, connx_Iterator* x_iter,
+static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, connx_Tensor* X, connx_Iterator* x_iter,
                                 connx_Tensor* W, int32_t batch, int32_t x_channel, int32_t w_channel,
                                 int32_t feature_map, int32_t* dilations) {
 
+    //printf("batch: %d, x_channel: %d, w_channel: %d, feature_map: %d\n", batch, x_channel, w_channel, feature_map);
     int32_t feature_dim = X->ndim - 2;
     int32_t* feature_shape = X->shape + 2;
 
@@ -44,8 +46,6 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
     int32_t W_channel_unit = connx_Int32_product(W->ndim - 2, W->shape + 2);
     int32_t W_feature_unit = W->shape[1] * W_channel_unit;
     TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer + feature_map * W_feature_unit + w_channel * W_channel_unit;
-
-    TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
 
     while (connx_Iterator_next(x_iter, 1)) {
         TEMPLATE_TYPE y = 0;
@@ -104,10 +104,32 @@ static void _conv_TEMPLATE_NAME(connx_Tensor* Y, int32_t y_idx, connx_Tensor* X,
                                                  (TEMPLATE_TYPE*)W_flatten + w_offset);
         }
 
-        Y_flatten[y_idx] += y;
-        y_idx++;
+        *Y_flatten++ += y;
     }
 }
+
+struct Parameter_TEMPLATE_NAME {
+    int32_t batch;
+    int32_t g;
+    int32_t feature_map;
+    int32_t batch_count;
+    int32_t channel_count;
+    int32_t feature_group;
+    int32_t y_idx;
+    int32_t y_unit;
+    connx_Tensor* Y;
+    connx_Tensor* X;
+    TEMPLATE_TYPE* Y_flatten;
+    TEMPLATE_TYPE* B_flatten;
+    connx_Iterator x_iter;
+};
+
+/*
+static void* run_TEMPLATE_NAME(void* context) {
+    return NULL;
+}
+*/
+
 TEMPLATE_END()
 
 int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs, uint32_t input_count,
@@ -143,7 +165,6 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
     }
 
     int32_t* kernel_shape = _kernel_shape->array;
-    int32_t kernel_dim = _kernel_shape->count;
 
     int32_t pads[feature_dim * 2];
     if (_pads->count == 0) {
@@ -212,15 +233,6 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
     connx_Iterator x_iter;
     connx_Iterator_init(&x_iter, feature_dim, x_slices);
 
-    // init w_iter
-    connx_Slice w_slices[kernel_dim];
-    for (int32_t i = 0; i < kernel_dim; i++) {
-        connx_Slice_set(&w_slices[i], 0, kernel_shape[i], 1);
-    }
-
-    connx_Iterator w_iter;
-    connx_Iterator_init(&w_iter, kernel_dim, w_slices);
-
     switch (X->dtype) {
         TEMPLATE_START(FLOAT32, FLOAT64)
 #undef TEMPLATE_DTYPE
@@ -240,24 +252,24 @@ int Conv(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
         int32_t channel_count = W->shape[1];
         int32_t feature_group = W->shape[0] / group;
 
-        int32_t y_idx = 0;
         int32_t y_unit = connx_Int32_product(feature_dim, output_shape);
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
             for (int32_t g = 0; g < group; g++) {
                 for (int32_t feature_map = g * feature_group; feature_map < (g + 1) * feature_group; feature_map++) {
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y, y_idx, X, &x_iter, W, batch, g * channel_count + channel, channel,
+                        _conv_TEMPLATE_NAME(Y_flatten, X, &x_iter, W, batch, g * channel_count + channel, channel,
                                             feature_map, dilations);
                     }
+                    //printf("\n");
 
                     if (B_flatten != NULL) {
                         TEMPLATE_TYPE B_array[y_unit];
                         connx_TEMPLATE_NAME_broadcast(y_unit, B_array, 1, B_flatten + feature_map);
-                        connx_TEMPLATE_NAME_add(y_unit, Y_flatten + y_idx, Y_flatten + y_idx, B_array);
+                        connx_TEMPLATE_NAME_add(y_unit, Y_flatten, Y_flatten, B_array);
                     }
 
-                    y_idx += y_unit;
+                    Y_flatten += y_unit;
                 }
             }
         }
