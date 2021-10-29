@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h> // sleep
 
 #include <sys/stat.h>
 
@@ -32,11 +33,66 @@ static char _model_path[128];
 static FILE* _tensorin;
 static FILE* _tensorout;
 
+#define MAX_THREAD_COUNT 16
+
+struct thread {
+    bool is_run;
+    bool is_alloc;
+    bool is_done;
+    pthread_t thread;
+    pthread_mutex_t lock;
+    pthread_cond_t cond;
+    void* (*run)(void*);
+    void* context;
+};
+
+static connx_Lock _threads_lock;
+static struct thread _threads[MAX_THREAD_COUNT];
+
+static void* _thread_run(void* context) {
+    struct thread* thread = context;
+
+    while (thread->is_run) {
+        pthread_mutex_lock(&thread->lock);
+        pthread_cond_wait(&thread->cond, &thread->lock);
+        pthread_mutex_unlock(&thread->lock);
+
+        if (thread->run != NULL) {
+            thread->run(thread->context);
+            thread->is_done = true;
+        }
+    }
+
+    return NULL;
+}
+
 // Lifecycle
 void connx_init() {
+    connx_Lock_init(&_threads_lock);
+
+    for (int32_t i = 0; i < MAX_THREAD_COUNT; i++) {
+        _threads[i].is_run = true;
+        _threads[i].is_alloc = false;
+        _threads[i].is_done = false;
+        pthread_mutex_init(&_threads[i].lock, NULL);
+        pthread_cond_init(&_threads[i].cond, NULL);
+        _threads[i].run = NULL;
+        _threads[i].context = NULL;
+
+        pthread_create(&_threads[i].thread, NULL, _thread_run, &_threads[i]);
+    }
 }
 
 void connx_destroy() {
+    for (int32_t i = 0; i < MAX_THREAD_COUNT; i++) {
+        struct thread* thread = &_threads[i];
+        thread->is_run = false;
+
+        pthread_mutex_lock(&thread->lock);
+        pthread_cond_signal(&thread->cond);
+        pthread_mutex_unlock(&thread->lock);
+    }
+
     if (_tensorin != NULL) {
         fclose(_tensorin);
     }
@@ -219,14 +275,50 @@ void connx_Lock_unlock(connx_Lock* lock) {
 }
 
 // Thread pool
-uint32_t connx_Thread_alloc(__attribute__((unused)) uint32_t count, __attribute__((unused)) connx_Thread* threads) {
-    return 0;
+int32_t connx_Thread_alloc(int32_t count, uint32_t* thread_ids) {
+    int32_t idx = 0;
+
+    pthread_mutex_lock(&_threads_lock);
+
+    for (int32_t i = 0; i < MAX_THREAD_COUNT && idx < count; i++) {
+        if (!_threads[i].is_alloc) {
+            thread_ids[idx++] = i;
+            _threads[i].is_alloc = true;
+        }
+    }
+
+    pthread_mutex_unlock(&_threads_lock);
+
+    return idx;
 }
 
-void connx_Thread_free(__attribute__((unused)) uint32_t count, __attribute__((unused)) connx_Thread* threads) {
+void connx_Thread_run(uint32_t thread_id, void*(*run)(void*), void* context) {
+    struct thread* thread = &_threads[thread_id];
+    thread->run = run;
+    thread->context = context;
+    thread->is_done = false;
+
+    pthread_mutex_lock(&thread->lock);
+    pthread_cond_signal(&thread->cond);
+    pthread_mutex_unlock(&thread->lock);
 }
 
-void connx_Thread_join(__attribute__((unused)) uint32_t count, __attribute__((unused)) connx_Thread* threads) {
+void connx_Thread_join(int32_t count, uint32_t* thread_ids) {
+    for (int32_t i = 0; i < count; i++) {
+        struct thread* thread = &_threads[thread_ids[i]];
+        while (!thread->is_done) {
+            sleep(0);
+        }
+    }
+}
+
+void connx_Thread_free(int32_t count, uint32_t* thread_ids) {
+    for (int32_t i = 0; i < count; i++) {
+        struct thread* thread = &_threads[thread_ids[i]];
+        thread->run = NULL;
+        thread->context = NULL;
+        thread->is_alloc = false;
+    }
 }
 
 // error

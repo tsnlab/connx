@@ -57,13 +57,10 @@ void connx_Lock_lock(connx_Lock* lock);
 void connx_Lock_unlock(connx_Lock* lock);
 
 // Thread pool
-#ifdef __linux__
-typedef pthread_t connx_Thread;
-#endif /* __linux__ */
-
-uint32_t connx_Thread_alloc(uint32_t count, connx_Thread* threads);
-void connx_Thread_free(uint32_t count, connx_Thread* threads);
-void connx_Thread_join(uint32_t count, connx_Thread* threads);
+int32_t connx_Thread_alloc(int32_t count, uint32_t* thread_ids);
+void connx_Thread_run(uint32_t thread_id, void*(*run)(void*), void* context);
+void connx_Thread_join(int32_t count, uint32_t* thread_ids);
+void connx_Thread_free(int32_t count, uint32_t* thread_ids);
 
 // debugging message
 struct _connx_Tensor;
