@@ -15,12 +15,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 199309L // clock_gettime
 #include <inttypes.h>
 #include <malloc.h>
+#include <sched.h> // schd_yield
 #include <stdarg.h>
 #include <string.h>
-#include <time.h>
+#include <time.h>   // clock_gettime
 #include <unistd.h> // sleep
 
 #include <sys/stat.h>
@@ -33,12 +34,17 @@ static char _model_path[128];
 static FILE* _tensorin;
 static FILE* _tensorout;
 
+#define CONNX_WATCH_COUNT 20
+
+static uint64_t _connx_watch_start[CONNX_WATCH_COUNT];
+static uint64_t _connx_watch[CONNX_WATCH_COUNT];
+
 #define MAX_THREAD_COUNT 16
 
 struct thread {
-    bool is_run;
+    int32_t id;
+    int status; // 0: started, 1: stopping, 2: stopped
     bool is_alloc;
-    bool is_done;
     pthread_t thread;
     pthread_mutex_t lock;
     pthread_cond_t cond;
@@ -49,48 +55,85 @@ struct thread {
 static connx_Lock _threads_lock;
 static struct thread _threads[MAX_THREAD_COUNT];
 
-static void* _thread_run(void* context) {
+static void* _run(void* context) {
     struct thread* thread = context;
 
-    while (thread->is_run) {
+    while (true) {
         pthread_mutex_lock(&thread->lock);
-        pthread_cond_wait(&thread->cond, &thread->lock);
+
+        if (thread->status != 0) {
+            pthread_mutex_unlock(&thread->lock);
+            break;
+        }
+
+        if (thread->run == NULL) {
+            pthread_cond_wait(&thread->cond, &thread->lock);
+        }
+
         pthread_mutex_unlock(&thread->lock);
 
         if (thread->run != NULL) {
             thread->run(thread->context);
-            thread->is_done = true;
+
+            pthread_mutex_lock(&thread->lock);
+            thread->run = NULL;
+            thread->context = NULL;
+            pthread_mutex_unlock(&thread->lock);
         }
     }
+
+    pthread_mutex_lock(&thread->lock);
+    thread->status = 2;
+    pthread_mutex_unlock(&thread->lock);
 
     return NULL;
 }
 
 // Lifecycle
 void connx_init() {
-    connx_Lock_init(&_threads_lock);
+    pthread_mutex_init(&_threads_lock, NULL);
 
     for (int32_t i = 0; i < MAX_THREAD_COUNT; i++) {
-        _threads[i].is_run = true;
+        _threads[i].id = i;
+        _threads[i].status = 0;
         _threads[i].is_alloc = false;
-        _threads[i].is_done = false;
         pthread_mutex_init(&_threads[i].lock, NULL);
         pthread_cond_init(&_threads[i].cond, NULL);
         _threads[i].run = NULL;
         _threads[i].context = NULL;
 
-        pthread_create(&_threads[i].thread, NULL, _thread_run, &_threads[i]);
+        pthread_create(&_threads[i].thread, NULL, _run, &_threads[i]);
     }
 }
 
 void connx_destroy() {
     for (int32_t i = 0; i < MAX_THREAD_COUNT; i++) {
         struct thread* thread = &_threads[i];
-        thread->is_run = false;
 
         pthread_mutex_lock(&thread->lock);
+        thread->status = 1;
         pthread_cond_signal(&thread->cond);
         pthread_mutex_unlock(&thread->lock);
+    }
+
+    for (int32_t i = 0; i < MAX_THREAD_COUNT; i++) {
+        struct thread* thread = &_threads[i];
+
+        while (true) {
+            pthread_mutex_lock(&thread->lock);
+            if (thread->status != 2) {
+                pthread_cond_signal(&thread->cond);
+                pthread_mutex_unlock(&thread->lock);
+
+                sched_yield();
+            } else {
+                pthread_mutex_unlock(&thread->lock);
+                break;
+            }
+        }
+
+        pthread_cond_destroy(&_threads[i].cond);
+        pthread_mutex_destroy(&_threads[i].lock);
     }
 
     if (_tensorin != NULL) {
@@ -219,11 +262,6 @@ int32_t connx_read(void* buf, int32_t size) {
     while (remain > 0) {
         int len = fread(p, 1, remain, file);
 
-        if (len == 0) {
-            struct timespec time = {0, 10000}; // 10 us
-            nanosleep(&time, &time);
-        }
-
         if (len < 0) {
             fprintf(stderr, "HAL ERROR: Cannot read input data");
             return -1;
@@ -275,7 +313,7 @@ void connx_Lock_unlock(connx_Lock* lock) {
 }
 
 // Thread pool
-int32_t connx_Thread_alloc(int32_t count, uint32_t* thread_ids) {
+static int32_t _thread_alloc(int32_t count, uint32_t* thread_ids) {
     int32_t idx = 0;
 
     pthread_mutex_lock(&_threads_lock);
@@ -292,33 +330,67 @@ int32_t connx_Thread_alloc(int32_t count, uint32_t* thread_ids) {
     return idx;
 }
 
-void connx_Thread_run(uint32_t thread_id, void* (*run)(void*), void* context) {
-    struct thread* thread = &_threads[thread_id];
-    thread->run = run;
-    thread->context = context;
-    thread->is_done = false;
-
-    pthread_mutex_lock(&thread->lock);
-    pthread_cond_signal(&thread->cond);
-    pthread_mutex_unlock(&thread->lock);
-}
-
-void connx_Thread_join(int32_t count, uint32_t* thread_ids) {
+static void _thread_free(int32_t count, uint32_t* thread_ids) {
     for (int32_t i = 0; i < count; i++) {
         struct thread* thread = &_threads[thread_ids[i]];
-        while (!thread->is_done) {
-            sleep(0);
+        while (true) {
+            pthread_mutex_lock(&thread->lock);
+
+            if (thread->run != NULL) {
+                pthread_mutex_unlock(&thread->lock);
+                sched_yield();
+            } else {
+                pthread_mutex_unlock(&thread->lock);
+                break;
+            }
         }
     }
-}
 
-void connx_Thread_free(int32_t count, uint32_t* thread_ids) {
+    pthread_mutex_lock(&_threads_lock);
+
     for (int32_t i = 0; i < count; i++) {
         struct thread* thread = &_threads[thread_ids[i]];
-        thread->run = NULL;
-        thread->context = NULL;
         thread->is_alloc = false;
     }
+
+    pthread_mutex_unlock(&_threads_lock);
+}
+
+void connx_Thread_run_all(void* (*run)(void*), int32_t count, void* contexts, int32_t context_size) {
+#define BATCH_COUNT 16
+    int32_t batch_count = BATCH_COUNT;
+    if (batch_count > count)
+        batch_count = count;
+
+    uint32_t thread_ids[batch_count];
+    int32_t thread_count = _thread_alloc(batch_count, thread_ids);
+
+    for (int32_t work_idx = 0, thread_idx = 0; work_idx < count;) {
+        int32_t thread_id = thread_ids[thread_idx];
+        struct thread* thread = &_threads[thread_id];
+
+        pthread_mutex_lock(&thread->lock);
+        if (thread->run == NULL) {
+            thread->run = run;
+            thread->context = contexts;
+
+            pthread_cond_signal(&thread->cond);
+
+            pthread_mutex_unlock(&thread->lock);
+
+            work_idx++;
+            contexts += context_size;
+        } else {
+            pthread_mutex_unlock(&thread->lock);
+        }
+
+        if (++thread_idx >= thread_count) {
+            thread_idx = 0;
+            sched_yield();
+        }
+    }
+
+    _thread_free(thread_count, thread_ids);
 }
 
 // error
@@ -527,5 +599,42 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     case CONNX_UNDEFINED:
     default:
         fprintf(stderr, "Not implemented yet\n");
+    }
+}
+
+uint64_t connx_time() {
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+
+    return time.tv_sec * 1000000000ull + time.tv_nsec;
+}
+
+void connx_watch_start(int32_t idx) {
+    if (idx >= 0 && idx < CONNX_WATCH_COUNT) {
+        _connx_watch_start[idx] = connx_time();
+    }
+}
+
+void connx_watch_stop(int32_t idx) {
+    if (idx >= 0 && idx < CONNX_WATCH_COUNT) {
+        _connx_watch[idx] += connx_time() - _connx_watch_start[idx];
+    }
+}
+
+void connx_watch_dump() {
+    bool has_dump = false;
+
+    for (int32_t i = 0; i < CONNX_WATCH_COUNT; i++) {
+        if (_connx_watch[i] != 0) {
+            has_dump = true;
+        }
+    }
+
+    if (has_dump) {
+        for (int32_t i = 0; i < CONNX_WATCH_COUNT; i++) {
+            fprintf(stderr, "Watch[%d] = %lu\n", i, _connx_watch[i]);
+        }
+    } else {
+        fprintf(stderr, "Watch: nothing to dump\n");
     }
 }
