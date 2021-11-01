@@ -329,6 +329,8 @@ static int get_file_type(char* path) {
 }
 
 int main(int argc, char** argv) {
+    int32_t ret = CONNX_OK;
+
     connx_init();
 
     if (argc < 2) {
@@ -338,15 +340,13 @@ int main(int argc, char** argv) {
         connx_info("       output - tensor file, fifo or '-' for stdout(without ' mark)\n");
         connx_info("                if output is omitted, tensor will be dump to text\n");
         connx_info("       -p - performance test number of times\n");
-        return 0;
+        goto done;
     }
-
-    int32_t ret = CONNX_OK;
 
     // Load connx model
     ret = connx_set_model(argv[1]);
     if (ret != 0) {
-        return ret;
+        goto done;
     }
 
     // Parse args
@@ -436,7 +436,7 @@ int main(int argc, char** argv) {
     connx_Model model;
     ret = connx_Model_init(&model);
     if (ret != 0) {
-        return ret;
+        goto done;
     }
 
     switch (input_type) {
@@ -450,6 +450,9 @@ int main(int argc, char** argv) {
     }
 
     connx_Model_destroy(&model);
+
+done:
+    connx_destroy();
 
     return ret;
 }
