@@ -60,11 +60,11 @@ for path in Path(HOME + '/test').rglob('*.connx'):
 
         if len(outputs) != len(output_paths):
             if is_passed:
-                print(f'{FAIL}Failed{END}')
+                print(f'{FAIL}Failed{END}', flush=True)
                 fail_count += 1
 
             print('  Number of output count is different: inferenced: {}, reference: {}'
-                  .format(len(outputs), len(output_paths)))
+                  .format(len(outputs), len(output_paths)), flush=True)
 
             is_passed = False
 
@@ -74,14 +74,14 @@ for path in Path(HOME + '/test').rglob('*.connx'):
 
             if not np.allclose(output, ref, atol=1e-07, rtol=0.001):
                 if is_passed:
-                    print(f'{FAIL}Failed{END}')
+                    print(f'{FAIL}Failed{END}', flush=True)
                     fail_count += 1
 
                 print('  data of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
                 print(output)
                 print('  ## Reference tensor')
-                print(ref)
+                print(ref, flush=True)
 
                 is_passed = False
                 continue
@@ -89,7 +89,7 @@ for path in Path(HOME + '/test').rglob('*.connx'):
         if is_passed:
             dt = end_time - start_time
             total += dt
-            print(f'{dt * 1000:n} ms {PASS}Passed{END}')
+            print(f'{dt * 1000:n} ms {PASS}Passed{END}', flush=True)
             pass_count += 1
 
 print(f'Time: {total * 1000:n} ms, '
