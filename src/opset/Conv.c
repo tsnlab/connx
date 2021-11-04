@@ -51,8 +51,7 @@ static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, TEMPLATE_TYPE* X_flatt
             int32_t w_step = 1;
 
             if (x_patch_start < 0) {
-                // WARN: x_idxs[i] + 2 * dilations[i] >= 0
-                x_patch_start = (x_idxs[i] + 2 * dilations[i]) % dilations[i];
+                x_patch_start = (x_idxs[i] + -x_idxs[i] * dilations[i]) % dilations[i];
                 w_start += (x_patch_start - x_idxs[i]) / dilations[i];
             }
 
