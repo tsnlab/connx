@@ -382,7 +382,8 @@ connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slice
 
     while (connx_Iterator_next(&tensor_iter, batch_size)) {
         int32_t d_offset = connx_Iterator_offset(&tensor_iter, tensor->shape);
-        memcpy(sliced->buffer + sliced_offset * data_size, tensor->buffer + d_offset * data_size, data_size * batch_size);
+        memcpy(sliced->buffer + sliced_offset * data_size, tensor->buffer + d_offset * data_size,
+               data_size * batch_size);
         sliced_offset += batch_size;
     }
 

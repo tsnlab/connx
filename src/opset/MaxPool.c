@@ -242,7 +242,8 @@ int MaxPool(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, __attr
                                     tmp_y = X_flatten[x_patch_offset + i];
                                 }
                             }
-                            int32_t tmp_kernel_offset = connx_TEMPLATE_NAME_argmax(x_patch_batch, &tmp_y, X_flatten + x_patch_offset);
+                            int32_t tmp_kernel_offset =
+                                connx_TEMPLATE_NAME_argmax(x_patch_batch, &tmp_y, X_flatten + x_patch_offset);
 
                             if (kernel_offset < 0 || tmp_y > y) {
                                 y = tmp_y;
