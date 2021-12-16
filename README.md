@@ -6,6 +6,7 @@ C implementation of Open Neural Network Exchange Runtime
 
 # Requirements
  * python3         # to run examples and test cases
+ * python3-jinja2  # To render templates
  * cmake >= 3.1
  * ninja-build
 
