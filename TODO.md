@@ -5,6 +5,12 @@
 [X] MaxPool
 [X] Relu
 [X] Reshape
+[X] Sign
+[X] Tan
+[X] Sin
+[X] Sinh
+[X] Cos
+[X] Cosh
 
 [ ] Mobilenet
 [X] Add
@@ -22,14 +28,14 @@
 [X] Exp
 [ ] Gather
 [ ] LeakyRelu
-[ ] Log
+[X] Log
 [X] MaxPool
 [X] Mul
 [X] Reshape
 [ ] Resize
 [ ] Shape
-[ ] Sigmoid
+[X] Sigmoid
 [ ] Slice
 [ ] Split
-[ ] Tanh
+[X] Tanh
 [ ] Transpose
