@@ -1,11 +1,12 @@
+import locale
 import os
 import sys
 import time
-import locale
-from pathlib import Path
 from glob import glob
+from pathlib import Path
+
 import numpy as np
-from run import run, read_tensor
+from run import read_tensor, run
 
 
 np.set_printoptions(suppress=True, linewidth=160, threshold=sys.maxsize)

@@ -1,10 +1,11 @@
-import sys
-import subprocess
 import struct
-import numpy as np
+import subprocess
+import sys
 import threading
-import traceback
 import time
+import traceback
+
+import numpy as np
 
 
 WARN = '\033[93m'

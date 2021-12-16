@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import sys
-import re
 import os
+import re
+import sys
 
 if len(sys.argv) != 3:
     print('Usage: {} [input source] [output source]'.format(sys.argv[0]))
