@@ -5,6 +5,7 @@
 [X] MaxPool
 [X] Relu
 [X] Reshape
+[X] Sign
 
 [ ] Mobilenet
 [X] Add
