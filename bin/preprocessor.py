@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+import io
 import os
 import re
 import sys
+
+import jinja2
 
 if len(sys.argv) != 3:
     print('Usage: {} [input source] [output source]'.format(sys.argv[0]))
@@ -117,11 +120,45 @@ def get_NAME(dtype):
         raise Exception('Not expected dtype')
 
 
+def loop_types(*args):
+    for dtype in args:
+        if is_DTYPE(dtype):
+            yield (dtype, get_TYPE(dtype))
+        else:
+            raise Exception('Not expected dtype')
+
+
+consts = {
+    'UINT8': 'UINT8',
+    'INT8': 'INT8',
+    'UINT16': 'UINT16',
+    'INT16': 'INT16',
+    'UINT32': 'UINT32',
+    'INT32': 'INT32',
+    'UINT64': 'UINT64',
+    'INT64': 'INT64',
+    'FLOAT16': 'FLOAT16',
+    'FLOAT32': 'FLOAT32',
+    'FLOAT64': 'FLOAT64',
+    'STRING': 'STRING',
+    'BOOL': 'BOOL',
+    'COMPLEX64': 'COMPLEX64',
+    'COMPLEX128': 'COMPLEX128',
+    'loop_types': loop_types,
+}
+
 with open(output_source, 'w') as output:
     line_no = 1
     output.write('#line {} "{}"\n'.format(line_no, input_source))
 
-    with open(input_source, 'r') as input:
+    with open(input_source, 'r') as input_orig:
+        input = io.StringIO(
+            jinja2.Template(input_orig.read()).render(
+                input_orig.read(),
+                **consts
+            )
+        )
+
         line = input.readline()
         while line:
             if 'TEMPLATE_START(' in line:
