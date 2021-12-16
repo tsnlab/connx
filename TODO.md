@@ -28,7 +28,7 @@
 [X] Reshape
 [ ] Resize
 [ ] Shape
-[ ] Sigmoid
+[X] Sigmoid
 [ ] Slice
 [ ] Split
 [ ] Tanh
