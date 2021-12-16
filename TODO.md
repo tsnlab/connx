@@ -22,7 +22,7 @@
 [X] Exp
 [ ] Gather
 [ ] LeakyRelu
-[ ] Log
+[X] Log
 [X] MaxPool
 [X] Mul
 [X] Reshape
