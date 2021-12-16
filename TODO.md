@@ -7,6 +7,10 @@
 [X] Reshape
 [X] Sign
 [X] Tan
+[X] Sin
+[X] Sinh
+[X] Cos
+[X] Cosh
 
 [ ] Mobilenet
 [X] Add
