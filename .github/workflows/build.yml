@@ -11,11 +11,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install ubuntu packages to lint
-      run: sudo apt install clang-format-10 flake8
+      run: sudo apt install clang-format-10
     - name: Check C lint
       run: bin/check-clang-format
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: "3.8"
     - name: Check python lint
-      run: flake8
+      uses: py-actions/flake8@v2
 
   build_and_test:
     runs-on: ubuntu-latest
