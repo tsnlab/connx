@@ -1,13 +1,14 @@
-import cv2
-import tkinter
-import sys
-from PIL import Image, ImageTk
-import signal
 import argparse
-import numpy as np
+import signal
+import sys
 import threading
+import tkinter
+
 import __paths
+import cv2
+import numpy as np
 import run
+from PIL import Image, ImageTk
 
 
 __paths.dummy()  # To prevent E402

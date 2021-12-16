@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import sys
-from run import read_tensor
+
 import numpy as np
+from run import read_tensor
 
 
 np.set_printoptions(suppress=True, linewidth=160, threshold=sys.maxsize)
