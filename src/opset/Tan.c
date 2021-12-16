@@ -31,25 +31,18 @@ int Tan(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint3
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* X_array = X->buffer;
-        TEMPLATE_TYPE* Y_array = Y->buffer;
+        // {% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}
+        // {% set tan_func = 'tanf' if DTYPE == FLOAT32 else 'tan' %}
+    case {{ DTYPE }}: {
+        {{TYPE}}* X_array = X->buffer;
+        {{TYPE}}* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
-#if TEMPLATE_DTYPE == FLOAT32
-            Y_array[i] = tanf(X_array[i]);
-#else
-            Y_array[i] = tan(X_array[i]);
-#endif // TEMPLATE_DTYPE == FLOAT32
+            Y_array[i] = {{tan_func}}(X_array[i]);
         }
         break;
     }
-        TEMPLATE_END()
+        // {% endfor %}
     default:
         connx_error("Tan: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

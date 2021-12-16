@@ -31,25 +31,18 @@ int Sin(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint3
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* X_array = X->buffer;
-        TEMPLATE_TYPE* Y_array = Y->buffer;
+        // {% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}
+        // {% set sin_func = 'sinf' if DTYPE == FLOAT32 else 'sin' %}
+    case {{ DTYPE }}: {
+        {{TYPE}}* X_array = X->buffer;
+        {{TYPE}}* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
-#if TEMPLATE_DTYPE == FLOAT32
-            Y_array[i] = sinf(X_array[i]);
-#else
-            Y_array[i] = sin(X_array[i]);
-#endif // TEMPLATE_DTYPE == FLOAT32
+            Y_array[i] = {{sin_func}}(X_array[i]);
         }
         break;
     }
-        TEMPLATE_END()
+        // {% endfor %}
     default:
         connx_error("Sin: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
