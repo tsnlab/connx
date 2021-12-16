@@ -7,8 +7,10 @@ Welcome to CONNX project and very welcome your contirbutions.
 
 # How to add new operator
  1. Implement operator in src/opset directory
- 2. Convert ONNX test case to CONNX using onnx-connx's bin/convert utility
- 3. ports/linux$ ninja test
+ 2. Convert ONNX test case to CONNX using [onnx-connx][]'s bin/convert utility
+ 3. ports/linux$ ninja -C build onnx
+
+[onnx-connx]: https://github.com/semihlab/onnx-connx
 
 # How to contribute code
  1. Pass all the onnx test cases
