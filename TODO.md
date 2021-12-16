@@ -19,7 +19,7 @@
 [ ] Cast
 [ ] Concat
 [X] Conv
-[ ] Exp
+[X] Exp
 [ ] Gather
 [ ] LeakyRelu
 [ ] Log
