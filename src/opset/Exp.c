@@ -31,17 +31,21 @@ int Exp(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint3
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT16, FLOAT32, FLOAT64)
+        TEMPLATE_START(FLOAT32, FLOAT64)
 #undef TEMPLATE_DTYPE
 #undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT16
-#define TEMPLATE_TYPE float16_t
+#define TEMPLATE_DTYPE FLOAT32
+#define TEMPLATE_TYPE float32_t
     case TEMPLATE_DTYPE: {
         TEMPLATE_TYPE* X_array = X->buffer;
         TEMPLATE_TYPE* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
+#if TEMPLATE_DTYPE == FLOAT32
+            Y_array[i] = expf(X_array[i]);
+#else
             Y_array[i] = exp(X_array[i]);
+#endif // TEMPLATE_DTYPE == FLOAT32
         }
         break;
     }
