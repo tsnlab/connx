@@ -20,7 +20,7 @@ ports/linux/build$ ninja              # Compile
 You can find 'connx' executable in ports/linux/build directory.
 
 ## Compile with sub-opset (optional)
-If you want to compile CONNX with subset of operators, in case of inferencing MNIST only, 
+If you want to compile CONNX with subset of operators, in case of inferencing MNIST only,
 just make ports/linux/opset.txt file as below. And just follow the compile process.
 
 ~~~
@@ -68,5 +68,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
  * Raspberry pi 3 (32-bit O/S)
 
 # License
-CONNX is licensed under GPLv3. See [LICENSE](LICENSE)  
+CONNX is licensed under GPLv3. See [LICENSE](LICENSE)
 If you need other license than GPLv3 for proprietary use or professional support, please mail us to contact at tsnlab dot com.
