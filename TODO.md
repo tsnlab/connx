@@ -6,6 +6,7 @@
 [X] Relu
 [X] Reshape
 [X] Sign
+[X] Tan
 
 [ ] Mobilenet
 [X] Add
@@ -32,5 +33,5 @@
 [X] Sigmoid
 [ ] Slice
 [ ] Split
-[ ] Tanh
+[X] Tanh
 [ ] Transpose
