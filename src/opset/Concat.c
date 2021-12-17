@@ -116,40 +116,44 @@ int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     }
 
     // Do concat
+
+    int32_t output_total = connx_Int32_product(concat_result->ndim, concat_result->shape);
+    int32_t output_offset = 0;
+
+    uint32_t input_offsets[input_count];
+    memset(input_offsets, 0, sizeof(uint32_t) * input_count);
+
     switch (inputs[0]->dtype) {
         // {% for DTYPE, TYPE in loop_types(*SUPPORTED_DTYPES) %}
     case {{ DTYPE }}: {
         {{TYPE}}* output_array = concat_result->buffer;
 
-        if (axis == 0) { // Easist case
+        while (output_offset < output_total) {
+
             // uint32_t offset = 0;
             for (uint32_t matrix_index = 0; matrix_index < input_count; matrix_index++) {
                 connx_Tensor* input_tensor = inputs[matrix_index];
                 {{TYPE}}* input_array = input_tensor->buffer;
-                // XXX: Change this into block size and repeat until result matrix is full
-                int32_t matrix_size = connx_Int32_product(input_tensor->ndim, input_tensor->shape);
+                // if axis == 0, Whole matrix copied
+                // if axis == 1, n-1th dimension matrix copied
+                // if axis == 2, n-2th dimension matrix copied And so on
+
+                int32_t block_size = connx_Int32_product(input_tensor->ndim - axis, input_tensor->shape + axis);
                 // fprintf(stderr, "input_count: %d, matrix_size: %d\n", input_count, matrix_size);
 
-                #ifndef SLOW_CONCAT
-                memcpy(  // copy the data
-                    output_array,
-                    input_array,
-                    matrix_size * sizeof({{TYPE}})
-                );
-                #else
-                for (int32_t i = 0; i < matrix_size; i++) {
-                    output_array[i] = input_array[i];
+#ifndef SLOW_CONCAT
+                memcpy(output_array + output_offset, input_array + input_offsets[matrix_index],
+                       block_size * sizeof({{TYPE}}));
+#else
+                for (int32_t i = 0; i < block_size; i++) {
+                    output_array[i + output_offset] = input_array[i + input_offsets[matrix_index]];
                 }
-                #endif
+#endif
 
-                output_array += matrix_size;
+                input_offsets[matrix_index] += block_size;
+                output_offset += block_size;
             }
-
-        } else {
-            // TODO: implement this
-            return CONNX_NOT_SUPPORTED_ATTRIBUTE;
         }
-
         break;
     }
         // {% endfor %}

@@ -23,7 +23,7 @@
 [ ] YOLO v4
 [X] Add
 [X] Cast (without string)
-[ ] Concat
+[X] Concat
 [X] Conv
 [X] Exp
 [ ] Gather
