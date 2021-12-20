@@ -33,7 +33,7 @@
 [X] Mul
 [X] Reshape
 [ ] Resize
-[ ] Shape
+[X] Shape
 [X] Sigmoid
 [ ] Slice
 [ ] Split
