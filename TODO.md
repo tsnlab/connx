@@ -26,7 +26,7 @@
 [X] Concat
 [X] Conv
 [X] Exp
-[ ] Gather
+[X] Gather
 [ ] LeakyRelu
 [X] Log
 [X] MaxPool

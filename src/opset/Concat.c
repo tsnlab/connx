@@ -16,7 +16,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include <connx/accel.h>
@@ -163,6 +162,7 @@ int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
         // {% endfor %}
     default:
         connx_error("Concat: Datatype %d is not supported yet.\n", inputs[0]->dtype);
+        connx_free(concat_result);
         return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
