@@ -27,13 +27,13 @@
 [X] Conv
 [X] Exp
 [X] Gather
-[ ] LeakyRelu
+[X] LeakyRelu
 [X] Log
 [X] MaxPool
 [X] Mul
 [X] Reshape
 [ ] Resize
-[ ] Shape
+[X] Shape
 [X] Sigmoid
 [ ] Slice
 [ ] Split
