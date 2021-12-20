@@ -131,8 +131,8 @@ int Gather(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
                 int32_t input_data_index = (outer_index * outer_block_count) + (index * inner_block_count);
 
                 // Calculate pointer
-                void* output_ptr = (void*)((char*)output->buffer + output_data_index * datatype_size);
-                void* data_ptr = (void*)((char*)data->buffer + input_data_index * datatype_size);
+                void* output_ptr = output->buffer + output_data_index * datatype_size;
+                void* data_ptr = data->buffer + input_data_index * datatype_size;
 
                 // Copy data
                 memcpy(output_ptr, data_ptr, inner_block_count * datatype_size);
