@@ -66,8 +66,8 @@ int Transpose(connx_Graph* graph, __attribute__((unused)) uint32_t output_count,
         {{TYPE}}* output_array = transposed->buffer;
 
         for (int32_t input_index = 0; input_index < total; input_index++) {
-            int32_t output_index =
-                get_output_index(data->ndim, data->shape, transposed->shape, perm_attr->array, input_index);
+            int32_t output_index = get_output_index(data->ndim, data->shape, transposed->shape,
+                                                    perm_attr->count > 0 ? perm_attr->array : NULL, input_index);
             output_array[output_index] = data_array[input_index];
         }
         break;
@@ -97,7 +97,8 @@ int32_t get_output_index(const int32_t ndim, const int32_t* input_shape, const i
     }
 
     for (int32_t i = 0; i < ndim; i++) {
-        output_indexes[i] = input_indexes[perm[i]];
+        int32_t pos = perm == NULL ? ndim - i - 1 : perm[i];
+        output_indexes[i] = input_indexes[pos];
     }
 
     for (int32_t i = 0; i < ndim; i++) {
