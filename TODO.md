@@ -38,4 +38,4 @@
 [ ] Slice
 [ ] Split
 [X] Tanh
-[ ] Transpose
+[X] Transpose
