@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
+#include <string.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
@@ -51,31 +51,41 @@ int Transpose(connx_Graph* graph, __attribute__((unused)) uint32_t output_count,
         }
     }
 
+    size_t data_type_size;
+
+    switch (data->dtype) {
+        // {% for dtype in supported_data_types %}
+    case {{ dtype }}:
+        // {% endfor %}
+        {
+            data_type_size = connx_DataType_size(data->dtype);
+            break;
+        }
+    default:
+        connx_error("Transpose: Datatype %d is not supported yet.\n", data->dtype);
+        return CONNX_NOT_SUPPORTED_DATATYPE;
+    }
+
     connx_Tensor* transposed = connx_Tensor_alloc(data->dtype, output_ndim, output_shape);
     if (transposed == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     int32_t total = connx_Int32_product(data->ndim, data->shape);
-    fprintf(stderr, "total = %d\n", total);
 
-    switch (data->dtype) {
-        // {% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}
-    case {{ DTYPE }}: {
-        {{TYPE}}* data_array = data->buffer;
-        {{TYPE}}* output_array = transposed->buffer;
-
-        for (int32_t input_index = 0; input_index < total; input_index++) {
-            int32_t output_index = get_output_index(data->ndim, data->shape, transposed->shape,
-                                                    perm_attr->count > 0 ? perm_attr->array : NULL, input_index);
-            output_array[output_index] = data_array[input_index];
+    // If perm is like [1, 0, 2, 3], last [2, 3] part is treated as one big block;
+    int32_t block_size = 1;
+    for (int32_t i = output_ndim - 1; i >= 0; i--) {
+        if (perm_attr->array[i] == i) {
+            block_size *= output_shape[i];
         }
-        break;
     }
-        // {% endfor %}
-    default:
-        connx_error("Transpose: Datatype %d is not supported yet.\n", data->dtype);
-        return CONNX_NOT_SUPPORTED_DATATYPE;
+
+    for (int32_t input_index = 0; input_index < total; input_index += block_size) {
+        int32_t output_index = get_output_index(data->ndim, data->shape, transposed->shape,
+                                                perm_attr->count > 0 ? perm_attr->array : NULL, input_index);
+        memcpy(transposed->buffer + output_index * data_type_size, data->buffer + input_index * data_type_size,
+               block_size * data_type_size);
     }
 
     connx_Graph_set(graph, outputs[0], transposed);
