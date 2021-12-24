@@ -78,6 +78,8 @@ int Transpose(connx_Graph* graph, __attribute__((unused)) uint32_t output_count,
     for (int32_t i = output_ndim - 1; i >= 0; i--) {
         if (perm_attr->array[i] == i) {
             block_size *= output_shape[i];
+        } else {
+            break;
         }
     }
 
