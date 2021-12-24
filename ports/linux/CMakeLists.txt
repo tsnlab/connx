@@ -10,6 +10,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CONNX_HOME ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
+set(INFILE "${CMAKE_CURRENT_SOURCE_DIR}/../../src")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${INFILE}")
 # list up generated source files using gen.sh utility
 execute_process(
     COMMAND ../../bin/gen.sh -d -o ${CMAKE_CURRENT_BINARY_DIR}/src
