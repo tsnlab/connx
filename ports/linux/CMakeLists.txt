@@ -56,7 +56,15 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -std=c99)
 target_link_libraries(${PROJECT_NAME} m pthread)
 
 # Test
-add_custom_target(onnx COMMAND python3 ${CONNX_HOME}/bin/test.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME})
-add_custom_target(mnist COMMAND python3 ${CONNX_HOME}/bin/run.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/mnist/ ${CONNX_HOME}/examples/mnist/test_data_set_0/input_0.data)
-add_custom_target(mobilenet COMMAND python3 ${CONNX_HOME}/bin/run.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/mobilenet/ ${CONNX_HOME}/examples/mobilenet/test_data_set_0/input_0.data)
-add_custom_target(prof COMMAND gprof ${CMAKE_CURRENT_BINARY_DIR}/connx ${CMAKE_CURRENT_BINARY_DIR}/gmon.out)
+add_custom_target(onnx
+    COMMAND python3 ${CONNX_HOME}/bin/test.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}
+    DEPENDS ${PROJECT_NAME})
+add_custom_target(mnist
+    COMMAND python3 ${CONNX_HOME}/bin/run.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/mnist/ ${CONNX_HOME}/examples/mnist/test_data_set_0/input_0.data
+    DEPENDS ${PROJECT_NAME})
+add_custom_target(mobilenet
+    COMMAND python3 ${CONNX_HOME}/bin/run.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/mobilenet/ ${CONNX_HOME}/examples/mobilenet/test_data_set_0/input_0.data
+    DEPENDS ${PROJECT_NAME})
+add_custom_target(prof
+    COMMAND gprof ${CMAKE_CURRENT_BINARY_DIR}/connx ${CMAKE_CURRENT_BINARY_DIR}/gmon.out
+    DEPENDS ${PROJECT_NAME})
