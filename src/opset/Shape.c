@@ -22,8 +22,15 @@ int Shape(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
           __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
 
-    int32_t end = *(int32_t*)attributes[0];
-    int32_t start = *(int32_t*)attributes[1];
+    int32_t end = data->ndim;
+    int32_t start = 0;
+
+    if (attributes[0] != NULL) {
+        end = *(int32_t*)attributes[0];
+    }
+    if (attributes[1] != NULL) {
+        start = *(int32_t*)attributes[1];
+    }
 
     // handle negative start and end
     if (end < 0) {
@@ -38,17 +45,17 @@ int Shape(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
     start = (start < 0) ? 0 : (start > data->ndim) ? data->ndim : start;
     end = (end < 0) ? 0 : (end > data->ndim) ? data->ndim : end;
 
-    int32_t shape_[1] = {end - start};
+    int32_t output_shape[1] = {end - start};
 
-    connx_Tensor* shape = connx_Tensor_alloc(INT64, 1, shape_);
+    connx_Tensor* shape = connx_Tensor_alloc(INT64, 1, output_shape);
     if (shape == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
 
     int64_t* array = shape->buffer;
 
-    for (int i = start; i < end; i++) {
-        array[i] = data->shape[i];
+    for (int i = 0; i < (end - start); i++) {
+        array[i] = data->shape[start + i];
     }
 
     connx_Graph_set(graph, outputs[0], shape);
