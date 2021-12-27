@@ -22,15 +22,10 @@ int Shape(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
           __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
     connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
 
-    int32_t end = data->ndim;
-    int32_t start = 0;
+    // end is optional, start is optional with default value from onnx-connx
 
-    if (attributes[0] != NULL) {
-        end = *(int32_t*)attributes[0];
-    }
-    if (attributes[1] != NULL) {
-        start = *(int32_t*)attributes[1];
-    }
+    int32_t end = (attributes[0] == NULL) ? data->ndim : *(int32_t*)attributes[0];
+    int32_t start = *(int32_t*)attributes[1];
 
     // handle negative start and end
     if (end < 0) {
