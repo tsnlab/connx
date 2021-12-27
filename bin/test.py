@@ -96,3 +96,5 @@ for path in Path(HOME + '/test').rglob('*.connx'):
 print(f'Time: {total * 1000:n} ms, '
       f'{PASS if fail_count == 0 else ""}PASS: {pass_count}{END if fail_count == 0 else ""}, '
       f'{FAIL if fail_count > 0 else ""}FAIL: {fail_count}{END if fail_count > 0 else ""}')
+
+exit(1 if fail_count > 0 else 0)
