@@ -41,7 +41,9 @@ int Transpose(connx_Graph* graph, __attribute__((unused)) uint32_t output_count,
     int32_t output_ndim = data->ndim;
     int32_t output_shape[output_ndim];
 
-    if (perm_attr->count == 0) {
+    const bool is_default_perm = perm_attr->count == 0;
+
+    if (is_default_perm) {
         for (int32_t i = 0; i < output_ndim; i++) {
             output_shape[output_ndim - i - 1] = data->shape[i];
         }
@@ -75,11 +77,13 @@ int Transpose(connx_Graph* graph, __attribute__((unused)) uint32_t output_count,
 
     // If perm is like [1, 0, 2, 3], last [2, 3] part is treated as one big block;
     int32_t block_size = 1;
-    for (int32_t i = output_ndim - 1; i >= 0; i--) {
-        if (perm_attr->array[i] == i) {
-            block_size *= output_shape[i];
-        } else {
-            break;
+    if (!is_default_perm) {
+        for (int32_t i = output_ndim - 1; i >= 0; i--) {
+            if (perm_attr->array[i] == i) {
+                block_size *= output_shape[i];
+            } else {
+                break;
+            }
         }
     }
 
