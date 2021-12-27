@@ -365,6 +365,9 @@ static int parse_Graph(connx_Graph* graph, char* text) {
             uint32_t type = next_integer(token);
 
             switch (type) {
+            case 0: // NULL
+                node->attributes[i] = NULL;
+                break;
             case 1: // FLOAT
                 node->attributes[i] = connx_alloc(sizeof(float32_t));
                 if (node->attributes[i] == NULL) {
