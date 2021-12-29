@@ -134,7 +134,8 @@ for FILE in ${OPSET}; do
     if [[ ${IS_DUMP} == 1 ]]; then
         echo "opset/${FILE}.c"
     else
-        if [[ ${INPUT_DIR}/opset/${FILE}.c -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
+        if [[ ${INPUT_DIR}/opset/${FILE}.c -nt ${OUTPUT_DIR}/opset/${FILE}.c ]] || \
+            [[ ${HOME}/preprocessor.py -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
             echo "Preprocessing ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c"
             ${HOME}/preprocessor.py ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c
         fi
