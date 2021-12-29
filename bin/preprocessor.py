@@ -152,8 +152,8 @@ with open(output_source, 'w') as output:
     line_no = 1
     buffer.write('#line {} "{}"\n'.format(line_no, input_source))
 
-    jinja_start_tokens = ['{%', '{{']
-    jinja_end_tokens = ['%}', '}}']
+    jinja_start_tokens = ['{%', '{{', '{#']
+    jinja_end_tokens = ['%}', '}}', '#}']
 
     with open(input_source, 'r') as input:
 
