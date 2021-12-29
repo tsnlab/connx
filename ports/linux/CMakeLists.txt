@@ -37,6 +37,8 @@ add_custom_command(
     COMMAND ../../bin/gen.sh -o ${CMAKE_CURRENT_BINARY_DIR}/src
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS ${CONNX_SRC} ${CONNX_HDR} ${HAL_SRC} ${OPSET}
+    ../../bin/gen.sh
+    ../../bin/preprocessor.py
     COMMENT "Generating source code"
 )
 

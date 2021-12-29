@@ -148,19 +148,22 @@ consts = {
 }
 
 with open(output_source, 'w') as output:
+    buffer = io.StringIO()
     line_no = 1
-    output.write('#line {} "{}"\n'.format(line_no, input_source))
+    buffer.write('#line {} "{}"\n'.format(line_no, input_source))
 
-    with open(input_source, 'r') as input_orig:
-        input = io.StringIO(
-            jinja2.Template(input_orig.read()).render(
-                input_orig.read(),
-                **consts
-            )
-        )
+    jinja_start_tokens = ['{%', '{{', '{#']
+    jinja_end_tokens = ['%}', '}}', '#}']
+
+    with open(input_source, 'r') as input:
 
         line = input.readline()
         while line:
+            if any(token in line for token in jinja_end_tokens):
+                line += '#line {} "{}"\n'.format(line_no+1, input_source)
+            elif any(token in line for token in jinja_start_tokens):
+                buffer.write('#line {} "{}"\n'.format(line_no, input_source))
+
             if 'TEMPLATE_START(' in line:
                 # Parse _DTYPE and _TYPE
                 tokens = re.split(r',|\(|\)', line)
@@ -186,19 +189,25 @@ with open(output_source, 'w') as output:
                     type = get_TYPE(dtype)
                     name = get_NAME(dtype)
 
-                    output.write('#line {} "{}"\n'.format(line_no + 1, input_source))  # plus header
+                    buffer.write('#line {} "{}"\n'.format(line_no + 1, input_source))  # plus header
 
                     for idx, (line) in enumerate(template):
                         line = line.replace('TEMPLATE_DTYPE', 'CONNX_' + dtype)
                         line = line.replace('TEMPLATE_TYPE', type)
                         line = line.replace('TEMPLATE_NAME', name)
 
-                        output.write(line)
+                        buffer.write(line)
 
                 line = input.readline()
                 line_no += len(template) + 2  # lines of template + header + tail
             else:
-                output.write(line)
+                buffer.write(line)
 
                 line = input.readline()
                 line_no += 1
+
+    content = buffer.getvalue()
+    rendered = jinja2.Template(content).render(
+        **consts
+    )
+    output.write(rendered)
