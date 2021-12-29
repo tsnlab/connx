@@ -1,0 +1,6 @@
+value_info 6
+initializer 0
+output 1 6
+input 5 1 2 3 4 5
+node 1
+Slice 1 5 0 6 1 2 3 4 5
