@@ -36,6 +36,6 @@
 [X] Shape
 [X] Sigmoid
 [X] Slice
-[ ] Split
+[X] Split
 [X] Tanh
 [X] Transpose

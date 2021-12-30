@@ -174,8 +174,7 @@ int Slice(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
 }
 
 int32_t get_input_index(const int32_t ndim, const int32_t* input_shape, const int32_t* output_shape,
-                        const int32_t* starts, __attribute__((unused)) const int32_t* steps,
-                        const int32_t output_offset) {
+                        const int32_t* starts, const int32_t* steps, const int32_t output_offset) {
     int32_t remaining = output_offset;
     int32_t input_offset = 0;
 
