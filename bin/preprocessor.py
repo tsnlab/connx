@@ -128,6 +128,10 @@ def loop_types(*args):
             raise Exception('Not expected dtype')
 
 
+def pointer(arg):
+    return f'{arg}*'
+
+
 consts = {
     'UINT8': 'UINT8',
     'INT8': 'INT8',
@@ -145,15 +149,29 @@ consts = {
     'COMPLEX64': 'COMPLEX64',
     'COMPLEX128': 'COMPLEX128',
     'loop_types': loop_types,
+    'pointer': pointer,
 }
+
+jinja_env = jinja2.Environment(
+    block_start_string='/*{%',
+    block_end_string='%}*/',
+    variable_start_string='{{',
+    variable_end_string='}}',
+)
+
+jinja_env.globals.update(consts)
 
 with open(output_source, 'w') as output:
     buffer = io.StringIO()
     line_no = 1
     buffer.write('#line {} "{}"\n'.format(line_no, input_source))
 
-    jinja_start_tokens = ['{%', '{{', '{#']
-    jinja_end_tokens = ['%}', '}}', '#}']
+    jinja_start_tokens = [
+        getattr(jinja_env, attr)
+        for attr in ('block_start_string', 'variable_start_string', 'comment_start_string',)]
+    jinja_end_tokens = [
+        getattr(jinja_env, attr)
+        for attr in ('block_end_string', 'variable_end_string', 'comment_end_string',)]
 
     with open(input_source, 'r') as input:
 
@@ -207,7 +225,5 @@ with open(output_source, 'w') as output:
                 line_no += 1
 
     content = buffer.getvalue()
-    rendered = jinja2.Template(content).render(
-        **consts
-    )
+    rendered = jinja_env.from_string(content).render()
     output.write(rendered)
