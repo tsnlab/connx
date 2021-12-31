@@ -31,8 +31,8 @@ int Sinh(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        // {% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}
-        // {% set sinh_func = 'sinhf' if DTYPE == FLOAT32 else 'sinh' %}
+        /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+        /*{% set sinh_func = 'sinhf' if DTYPE == FLOAT32 else 'sinh' %}*/
     case {{ DTYPE }}: {
         {{TYPE}}* X_array = X->buffer;
         {{TYPE}}* Y_array = Y->buffer;
@@ -42,7 +42,7 @@ int Sinh(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
         }
         break;
     }
-        // {% endfor %}
+        /*{% endfor %}*/
     default:
         connx_error("Sinh: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

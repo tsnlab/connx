@@ -40,41 +40,41 @@ int Cast(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
     int32_t total = connx_Int32_product(input->ndim, input->shape);
 
     switch (to) {
-    /* {% for DTYPE_output, TYPE_output in loop_types(FLOAT32, FLOAT64, INT8, INT16, INT32, INT64, UINT8, UINT16,
-     UINT32, UINT64, BOOL, STRING) %} */
+    /*{% for DTYPE_output, TYPE_output in loop_types(FLOAT32, FLOAT64, INT8, INT16, INT32, INT64, UINT8, UINT16,
+     UINT32, UINT64, BOOL, STRING) %}*/
     case {{ DTYPE_output }}: {
         {{TYPE_output}}* output_array = output->buffer;
 
         switch (input->dtype) {
-            /* {% for DTYPE_input, TYPE_input in loop_types(FLOAT32, FLOAT64, INT8, INT16, INT32, INT64, UINT8, UINT16,
-             UINT32, UINT64, BOOL, STRING) %} */
+            /*{% for DTYPE_input, TYPE_input in loop_types(FLOAT32, FLOAT64, INT8, INT16, INT32, INT64, UINT8, UINT16,
+             UINT32, UINT64, BOOL, STRING) %}*/
         case {{ DTYPE_input }}: {
             {{TYPE_input}}* input_array = input->buffer;
 
             for (int32_t i = 0; i < total; i++) {
-                // {% if DTYPE_output == STRING and DTYPE_input == STRING %}
+                /*{% if DTYPE_output == STRING and DTYPE_input == STRING %}*/
                 strcpy(output_array[i], input_array[i]); // FIXME: strncpy?
-                // {% elif DTYPE_output == STRING %}
-                // {%   if DTYPE_input in (FLOAT32, FLOAT64) %}
+                /*{% elif DTYPE_output == STRING %}*/
+                /*{%   if DTYPE_input in (FLOAT32, FLOAT64) %}*/
                 sprintf(output_array[i], "%g", input_array[i]); // FIXME: float to string
-                // {%   elif DTYPE_input in (INT64, UINT64) %}
+                /*{%   elif DTYPE_input in (INT64, UINT64) %}*/
                 sprintf(output_array[i], "%ld", input_array[i]);
-                // {%   else %}
+                /*{%   else %}*/
                 sprintf(output_array[i], "%d", input_array[i]);
-                // {%   endif %}
-                // {% elif DTYPE_input == STRING %}
-                // {%   if DTYPE_output in (FLOAT32, FLOAT64) %}
+                /*{%   endif %}*/
+                /*{% elif DTYPE_input == STRING %}*/
+                /*{%   if DTYPE_output in (FLOAT32, FLOAT64) %}*/
                 output_array[i] = atof(input_array[i]); // FIXME: string to float
-                // {%   else %}
+                /*{%   else %}*/
                 output_array[i] = atoi(input_array[i]);
-                // {%   endif %}
-                // {% else %}
+                /*{%   endif %}*/
+                /*{% else %}*/
                 output_array[i] = input_array[i];
-                // {% endif %}
+                /*{% endif %}*/
             }
             break;
         }
-            // {% endfor %}  // DTYPE_input, TYPE_input
+            /*{% endfor %}*/ // DTYPE_input, TYPE_input
         default:
             connx_error("Cast: Datatype %d on input is not supported yet.\n", input->dtype);
             return CONNX_NOT_SUPPORTED_DATATYPE;
@@ -82,7 +82,7 @@ int Cast(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
 
         break;
     }
-        // {% endfor %}  // DTYPE_output, TYPE_output
+        /*{% endfor %}*/ // DTYPE_output, TYPE_output
     default:
         connx_error("Cast: Datatype %d on output is not supported yet.\n", output->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

@@ -30,16 +30,15 @@ int32_t get_input_index(const int32_t ndim, const int32_t* input_shape, const in
 
 int Slice(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
           __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
-    /* {% set supported_data_types = [
+    /*{% set supported_data_types = [
         INT8, INT16, INT32, INT64,
         UINT8, UINT16, UINT32, UINT64,
         FLOAT32, FLOAT64,
         BOOL,
-        ] %}
-        TODO: STRING
+        ] %}*/
+    // TODO: STRING
 
-        {% set supported_index_types = [ INT32, INT64, ] %}
-     */
+    /*{% set supported_index_types = [ INT32, INT64, ] %}*/
     connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* starts = connx_Graph_get(graph, inputs[1]);
     connx_Tensor* ends = connx_Graph_get(graph, inputs[2]);
@@ -63,7 +62,7 @@ int Slice(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
     }
 
     switch (starts->dtype) {
-        // {% for DTYPE, TYPE in loop_types(*supported_index_types) %}
+        /*{% for DTYPE, TYPE in loop_types(*supported_index_types) %}*/
     case {{ DTYPE }}: {
         {{TYPE}}* starts_array = starts->buffer;
         {{TYPE}}* ends_array = ends->buffer;
@@ -113,7 +112,7 @@ int Slice(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
 
         break;
     }
-        // {% endfor %}
+        /*{% endfor %}*/
     default:
         connx_error("Unsupported index type: %d", starts->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
@@ -131,9 +130,9 @@ int Slice(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uin
     size_t data_type_size;
 
     switch (data->dtype) {
-        // {% for dtype in supported_data_types %}
+        /*{% for dtype in supported_data_types %}*/
     case {{ dtype }}:
-        // {% endfor %}
+        /*{% endfor %}*/
         {
             data_type_size = connx_DataType_size(data->dtype);
             break;
