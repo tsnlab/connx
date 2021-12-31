@@ -22,24 +22,22 @@
 
 int Gather(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
            __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
-    /*
-        {% set supported_dtypes = [
-            UINT8,
-            UINT16,
-            UINT32,
-            UINT64,
-            INT8,
-            INT16,
-            INT32,
-            INT64,
-            FLOAT32,
-            FLOAT64,
-            BOOL,
-        ]
-        %}
-        TODO:
-        STRING,
-    */
+    /*{% set supported_dtypes = [
+        UINT8,
+        UINT16,
+        UINT32,
+        UINT64,
+        INT8,
+        INT16,
+        INT32,
+        INT64,
+        FLOAT32,
+        FLOAT64,
+        BOOL,
+    ]
+    %}*/
+    // TODO: STRING,
+
     // inputs
     connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* indices = connx_Graph_get(graph, inputs[1]);
@@ -82,12 +80,12 @@ int Gather(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
 
     // get datatype size
     switch (data->dtype) {
-        // {% for DTYPE, TYPE in loop_types(*supported_dtypes) %}
+        /*{% for DTYPE, TYPE in loop_types(*supported_dtypes) %}*/
     case {{ DTYPE }}: {
         datatype_size = sizeof({{TYPE}});
         break;
     }
-        // {% endfor %}
+        /*{% endfor %}*/
     default:
         connx_error("Concat: Datatype %d is not supported yet.\n", data->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
@@ -95,7 +93,7 @@ int Gather(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
 
     // do gather
     switch (indices->dtype) {
-        // {% for DTYPE, TYPE in loop_types(INT32, INT64) %}
+        /*{% for DTYPE, TYPE in loop_types(INT32, INT64) %}*/
     case {{ DTYPE }}: {
         // outer = data[0:axis]
         int32_t outer_loop_count = connx_Int32_product(axis, data->shape);
@@ -141,7 +139,7 @@ int Gather(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
 
         break;
     }
-        // {% endfor %}
+        /*{% endfor %}*/
     default:
         connx_error("Gather: Datatype %d is not supported yet.\n", indices->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

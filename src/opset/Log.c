@@ -31,8 +31,8 @@ int Log(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint3
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        // {% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}
-        // {% set log_func = 'logf' if DTYPE == FLOAT32 else 'log' %}
+        /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+        /*{% set log_func = 'logf' if DTYPE == FLOAT32 else 'log' %}*/
     case {{ DTYPE }}: {
         {{TYPE}}* X_array = X->buffer;
         {{TYPE}}* Y_array = Y->buffer;
@@ -42,7 +42,7 @@ int Log(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint3
         }
         break;
     }
-        // {% endfor %}
+        /*{% endfor %}*/
     default:
         connx_error("Log: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

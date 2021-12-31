@@ -63,12 +63,12 @@
 
 int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
            __attribute__((unused)) uint32_t input_count, uint32_t* inputs_, __attribute__((unused)) void** attributes) {
-    /* {% set SUPPORTED_DTYPES = [
+    /*{% set SUPPORTED_DTYPES = [
        UINT8, UINT16, UINT32, UINT64,
        INT8, INT16, INT32, INT64,
        FLOAT32, FLOAT64,
        BOOL,
-    ] %} */
+    ] %}*/
     /*
         TODO: Should support these attributes:
         STRING,
@@ -127,7 +127,7 @@ int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     memset(input_offsets, 0, sizeof(uint32_t) * input_count);
 
     switch (inputs[0]->dtype) {
-        // {% for DTYPE, TYPE in loop_types(*SUPPORTED_DTYPES) %}
+        /*{% for DTYPE, TYPE in loop_types(*SUPPORTED_DTYPES) %}*/
     case {{ DTYPE }}: {
         {{TYPE}}* output_array = concat_result->buffer;
 
@@ -159,7 +159,7 @@ int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
         }
         break;
     }
-        // {% endfor %}
+        /*{% endfor %}*/
     default:
         connx_error("Concat: Datatype %d is not supported yet.\n", inputs[0]->dtype);
         connx_free(concat_result);

@@ -22,16 +22,15 @@
 
 int Split(connx_Graph* graph, uint32_t output_count, uint32_t* outputs_, uint32_t input_count, uint32_t* inputs,
           void** attributes) {
-    /* {% set supported_data_types = [
+    /*{% set supported_data_types = [
         INT8, INT16, INT32, INT64,
         UINT8, UINT16, UINT32, UINT64,
         FLOAT32, FLOAT64,
         BOOL,
-        ] %}
-        TODO: STRING
+        ] %}*/
+    // TODO: STRING
 
-        {% set supported_index_types = [ INT32, INT64, ] %}
-     */
+    /*{% set supported_index_types = [ INT32, INT64, ] %}*/
     connx_Tensor* input = connx_Graph_get(graph, inputs[0]);
     // connx_Tensor* split = connx_Graph_get(graph, inputs[1]); // Use it later
     int64_t split[output_count];
@@ -76,9 +75,9 @@ int Split(connx_Graph* graph, uint32_t output_count, uint32_t* outputs_, uint32_
     size_t data_type_size;
 
     switch (input->dtype) {
-        // {% for dtype in supported_data_types %}
+        /*{% for dtype in supported_data_types %}*/
     case {{ dtype }}:
-        // {% endfor %}
+        /*{% endfor %}*/
         {
             data_type_size = connx_DataType_size(input->dtype);
             break;
