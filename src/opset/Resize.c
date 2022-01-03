@@ -372,6 +372,11 @@ static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, fl
             origin_index = output_shape > 1
                                ? roi[0] * (shape - 1) + idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1)
                                : 0.5 * (roi[0] + roi[1]) * (shape - 1);
+
+            if (origin_index < 0 || origin_index > shape - 1) {
+                return extrapolation_value;
+            }
+
             break;
         default:
             abort();
@@ -453,5 +458,47 @@ static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, fl
         abort();
     }
 
-    return 0;
+    // Calculate base
+    int32_t idx_base;
+    if (origin_index == origin_index_int) {
+        idx_base = origin_index_int - coeffects_count / 2;
+    } else {
+        idx_base = origin_index_int - coeffects_count / 2 + 1;
+    }
+
+    // exclude_outside
+    if (exclude_outside) {
+        float sum = 0;
+        for (uint32_t i = 0; i < coeffects_count; i++) {
+            int j = idx_base + i;
+            if (j < 0 || j >= shape) {
+                coeffects[i] = 0;
+            } else {
+                sum += coeffects[i];
+            }
+        }
+
+        if (sum != 0) {
+            for (uint32_t i = 0; i < coeffects_count; i++) {
+                coeffects[i] /= sum;
+            }
+        }
+    }
+
+    float interpolate = 0;
+    for (uint32_t i = 0; i < coeffects_count; i++) {
+        float value;
+        int j = idx_base + i;
+        if (j < 0) { // left edge padding
+            value = data[0];
+        } else if (j >= shape) { // right edge padding
+            value = data[shape - 1];
+        } else {
+            value = data[j];
+        }
+
+        interpolate += coeffects[i] * value;
+    }
+
+    return interpolate;
 }
