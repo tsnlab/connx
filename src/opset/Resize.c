@@ -348,7 +348,110 @@ static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape,
     return interpolate_1d_float32(idxs[0], interpolated, shape[0], scales[0], roi, coordinate_transformation_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
 }
 
-// static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, float scale, float* roi,
-//                                     enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a, bool exclude_outside,
-//                                     float extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode) {
-// }
+static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, float scale, float* roi,
+                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a, bool exclude_outside,
+                                    float extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode) {
+    float origin_index = 0;
+    float output_shape = scale * shape;
+
+    // Get original coordinate
+    switch (coordinate_transformation_mode) {
+        case HALF_PIXEL:
+            origin_index = ((float)idx + 0.5) / scale - 0.5;
+            break;
+        case PYTORCH_HALF_PIXEL:
+            origin_index = output_shape > 1 ? ((float)idx + 0.5) / scale - 0.5 : 0;
+            break;
+        case ALIGN_CORNERS:
+            origin_index = (float)idx * (shape - 1) / (output_shape - 1);
+            break;
+        case ASYMMETRIC:
+            origin_index = idx / scale;
+            break;
+        case TF_CROP_AND_RESIZE:
+            origin_index = output_shape > 1
+                               ? roi[0] * (shape - 1) + idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1)
+                               : 0.5 * (roi[0] + roi[1]) * (shape - 1);
+            break;
+        default:
+            abort();
+    }
+
+    int32_t origin_index_int = origin_index >= 0 ? (int32_t)origin_index : (int32_t)origin_index - 1;
+    float ratio = 0;
+    if (origin_index == origin_index_int) {
+        ratio = 1;
+    } else {
+        ratio = origin_index - origin_index_int;
+    }
+
+    // Get coeffects
+    float coeffects[4];
+    uint32_t coeffects_count = 0;
+    switch (mode) {
+    case NEAREST:
+        if (ratio == (int32_t)ratio) {
+            coeffects[0] = 0;
+            coeffects[1] = 1;
+            coeffects_count = 2;
+        } else {
+            switch (nearest_mode) {
+                case ROUND_PREFER_FLOOR:
+                    if (ratio <= 0.5) {
+                        coeffects[0] = 1;
+                        coeffects[1] = 0;
+                    } else {
+                        coeffects[0] = 0;
+                        coeffects[1] = 1;
+                    }
+                    coeffects_count = 2;
+                    break;
+                case ROUND_PREFER_CEIL:
+                    if (ratio < 0.5) {
+                        coeffects[0] = 1;
+                        coeffects[1] = 0;
+                    } else {
+                        coeffects[0] = 0;
+                        coeffects[1] = 1;
+                    }
+                    coeffects_count = 2;
+                    break;
+                case FLOOR:
+                    coeffects[0] = 1;
+                    coeffects[1] = 0;
+                    coeffects_count = 2;
+                    break;
+                case CEIL:
+                    coeffects[0] = 0;
+                    coeffects[1] = 1;
+                    coeffects_count = 2;
+                    break;
+                default:
+                    abort();
+            }
+        }
+        break;
+    case LINEAR:
+        coeffects[0] = 1 - ratio;
+        coeffects[1] = ratio;
+        coeffects_count = 2;
+        break;
+    case CUBIC:
+        coeffects[0] = ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) - 4 * cubic_coeff_a;
+        coeffects[0] =
+            ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) -
+            4 * cubic_coeff_a;
+        coeffects[1] = ((cubic_coeff_a + 2) * ratio - (cubic_coeff_a + 3)) * ratio * ratio + 1;
+        coeffects[2] = ((cubic_coeff_a + 2) * (1 - ratio) - (cubic_coeff_a + 3)) * (1 - ratio) * (1 - ratio) + 1;
+        coeffects[3] =
+            ((cubic_coeff_a * ((1 - ratio) + 1) - 5 * cubic_coeff_a) * ((1 - ratio) + 1) + 8 * cubic_coeff_a) *
+                ((1 - ratio) + 1) -
+            4 * cubic_coeff_a;
+        coeffects_count = 4;
+        break;
+    default:
+        abort();
+    }
+
+    return 0;
+}
