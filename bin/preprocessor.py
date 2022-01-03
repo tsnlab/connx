@@ -149,6 +149,9 @@ consts = {
     'COMPLEX64': 'COMPLEX64',
     'COMPLEX128': 'COMPLEX128',
     'loop_types': loop_types,
+}
+
+jinja2_filters = {
     'pointer': pointer,
 }
 
@@ -160,6 +163,7 @@ jinja_env = jinja2.Environment(
 )
 
 jinja_env.globals.update(consts)
+jinja_env.filters.update(jinja2_filters)
 
 with open(output_source, 'w') as output:
     buffer = io.StringIO()
