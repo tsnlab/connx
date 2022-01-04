@@ -69,7 +69,7 @@ enum NEAREST_MODE {
     /*{% endfor %}*/
 };
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor** scales, connx_Tensor** sizes, enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
+static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_, enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
                           float32_t extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode, connx_Tensor** Y);
 
 static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes,
@@ -145,7 +145,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     }
 
     int result;
-    result = Resize_prepare(X, roi, &scales, &sizes, transform_mode, cubic_coeff_a, exclude_outside,
+    result = Resize_prepare(X, &roi, &scales, &sizes, transform_mode, cubic_coeff_a, exclude_outside,
                                 extrapolation_value, mode, nearest_mode, &Y);
 
     if (result != CONNX_OK) {
@@ -168,17 +168,19 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     if (is_sizes_was_null) {
         connx_free(sizes);
     }
+    connx_free(roi);
 
     return result;
 }
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor** scales_, connx_Tensor** sizes_, enum TRANSFORM_MODE coordinate_transformation_mode, __attribute__((unused))float32_t cubic_coeff_a, __attribute__((unused))bool exclude_outside,
+static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_, enum TRANSFORM_MODE coordinate_transformation_mode, __attribute__((unused))float32_t cubic_coeff_a, __attribute__((unused))bool exclude_outside,
                           __attribute__((unused))float32_t extrapolation_value, __attribute__((unused))enum MODE mode, __attribute__((unused))enum NEAREST_MODE nearest_mode, connx_Tensor** Y) {
 
     int32_t output_shape[X->ndim];
 
     connx_Tensor* sizes = sizes_ ? *sizes_ : NULL;
     connx_Tensor* scales = scales_ ? *scales_ : NULL;
+    connx_Tensor* roi = roi_ ? *roi_ : NULL;
 
     // Calculate output shape
     if (sizes != NULL) {
@@ -249,16 +251,21 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor** sca
             return CONNX_TENSOR_SHAPE_NOT_MATCHING;
         }
 
-        __attribute__((unused)) float32_t new_roi[roi->shape[0]];
         // Reformat roi. [start1, ..., startN, end1, ..., endN] -> [start1, end1, ..., startN, endN]
+        // And force type to float32
+        connx_Tensor* new_roi = connx_Tensor_alloc(CONNX_FLOAT32, 1, roi->shape);
+        if (new_roi == NULL) {
+            return CONNX_NOT_ENOUGH_MEMORY;
+        }
+        float32_t* new_roi_array = new_roi->buffer;
         switch (roi->dtype) {
             /*{% for DTYPE, TYPE in loop_types(*supported_roi_types) %}*/
         case {{ DTYPE }}: {
             {{TYPE}}* roi_array = ({{TYPE}}*)roi->buffer;
             const int32_t len = roi->shape[0] / 2;
             for (int32_t i = 0; i < len; i++) {
-                new_roi[i * 2] = roi_array[i];
-                new_roi[i * 2 + 1] = roi_array[i + len];
+                new_roi_array[i * 2] = roi_array[i];
+                new_roi_array[i * 2 + 1] = roi_array[i + len];
             }
         } break;
             /*{% endfor %}*/ // roi->dtype
@@ -266,6 +273,8 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor** sca
             connx_error("Unsupported ROI type: %d", roi->dtype);
             return CONNX_NOT_SUPPORTED_DATATYPE;
         }
+        roi = new_roi;
+        *roi_ = new_roi;
         /*{% endif %}*/ // mode == 'tf_crop_and_resize'
     } break;
     /*{% endfor %}*/ // coordinate_transformation_mode
@@ -374,15 +383,21 @@ static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, fl
             origin_index = output_shape > 1 ? ((float)idx + 0.5) / scale - 0.5 : 0;
             break;
         case ALIGN_CORNERS:
-            origin_index = (float)idx * (shape - 1) / (output_shape - 1);
+            if (output_shape == 1) {
+                origin_index = 0;
+            } else {
+                origin_index = (float)idx * (shape - 1) / (output_shape - 1);
+            }
             break;
         case ASYMMETRIC:
             origin_index = idx / scale;
             break;
         case TF_CROP_AND_RESIZE:
-            origin_index = output_shape > 1
-                               ? roi[0] * (shape - 1) + idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1)
-                               : 0.5 * (roi[0] + roi[1]) * (shape - 1);
+            if (output_shape == 1) {
+                origin_index = (roi[0] + roi[1]) * (shape - 1) / 2.0;
+            } else {
+                origin_index = idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1) + roi[0] * (shape - 1);
+            }
 
             if (origin_index < 0 || origin_index > shape - 1) {
                 return extrapolation_value;
