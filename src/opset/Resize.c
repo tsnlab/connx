@@ -69,7 +69,7 @@ enum NEAREST_MODE {
     /*{% endfor %}*/
 };
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes, enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
+static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor** scales, connx_Tensor** sizes, enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
                           float32_t extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode, connx_Tensor** Y);
 
 static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes,
@@ -96,6 +96,9 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
 
     // One of the following must exclusively set
     assert((scales != NULL && sizes == NULL) || (scales == NULL && sizes != NULL));
+
+    bool is_scales_was_null = (scales == NULL); // To free after use
+    bool is_sizes_was_null = (sizes == NULL); // To free after use
 
     // Attributes
     const char* coordinate_transformation_mode = (const char*)attributes[0];
@@ -142,7 +145,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     }
 
     int result;
-    result = Resize_prepare(X, roi, scales, sizes, transform_mode, cubic_coeff_a, exclude_outside,
+    result = Resize_prepare(X, roi, &scales, &sizes, transform_mode, cubic_coeff_a, exclude_outside,
                                 extrapolation_value, mode, nearest_mode, &Y);
 
     if (result != CONNX_OK) {
@@ -153,48 +156,82 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     }
     connx_Graph_set(graph, outputs[0], Y);
 
+    assert(sizes != NULL);
+    assert(scales != NULL);
+
     result = Resize_exec(X, Y, roi, scales, sizes, transform_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
 
     // TODO: Free unfreed memory.
+    if (is_scales_was_null) {
+        connx_free(scales);
+    }
+    if (is_sizes_was_null) {
+        connx_free(sizes);
+    }
 
     return result;
 }
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes, enum TRANSFORM_MODE coordinate_transformation_mode, __attribute__((unused))float32_t cubic_coeff_a, __attribute__((unused))bool exclude_outside,
+static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor** scales_, connx_Tensor** sizes_, enum TRANSFORM_MODE coordinate_transformation_mode, __attribute__((unused))float32_t cubic_coeff_a, __attribute__((unused))bool exclude_outside,
                           __attribute__((unused))float32_t extrapolation_value, __attribute__((unused))enum MODE mode, __attribute__((unused))enum NEAREST_MODE nearest_mode, connx_Tensor** Y) {
 
     int32_t output_shape[X->ndim];
 
+    connx_Tensor* sizes = sizes_ ? *sizes_ : NULL;
+    connx_Tensor* scales = scales_ ? *scales_ : NULL;
+
     // Calculate output shape
     if (sizes != NULL) {
+        if (sizes->ndim != 1) {
+            connx_error("sizes must be a 1D tensor");
+            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
+        }
+
+        if (sizes->shape[0] != X->ndim) {
+            connx_error("sizes must have the same number of dimensions as X");
+            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
+        }
+
         int64_t* sizes_array = (int64_t*)sizes->buffer;
         for (int32_t i = 0; i < X->ndim; i++) {
             output_shape[i] = (int32_t)sizes_array[i];
         }
         // Make scales from sizes
         if (scales == NULL) {
-            scales = connx_Tensor_alloc(X->dtype, X->ndim, output_shape);
+            scales = connx_Tensor_alloc(X->dtype, 1, &X->ndim);
             // TODO: Free after use
             if (scales == NULL) {
                 return CONNX_NOT_ENOUGH_MEMORY;
             }
+            *scales_ = scales;
             float32_t* scales_array = (float32_t*)scales->buffer;
             for (int32_t i = 0; i < X->ndim; i++) {
                 scales_array[i] = (float32_t)sizes_array[i] / (float32_t)X->shape[i];
             }
         }
     } else {
+        if (scales->ndim != 1) {
+            connx_error("scales must be a 1D tensor");
+            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
+        }
+
+        if (scales->shape[0] != X->ndim) {
+            connx_error("scales must have the same number of dimensions as X");
+            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
+        }
+
         float32_t* scales_array = (float32_t*)scales->buffer;
         for (int32_t i = 0; i < X->ndim; i++) {
             output_shape[i] = (int32_t)(X->shape[i] * scales_array[i]);
         }
         // Make sizes from scales
         if (sizes == NULL) {
-            sizes = connx_Tensor_alloc(CONNX_INT64, X->ndim, output_shape);
+            sizes = connx_Tensor_alloc(CONNX_INT64, 1, &X->ndim);
             // TODO: Free after use
             if (sizes == NULL) {
                 return CONNX_NOT_ENOUGH_MEMORY;
             }
+            *sizes_ = sizes;
             int64_t* sizes_array = (int64_t*)sizes->buffer;
             for (int32_t i = 0; i < X->ndim; i++) {
                 sizes_array[i] = (int64_t)output_shape[i];
@@ -204,8 +241,8 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor* scal
 
 
     switch (coordinate_transformation_mode) {
-        /*{% for mode in supported_transform_modes %}*/
-        case {{mode | upper}}: {
+    /*{% for mode in supported_transform_modes %}*/
+    case {{ mode | upper }}: {
         /*{% if mode == 'tf_crop_and_resize' %}*/
         if (roi != NULL && roi->ndim != 1) {
             connx_error("roi must be 1D tensor");
@@ -229,38 +266,12 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor* roi, connx_Tensor* scal
             connx_error("Unsupported ROI type: %d", roi->dtype);
             return CONNX_NOT_SUPPORTED_DATATYPE;
         }
-
-        /*{% elif mode == 'half_pixel' %}*/
-        // Convert roi to float32
-        switch (roi->dtype) {
-            /*{% for DTYPE, TYPE in loop_types(*supported_roi_types) %}*/
-        case {{ DTYPE }}: {
-            /*{% if DTYPE == 'FLOAT64' %}*/
-            connx_Tensor* new_roi = connx_Tensor_alloc(FLOAT32, roi->ndim, roi->shape);
-            float64_t* roi_array = (float64_t*)roi->buffer;
-            float32_t* new_roi_array = (float32_t*)new_roi->buffer;
-            for (int32_t i = 0; i < roi->shape[0]; i++) {
-                new_roi_array[i] = (float32_t)roi_array[i];
-            }
-
-            // connx_free(roi);
-            roi = new_roi;
-            /*{% endif %}*/
-
-        } break;
-            /*{% endfor %}*/ // roi->dtype
-        default: // roi->dtype
-            connx_error("Unsupported ROI type: %d", roi->dtype);
-            return CONNX_NOT_SUPPORTED_DATATYPE;
-        }
-        /*{% else %}*/
-        // Do nothing
-        /*{% endif %}*/ // mode == 'half_pixel'
-        } break;
-        /*{% endfor %}*/
-        default: // transform mode
-            connx_error("Unsupported coordinate transformation mode: %d", coordinate_transformation_mode);
-            return CONNX_NOT_SUPPORTED_ATTRIBUTE;
+        /*{% endif %}*/ // mode == 'tf_crop_and_resize'
+    } break;
+    /*{% endfor %}*/ // coordinate_transformation_mode
+    default:
+        connx_error("Unsupported coordinate transformation mode: %d", coordinate_transformation_mode);
+        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
     }
 
     *Y = connx_Tensor_alloc(X->dtype, X->ndim, output_shape);
@@ -298,7 +309,7 @@ static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, conn
 
     // fixed type variables
     float* scales_array = (float*)scales->buffer;
-    float* roi_array = (float*)roi->buffer;
+    float* roi_array = roi ? (float*)roi->buffer : NULL; //Only for tf_crop_and_resize
 
     // non-fixed type variables
     float* Y_array = (float*)Y->buffer;
@@ -334,13 +345,13 @@ static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape,
     }
 
     uint32_t unit = 1;
-    for (uint32_t i = 0; i < dim; i++) {
+    for (uint32_t i = 0; i < dim - 1; i++) {
         unit *= shape[dim - i - 1];
     }
 
     float interpolated[shape[0]];
     for (int32_t i = 0; i < shape[0]; i++) {
-        interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, shape + 1, scales + 1, dim - 1, roi + 2,
+        interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, shape + 1, scales + 1, dim - 1, roi ? (roi + 2) : NULL,
                                                  coordinate_transformation_mode, cubic_coeff_a, exclude_outside,
                                                  extrapolation_value, mode, nearest_mode);
     }
