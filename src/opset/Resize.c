@@ -69,12 +69,15 @@ enum NEAREST_MODE {
     /*{% endfor %}*/
 };
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_, enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
-                          float32_t extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode, connx_Tensor** Y);
+static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_,
+                          enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a,
+                          bool exclude_outside, float32_t extrapolation_value, enum MODE mode,
+                          enum NEAREST_MODE nearest_mode, connx_Tensor** Y);
 
 static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes,
-                       enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
-                       float32_t extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode);
+                       enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a,
+                       bool exclude_outside, float32_t extrapolation_value, enum MODE mode,
+                       enum NEAREST_MODE nearest_mode);
 
 static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape, float* scales, uint32_t dim,
                                     float* roi, enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
@@ -82,8 +85,9 @@ static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape,
                                     enum NEAREST_MODE nearest_mode);
 
 static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, float scale, float* roi,
-                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a, bool exclude_outside,
-                                    float extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode);
+                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
+                                    bool exclude_outside, float extrapolation_value, enum MODE mode,
+                                    enum NEAREST_MODE nearest_mode);
 
 int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs, uint32_t input_count,
            uint32_t* inputs, void** attributes) {
@@ -98,7 +102,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     assert((scales != NULL && sizes == NULL) || (scales == NULL && sizes != NULL));
 
     bool is_scales_was_null = (scales == NULL); // To free after use
-    bool is_sizes_was_null = (sizes == NULL); // To free after use
+    bool is_sizes_was_null = (sizes == NULL);   // To free after use
 
     // Attributes
     const char* coordinate_transformation_mode = (const char*)attributes[0];
@@ -146,7 +150,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
 
     int result;
     result = Resize_prepare(X, &roi, &scales, &sizes, transform_mode, cubic_coeff_a, exclude_outside,
-                                extrapolation_value, mode, nearest_mode, &Y);
+                            extrapolation_value, mode, nearest_mode, &Y);
 
     if (result != CONNX_OK) {
         if (Y != NULL) {
@@ -159,9 +163,10 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     assert(sizes != NULL);
     assert(scales != NULL);
 
-    result = Resize_exec(X, Y, roi, scales, sizes, transform_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
+    result = Resize_exec(X, Y, roi, scales, sizes, transform_mode, cubic_coeff_a, exclude_outside, extrapolation_value,
+                         mode, nearest_mode);
 
-    // TODO: Free unfreed memory.
+    // Free temporarily created tensors.
     if (is_scales_was_null) {
         connx_free(scales);
     }
@@ -173,8 +178,11 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     return result;
 }
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_, enum TRANSFORM_MODE coordinate_transformation_mode, __attribute__((unused))float32_t cubic_coeff_a, __attribute__((unused))bool exclude_outside,
-                          __attribute__((unused))float32_t extrapolation_value, __attribute__((unused))enum MODE mode, __attribute__((unused))enum NEAREST_MODE nearest_mode, connx_Tensor** Y) {
+static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_,
+                          enum TRANSFORM_MODE coordinate_transformation_mode,
+                          __attribute__((unused)) float32_t cubic_coeff_a, __attribute__((unused)) bool exclude_outside,
+                          __attribute__((unused)) float32_t extrapolation_value, __attribute__((unused)) enum MODE mode,
+                          __attribute__((unused)) enum NEAREST_MODE nearest_mode, connx_Tensor** Y) {
 
     int32_t output_shape[X->ndim];
 
@@ -201,7 +209,7 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** s
         // Make scales from sizes
         if (scales == NULL) {
             scales = connx_Tensor_alloc(X->dtype, 1, &X->ndim);
-            // TODO: Free after use
+            // XXX: Free after use
             if (scales == NULL) {
                 return CONNX_NOT_ENOUGH_MEMORY;
             }
@@ -229,7 +237,7 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** s
         // Make sizes from scales
         if (sizes == NULL) {
             sizes = connx_Tensor_alloc(CONNX_INT64, 1, &X->ndim);
-            // TODO: Free after use
+            // XXX: Free after use
             if (sizes == NULL) {
                 return CONNX_NOT_ENOUGH_MEMORY;
             }
@@ -240,7 +248,6 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** s
             }
         }
     }
-
 
     switch (coordinate_transformation_mode) {
     /*{% for mode in supported_transform_modes %}*/
@@ -290,12 +297,12 @@ static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** s
 
     // All checks are fine
     return CONNX_OK;
-
 }
 
 static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes,
-                       enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a, bool exclude_outside,
-                       float32_t extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode) {
+                       enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a,
+                       bool exclude_outside, float32_t extrapolation_value, enum MODE mode,
+                       enum NEAREST_MODE nearest_mode) {
 
     uint32_t dimension = Y->ndim;
     uint32_t shape[dimension];
@@ -318,7 +325,7 @@ static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, conn
 
     // fixed type variables
     float* scales_array = (float*)scales->buffer;
-    float* roi_array = roi ? (float*)roi->buffer : NULL; //Only for tf_crop_and_resize
+    float* roi_array = roi ? (float*)roi->buffer : NULL; // Only for tf_crop_and_resize
 
     // non-fixed type variables
     float* Y_array = (float*)Y->buffer;
@@ -328,9 +335,9 @@ static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, conn
 
     for (int32_t i = 0; i < total_count; i++) {
         // process
-        Y_array[i] =
-            interpolate_nd_float32(idxs, X_array, X->shape, scales_array, X->ndim, roi_array, coordinate_transformation_mode,
-                                   cubic_coeff_a, !!exclude_outside, extrapolation_value, mode, nearest_mode);
+        Y_array[i] = interpolate_nd_float32(idxs, X_array, X->shape, scales_array, X->ndim, roi_array,
+                                            coordinate_transformation_mode, cubic_coeff_a, !!exclude_outside,
+                                            extrapolation_value, mode, nearest_mode);
 
         // next index
         for (int32_t dim = dimension - 1; dim >= 0; dim--) {
@@ -350,7 +357,8 @@ static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape,
                                     bool exclude_outside, float extrapolation_value, enum MODE mode,
                                     enum NEAREST_MODE nearest_mode) {
     if (dim == 1) {
-        return interpolate_1d_float32(idxs[0], data, shape[0], scales[0], roi, coordinate_transformation_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
+        return interpolate_1d_float32(idxs[0], data, shape[0], scales[0], roi, coordinate_transformation_mode,
+                                      cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
     }
 
     uint32_t unit = 1;
@@ -360,52 +368,54 @@ static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape,
 
     float interpolated[shape[0]];
     for (int32_t i = 0; i < shape[0]; i++) {
-        interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, shape + 1, scales + 1, dim - 1, roi ? (roi + 2) : NULL,
-                                                 coordinate_transformation_mode, cubic_coeff_a, exclude_outside,
-                                                 extrapolation_value, mode, nearest_mode);
+        interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, shape + 1, scales + 1, dim - 1,
+                                                 roi ? (roi + 2) : NULL, coordinate_transformation_mode, cubic_coeff_a,
+                                                 exclude_outside, extrapolation_value, mode, nearest_mode);
     }
 
-    return interpolate_1d_float32(idxs[0], interpolated, shape[0], scales[0], roi, coordinate_transformation_mode, cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
+    return interpolate_1d_float32(idxs[0], interpolated, shape[0], scales[0], roi, coordinate_transformation_mode,
+                                  cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
 }
 
 static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, float scale, float* roi,
-                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a, bool exclude_outside,
-                                    float extrapolation_value, enum MODE mode, enum NEAREST_MODE nearest_mode) {
+                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
+                                    bool exclude_outside, float extrapolation_value, enum MODE mode,
+                                    enum NEAREST_MODE nearest_mode) {
     float origin_index = 0;
     float output_shape = scale * shape;
 
     // Get original coordinate
     switch (coordinate_transformation_mode) {
-        case HALF_PIXEL:
-            origin_index = ((float)idx + 0.5) / scale - 0.5;
-            break;
-        case PYTORCH_HALF_PIXEL:
-            origin_index = output_shape > 1 ? ((float)idx + 0.5) / scale - 0.5 : 0;
-            break;
-        case ALIGN_CORNERS:
-            if (output_shape == 1) {
-                origin_index = 0;
-            } else {
-                origin_index = (float)idx * (shape - 1) / (output_shape - 1);
-            }
-            break;
-        case ASYMMETRIC:
-            origin_index = idx / scale;
-            break;
-        case TF_CROP_AND_RESIZE:
-            if (output_shape == 1) {
-                origin_index = (roi[0] + roi[1]) * (shape - 1) / 2.0;
-            } else {
-                origin_index = idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1) + roi[0] * (shape - 1);
-            }
+    case HALF_PIXEL:
+        origin_index = ((float)idx + 0.5) / scale - 0.5;
+        break;
+    case PYTORCH_HALF_PIXEL:
+        origin_index = output_shape > 1 ? ((float)idx + 0.5) / scale - 0.5 : 0;
+        break;
+    case ALIGN_CORNERS:
+        if (output_shape == 1) {
+            origin_index = 0;
+        } else {
+            origin_index = (float)idx * (shape - 1) / (output_shape - 1);
+        }
+        break;
+    case ASYMMETRIC:
+        origin_index = idx / scale;
+        break;
+    case TF_CROP_AND_RESIZE:
+        if (output_shape == 1) {
+            origin_index = (roi[0] + roi[1]) * (shape - 1) / 2.0;
+        } else {
+            origin_index = idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1) + roi[0] * (shape - 1);
+        }
 
-            if (origin_index < 0 || origin_index > shape - 1) {
-                return extrapolation_value;
-            }
+        if (origin_index < 0 || origin_index > shape - 1) {
+            return extrapolation_value;
+        }
 
-            break;
-        default:
-            abort();
+        break;
+    default:
+        abort();
     }
 
     int32_t origin_index_int = origin_index >= 0 ? (int32_t)origin_index : (int32_t)origin_index - 1;
@@ -427,38 +437,38 @@ static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, fl
             coeffects_count = 2;
         } else {
             switch (nearest_mode) {
-                case ROUND_PREFER_FLOOR:
-                    if (ratio <= 0.5) {
-                        coeffects[0] = 1;
-                        coeffects[1] = 0;
-                    } else {
-                        coeffects[0] = 0;
-                        coeffects[1] = 1;
-                    }
-                    coeffects_count = 2;
-                    break;
-                case ROUND_PREFER_CEIL:
-                    if (ratio < 0.5) {
-                        coeffects[0] = 1;
-                        coeffects[1] = 0;
-                    } else {
-                        coeffects[0] = 0;
-                        coeffects[1] = 1;
-                    }
-                    coeffects_count = 2;
-                    break;
-                case FLOOR:
+            case ROUND_PREFER_FLOOR:
+                if (ratio <= 0.5) {
                     coeffects[0] = 1;
                     coeffects[1] = 0;
-                    coeffects_count = 2;
-                    break;
-                case CEIL:
+                } else {
                     coeffects[0] = 0;
                     coeffects[1] = 1;
-                    coeffects_count = 2;
-                    break;
-                default:
-                    abort();
+                }
+                coeffects_count = 2;
+                break;
+            case ROUND_PREFER_CEIL:
+                if (ratio < 0.5) {
+                    coeffects[0] = 1;
+                    coeffects[1] = 0;
+                } else {
+                    coeffects[0] = 0;
+                    coeffects[1] = 1;
+                }
+                coeffects_count = 2;
+                break;
+            case FLOOR:
+                coeffects[0] = 1;
+                coeffects[1] = 0;
+                coeffects_count = 2;
+                break;
+            case CEIL:
+                coeffects[0] = 0;
+                coeffects[1] = 1;
+                coeffects_count = 2;
+                break;
+            default:
+                abort();
             }
         }
         break;
@@ -468,7 +478,9 @@ static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, fl
         coeffects_count = 2;
         break;
     case CUBIC:
-        coeffects[0] = ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) - 4 * cubic_coeff_a;
+        coeffects[0] =
+            ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) -
+            4 * cubic_coeff_a;
         coeffects[0] =
             ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) -
             4 * cubic_coeff_a;
