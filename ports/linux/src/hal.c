@@ -474,13 +474,8 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     if ((i + 1) % unit2 == 0)  \
         fprintf(stderr, "\n");
 
-    fprintf(stderr, "tensor type(%d)< ", tensor->dtype);
-    for (int32_t i = 0; i < tensor->ndim; i++) {
-        fprintf(stderr, "%u ", tensor->shape[i]);
-    }
-
     int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
-    fprintf(stderr, "> = %u\n", total);
+    connx_Tensor_dump_header(tensor);
 
     switch (tensor->dtype) {
     case CONNX_UINT8: {
