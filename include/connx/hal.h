@@ -67,6 +67,7 @@ void connx_error(const char* format, ...);
 
 void connx_Iterator_dump(int32_t* iterator);
 void connx_Tensor_dump(struct _connx_Tensor* tensor);
+void connx_Tensor_dump_header(struct _connx_Tensor* tensor);
 
 uint64_t connx_time();
 void connx_watch_start(int32_t idx);

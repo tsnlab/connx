@@ -474,7 +474,7 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     if ((i + 1) % unit2 == 0)  \
         fprintf(stderr, "\n");
 
-    fprintf(stderr, "tensor < ");
+    fprintf(stderr, "tensor type(%d)< ", tensor->dtype);
     for (int32_t i = 0; i < tensor->ndim; i++) {
         fprintf(stderr, "%u ", tensor->shape[i]);
     }
@@ -600,6 +600,16 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     default:
         fprintf(stderr, "Not implemented yet\n");
     }
+}
+
+void connx_Tensor_dump_header(connx_Tensor* tensor) {
+    fprintf(stderr, "tensor type(%d) < ", tensor->dtype);
+    for (int32_t i = 0; i < tensor->ndim; i++) {
+        fprintf(stderr, "%u ", tensor->shape[i]);
+    }
+
+    int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
+    fprintf(stderr, "> = %u\n", total);
 }
 
 uint64_t connx_time() {
