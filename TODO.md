@@ -27,15 +27,21 @@
 [X] Conv
 [X] Exp
 [X] Gather
+[ ] GlobalMaxPool
+[X] GreaterOrEqual
 [X] LeakyRelu
-[X] Log
 [X] MaxPool
 [X] Mul
+[ ] NonZero
 [X] Reshape
-[ ] Resize
+[X] Resize
 [X] Shape
 [X] Sigmoid
 [X] Slice
+[ ] Softplus
 [X] Split
+[ ] Squeeze
+[ ] Sub
 [X] Tanh
+[ ] Tile
 [X] Transpose

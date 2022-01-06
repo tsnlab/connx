@@ -57,6 +57,9 @@ for NAME in ${OPERATORS}; do
     if [ ${NAME} == "-all" ]; then
         FILES=`ls ${INPUT_DIR}/opset/*.c`
         for FILE in ${FILES}; do
+            if [[ "${FILE}" == *.jinja.c ]]; then
+                continue
+            fi
             FILE=${FILE#${INPUT_DIR}/opset/}
             FILE=${FILE%.c}
             OPSET="${OPSET} ${FILE}"
