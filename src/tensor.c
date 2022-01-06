@@ -19,7 +19,6 @@
 #include <math.h>   // sin, cos, ...
 #include <stdlib.h> // strtol
 #include <string.h> // memcpy
-#include <stdio.h>
 
 #include <connx/accel.h>
 #include <connx/hal.h>
@@ -223,7 +222,7 @@ connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_T
             shape[i] = A->shape[i];
         } else {
             int32_t len_a = A->shape[i - padding_a];
-            int32_t len_b = A->shape[i - padding_b];
+            int32_t len_b = B->shape[i - padding_b];
             if (len_a == len_b) {
                 shape[i] = len_a;
             } else if (len_a == 1) {
@@ -232,7 +231,6 @@ connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_T
                 shape[i] = len_a;
             } else {
                 connx_error("Tensor broadcast failed: shape mismatch\n");
-                fprintf(stderr, "i: %d\n", i);
                 return NULL;
             }
         }
