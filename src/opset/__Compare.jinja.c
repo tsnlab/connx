@@ -16,10 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <assert.h>
-#include <float.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
@@ -94,11 +91,14 @@ static int32_t get_broadcasted_input_offset(const connx_Tensor* output, const co
     int32_t output_idxs[output->ndim];
     int32_t input_offset = 0;
 
+    int32_t skip_size = output->ndim - input->ndim;
+
     // Skip first dimensions if input has smaller dimensions
-    output_shape += output->ndim - input->ndim;
+    output_shape += skip_size;
+    int32_t ndim = output->ndim - skip_size;
 
     // Calculate output indices
-    for (int32_t i = output->ndim - 1; i >= 0; i--) {
+    for (int32_t i = ndim - 1; i >= 0; i--) {
         output_idxs[i] = output_offset % output_shape[i];
         output_offset /= output_shape[i];
     }
