@@ -108,6 +108,16 @@ typedef struct _connx_Tensor {
 connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
+
+/**
+ * Create broadcasted tensor
+ *
+ * @param dtype output tensor's data type
+ * @param A a tensor
+ * @param B another tensor
+ * @return newly allocated tensor. NULL if cannot be broadcasted.
+ */
+connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_Tensor* A, connx_Tensor* B);
 connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* shape);
 

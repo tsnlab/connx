@@ -156,6 +156,7 @@ jinja2_filters = {
 }
 
 jinja_env = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(os.path.dirname(input_source)),
     block_start_string='/*{%',
     block_end_string='%}*/',
     variable_start_string='{{',

@@ -19,6 +19,7 @@
 #include <math.h>   // sin, cos, ...
 #include <stdlib.h> // strtol
 #include <string.h> // memcpy
+#include <stdio.h>
 
 #include <connx/accel.h>
 #include <connx/hal.h>
@@ -206,6 +207,38 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
     memcpy(tensor->buffer, p, dsize * total);
 
     return tensor;
+}
+
+connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_Tensor* A, connx_Tensor* B) {
+    int32_t ndim = (A->ndim > B->ndim) ? A->ndim : B->ndim;
+    int32_t shape[ndim];
+
+    int32_t padding_a = ndim - A->ndim;
+    int32_t padding_b = ndim - B->ndim;
+
+    for (int32_t i = 0; i < ndim; i++) {
+        if (padding_a > i) {
+            shape[i] = B->shape[i];
+        } else if (padding_b > i) {
+            shape[i] = A->shape[i];
+        } else {
+            int32_t len_a = A->shape[i - padding_a];
+            int32_t len_b = A->shape[i - padding_b];
+            if (len_a == len_b) {
+                shape[i] = len_a;
+            } else if (len_a == 1) {
+                shape[i] = len_b;
+            } else if (len_b == 1) {
+                shape[i] = len_a;
+            } else {
+                connx_error("Tensor broadcast failed: shape mismatch\n");
+                fprintf(stderr, "i: %d\n", i);
+                return NULL;
+            }
+        }
+    }
+
+    return connx_Tensor_alloc(dtype, ndim, shape);
 }
 
 #define next_token(token)                        \
