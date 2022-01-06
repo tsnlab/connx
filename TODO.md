@@ -28,7 +28,7 @@
 [X] Exp
 [X] Gather
 [ ] GlobalMaxPool
-[ ] GreaterOrEqual
+[X] GreaterOrEqual
 [X] LeakyRelu
 [X] MaxPool
 [X] Mul

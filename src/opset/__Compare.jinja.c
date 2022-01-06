@@ -33,6 +33,8 @@ int {{fname}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count,
     connx_Tensor* A = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* B = connx_Graph_get(graph, inputs[1]);
 
+    assert(A != NULL && B != NULL);
+
     // Check input types
     if (A->dtype != B->dtype) {
         connx_error("{{fname}}: input tensors must have the same data type");

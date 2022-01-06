@@ -1,5 +1,5 @@
-/*{% set fname = 'Or' %}*/
-/*{% set operator = '||' %}*/
+/*{% set fname = 'And' %}*/
+/*{% set operator = '&&' %}*/
 
 /*{% set supported_data_types = [
     BOOL,
