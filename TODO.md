@@ -41,7 +41,7 @@
 [X] Softplus
 [X] Split
 [ ] Squeeze
-[ ] Sub
+[X] Sub
 [X] Tanh
 [ ] Tile
 [X] Transpose
