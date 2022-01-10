@@ -43,5 +43,5 @@
 [X] Squeeze
 [X] Sub
 [X] Tanh
-[ ] Tile
+[X] Tile
 [X] Transpose
