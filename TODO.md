@@ -32,7 +32,7 @@
 [X] LeakyRelu
 [X] MaxPool
 [X] Mul
-[ ] NonZero
+[X] NonZero
 [X] Reshape
 [X] Resize
 [X] Shape
