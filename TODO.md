@@ -38,7 +38,7 @@
 [X] Shape
 [X] Sigmoid
 [X] Slice
-[ ] Softplus
+[X] Softplus
 [X] Split
 [ ] Squeeze
 [ ] Sub
