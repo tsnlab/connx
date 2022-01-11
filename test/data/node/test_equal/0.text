@@ -3,4 +3,4 @@ initializer 0
 output 1 1
 input 2 2 3
 node 1
-Greater 1 2 0 1 2 3
+Equal 1 2 0 1 2 3
