@@ -106,6 +106,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     // One of the following must exclusively set
     assert((scales != NULL && sizes == NULL) || (scales == NULL && sizes != NULL));
 
+    bool is_roi_was_null = (roi == NULL);
     bool is_scales_was_null = (scales == NULL); // To free after use
     bool is_sizes_was_null = (sizes == NULL);   // To free after use
 
@@ -172,13 +173,15 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
                          mode, nearest_mode);
 
     // Free temporarily created tensors.
-    if (is_scales_was_null) {
+    if (is_scales_was_null && scales != NULL) {
         connx_free(scales);
     }
-    if (is_sizes_was_null) {
+    if (is_sizes_was_null && sizes != NULL) {
         connx_free(sizes);
     }
-    connx_free(roi);
+    if (is_roi_was_null && roi != NULL) {
+        connx_free(roi);
+    }
 
     return result;
 }
