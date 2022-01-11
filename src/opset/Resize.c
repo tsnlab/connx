@@ -98,6 +98,11 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     connx_Tensor* scales = (input_count > 2) ? connx_Graph_get(graph, inputs[2]) : NULL; // float32
     connx_Tensor* sizes = (input_count > 3) ? connx_Graph_get(graph, inputs[3]) : NULL;  // int64
 
+    // If sizes is provided, scales are ignored because it can be exclusevely set. but input is ordered.
+    if (sizes != NULL) {
+        scales = NULL;
+    }
+
     // One of the following must exclusively set
     assert((scales != NULL && sizes == NULL) || (scales == NULL && sizes != NULL));
 
