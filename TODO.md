@@ -40,7 +40,7 @@
 [X] Slice
 [X] Softplus
 [X] Split
-[ ] Squeeze
+[X] Squeeze
 [X] Sub
 [X] Tanh
 [ ] Tile
