@@ -36,6 +36,13 @@ int Split(connx_Graph* graph, uint32_t output_count, uint32_t* outputs_, uint32_
     int64_t split[output_count];
     int32_t axis = *(int32_t*)attributes[0];
 
+    // negative axis means counting from the end
+    if (axis < 0) {
+        axis += input->ndim;
+    }
+
+    assert(axis >= 0 && axis < input->ndim);
+
     int32_t output_ndim = input->ndim;
     int32_t output_shape[output_count][output_ndim];
 
