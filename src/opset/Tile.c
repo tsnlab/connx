@@ -18,7 +18,7 @@
 #include <assert.h>
 #include <string.h>
 
-#ifdef DEBUG
+#ifdef DEBUG_TILE
 #include <stdio.h>
 #endif
 
@@ -84,7 +84,7 @@ int Tile(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint
     }
 
     assert(datatype_size > 0);
-#ifdef DEBUG
+#ifdef DEBUG_TILE
     connx_Tensor_dump_header(input);
     connx_Tensor_dump_header(output);
     connx_Tensor_dump(repeats);
@@ -107,7 +107,7 @@ static inline void fill_rest(void* output_buffer, void* input_buffer, int32_t ch
     }
 }
 
-#ifdef DEBUG
+#ifdef DEBUG_TILE
 static inline void padding(int32_t ndim) {
     for (int i = 0; i < 5 - ndim; i++) {
         fprintf(stderr, "  ");
@@ -132,7 +132,7 @@ void copy_input(void* output_buffer, void* input_buffer, int32_t ndim, int64_t* 
         output_first_size = input_chunk_size;
     }
 
-#ifdef DEBUG
+#ifdef DEBUG_TILE
     padding(ndim);
     fprintf(stderr, "ndim(%d): output_chunk: %d, input_chunk: %d, repeats: %d, output_total_count: %d\n", ndim,
             output_chunk_size, input_chunk_size, repeats, output_total_count);
@@ -141,7 +141,7 @@ void copy_input(void* output_buffer, void* input_buffer, int32_t ndim, int64_t* 
     int32_t output_offset = 0;
     int32_t input_offset = 0;
     while (output_offset < output_first_size) {
-#ifdef DEBUG
+#ifdef DEBUG_TILE
         padding(ndim);
         fprintf(stderr, "ndim(%d): Copying %d objects from %d to %d\n", ndim, input_chunk_size, input_offset,
                 output_offset);
@@ -156,7 +156,7 @@ void copy_input(void* output_buffer, void* input_buffer, int32_t ndim, int64_t* 
         output_offset += output_chunk_size;
         input_offset += input_chunk_size;
     }
-#ifdef DEBUG
+#ifdef DEBUG_TILE
     padding(ndim);
     fprintf(stderr, "ndim(%d): Fill rest %d times with chunk size %d\n", ndim, repeats - 1, output_chunk_size);
 #endif

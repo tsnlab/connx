@@ -15,6 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <assert.h>
 #include <string.h>
 
 #include <connx/accel.h>
@@ -35,6 +36,13 @@ int Split(connx_Graph* graph, uint32_t output_count, uint32_t* outputs_, uint32_
     // connx_Tensor* split = connx_Graph_get(graph, inputs[1]); // Use it later
     int64_t split[output_count];
     int32_t axis = *(int32_t*)attributes[0];
+
+    // negative axis means counting from the end
+    if (axis < 0) {
+        axis += input->ndim;
+    }
+
+    assert(axis >= 0 && axis < input->ndim);
 
     int32_t output_ndim = input->ndim;
     int32_t output_shape[output_count][output_ndim];

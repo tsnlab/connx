@@ -1,6 +1,6 @@
 value_info 3
 initializer 0
-output 1 3
-input 2 1 2
+output 1 1
+input 2 2 3
 node 1
-Resize 1 3 6 3 1 0 2 30 coordinate_transformation_mode 3 13 align_corners 13 cubic_coeff_a 1 -0.75 15 exclude_outside 2 0 19 extrapolation_value 1 0.0 4 mode 3 6 linear 12 nearest_mode 3 18 round_prefer_floor
+Resize 1 3 6 1 2 0 3 30 coordinate_transformation_mode 3 13 align_corners 13 cubic_coeff_a 1 -0.75 15 exclude_outside 2 0 19 extrapolation_value 1 0.0 4 mode 3 6 linear 12 nearest_mode 3 18 round_prefer_floor
