@@ -1,6 +1,6 @@
 value_info 2
 initializer 0
-output 1 2
-input 1 1
+output 1 1
+input 1 2
 node 1
-Sign 1 1 0 2 1
+Sign 1 1 0 1 2
