@@ -106,7 +106,6 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     // One of the following must exclusively set
     assert((scales != NULL && sizes == NULL) || (scales == NULL && sizes != NULL));
 
-    bool is_roi_was_null = (roi == NULL);
     bool is_scales_was_null = (scales == NULL); // To free after use
     bool is_sizes_was_null = (sizes == NULL);   // To free after use
 
@@ -179,7 +178,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     if (is_sizes_was_null && sizes != NULL) {
         connx_free(sizes);
     }
-    if (is_roi_was_null && roi != NULL) {
+    if (roi != NULL) { // roi is always malloced
         connx_free(roi);
     }
 
