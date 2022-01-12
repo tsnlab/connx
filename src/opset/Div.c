@@ -1,5 +1,5 @@
-/*{% set fname = 'Mul' %}*/
-/*{% set operator = '*' %}*/
+/*{% set fname = 'Div' %}*/
+/*{% set operator = '/' %}*/
 
 /*{% set supported_data_types = [
     INT8, INT16, INT32, INT64,
