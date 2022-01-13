@@ -73,6 +73,13 @@ for path in Path(HOME + '/test').rglob('*.connx'):
             with open(output_path, 'rb') as io:
                 ref = read_tensor(io)
 
+            if output.shape != ref.shape:
+                print('  shape of output[{}] is differ:'.format(idx))
+                print('  ## Inferenced tensor')
+                print(output.shape)
+                print('  ## Reference tensor')
+                print(ref.shape, flush=True)
+
             if not np.allclose(output, ref, atol=1e-07, rtol=0.001):
                 if is_passed:
                     print(f'{FAIL}Failed{END}', flush=True)
