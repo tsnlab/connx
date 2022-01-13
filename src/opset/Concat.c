@@ -131,19 +131,24 @@ int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     case {{ DTYPE }}: {
         {{TYPE}}* output_array = concat_result->buffer;
 
+        uint32_t block_sizes[input_count];
+        for (uint32_t matrix_index = 0; matrix_index < input_count; matrix_index++) {
+            connx_Tensor* input_tensor = inputs[matrix_index];
+            // if axis == 0, Whole matrix copied
+            // if axis == 1, n-1th dimension matrix copied
+            // if axis == 2, n-2th dimension matrix copied And so on
+
+            block_sizes[matrix_index] = connx_Int32_product(input_tensor->ndim - axis, input_tensor->shape + axis);
+            // fprintf(stderr, "input_count: %d, matrix_size: %d\n", input_count, matrix_size);
+        }
+
         while (output_offset < output_total) {
 
             // uint32_t offset = 0;
             for (uint32_t matrix_index = 0; matrix_index < input_count; matrix_index++) {
                 connx_Tensor* input_tensor = inputs[matrix_index];
                 {{TYPE}}* input_array = input_tensor->buffer;
-                // if axis == 0, Whole matrix copied
-                // if axis == 1, n-1th dimension matrix copied
-                // if axis == 2, n-2th dimension matrix copied And so on
-
-                int32_t block_size = connx_Int32_product(input_tensor->ndim - axis, input_tensor->shape + axis);
-                // fprintf(stderr, "input_count: %d, matrix_size: %d\n", input_count, matrix_size);
-
+                int32_t block_size = block_sizes[matrix_index];
 #ifndef SLOW_CONCAT
                 memcpy(output_array + output_offset, input_array + input_offsets[matrix_index],
                        block_size * sizeof({{TYPE}}));
@@ -157,8 +162,7 @@ int Concat(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
                 output_offset += block_size;
             }
         }
-        break;
-    }
+    } break;
         /*{% endfor %}*/
     default:
         connx_error("Concat: Datatype %d is not supported yet.\n", inputs[0]->dtype);
