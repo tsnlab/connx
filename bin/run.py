@@ -203,7 +203,7 @@ class Stderr(threading.Thread):
 
     def run(self):
         for line in iter(self.stderr.readline, b''):
-            print(f'{WARN}stderr> ', line, END, flush=True)
+            print(f'{WARN}stderr> ', line.decode('utf-8'), END, flush=True)
 
 
 def run(connx_path, model_path, inputs):
@@ -213,82 +213,85 @@ def run(connx_path, model_path, inputs):
         # Write number of inputs
         proc.stdin.write(struct.pack('=I', len(inputs)))
 
-        for input in inputs:
-            # Write data
-            if type(input) == str:
-                with open(input, 'rb') as file:
-                    data = file.read()
-                    proc.stdin.write(data)
-            elif type(input) == np.ndarray:
-                dtype = get_dtype(input.dtype)
-                proc.stdin.write(struct.pack('=I', dtype))
-                proc.stdin.write(struct.pack('=I', len(input.shape)))
-
-                for dim in input.shape:
-                    proc.stdin.write(struct.pack('=I', dim))
-
-                data = input.tobytes()
-                proc.stdin.write(data)
-            else:
-                raise Exception(f'Unknown input type: {type(input)}')
-
-        # Terminate the connx at next loop
-        proc.stdin.write(struct.pack('=i', -1))
-        proc.stdin.close()
-
-        # Print stderr first
-        stderr = Stderr(proc.stderr)
-        stderr.start()
-
-        # save bytes for debugging purpose
-        buf = bytearray()
-
-        # Parse number of outputs
         try:
-            b = proc.stdout.read(4)
-            buf += b
-            count = struct.unpack('=i', b)[0]
+            for input in inputs:
+                # Write data
+                if type(input) == str:
+                    with open(input, 'rb') as file:
+                        data = file.read()
+                        proc.stdin.write(data)
+                elif type(input) == np.ndarray:
+                    dtype = get_dtype(input.dtype)
+                    proc.stdin.write(struct.pack('=I', dtype))
+                    proc.stdin.write(struct.pack('=I', len(input.shape)))
 
-            if count < 0:
-                print('Error code:', count)
-                stderr.join()
+                    for dim in input.shape:
+                        proc.stdin.write(struct.pack('=I', dim))
+
+                    data = input.tobytes()
+                    proc.stdin.write(data)
+                else:
+                    raise Exception(f'Unknown input type: {type(input)}')
+        except BrokenPipeError:
+            print(proc.stderr.read().decode('utf-8'))
+        else:
+            # Terminate the connx at next loop
+            proc.stdin.write(struct.pack('=i', -1))
+            proc.stdin.close()
+
+            # Print stderr first
+            stderr = Stderr(proc.stderr)
+            stderr.start()
+
+            # save bytes for debugging purpose
+            buf = bytearray()
+
+            # Parse number of outputs
+            try:
+                b = proc.stdout.read(4)
+                buf += b
+                count = struct.unpack('=i', b)[0]
+
+                if count < 0:
+                    print('Error code:', count)
+                    stderr.join()
+                    return []
+
+                outputs = []
+
+                for i in range(count):
+                    # Parse data type
+                    b = proc.stdout.read(8)
+                    buf += b
+                    dtype, ndim = struct.unpack('=II', b)
+
+                    shape = []
+                    for i in range(ndim):
+                        b = proc.stdout.read(4)
+                        buf += b
+                        shape.append(struct.unpack('=I', b)[0])
+
+                    # Parse data
+                    dtype = get_nptype(dtype)
+                    itemsize = np.dtype(dtype).itemsize
+                    total = product(shape)
+                    b = proc.stdout.read(itemsize * total)
+                    buf += b
+                    output = np.frombuffer(b, dtype=dtype, count=product(shape)).reshape(shape)
+                    outputs.append(output)
+
+                proc.stdout.close()
+            except Exception as e:
+                print(f'Exception occurred: {e}')
+                traceback.print_exc()
+                print(f'Illegal input: {len(buf)} bytes')
+                print(f'as string: "{buf}"')
+                print(f'as hexa: "{buf.hex()}"')
                 return []
 
-            outputs = []
+            stderr.join()
 
-            for i in range(count):
-                # Parse data type
-                b = proc.stdout.read(8)
-                buf += b
-                dtype, ndim = struct.unpack('=II', b)
-
-                shape = []
-                for i in range(ndim):
-                    b = proc.stdout.read(4)
-                    buf += b
-                    shape.append(struct.unpack('=I', b)[0])
-
-                # Parse data
-                dtype = get_nptype(dtype)
-                itemsize = np.dtype(dtype).itemsize
-                total = product(shape)
-                b = proc.stdout.read(itemsize * total)
-                buf += b
-                output = np.frombuffer(b, dtype=dtype, count=product(shape)).reshape(shape)
-                outputs.append(output)
-
-            proc.stdout.close()
-        except Exception as e:
-            print(f'Exception occurred: {e}')
-            traceback.print_exc()
-            print(f'Illegal input: {len(buf)} bytes')
-            print(f'as string: "{buf}"')
-            print(f'as hexa: "{buf.hex()}"')
-            return []
-
-        stderr.join()
-
-        return outputs
+            return outputs
 
 
 def read_tensor(io):
@@ -307,9 +310,15 @@ def read_tensor(io):
 
 
 if __name__ == '__main__':
+    start_timestamp = time.time()
     outputs = run(sys.argv[1], sys.argv[2], sys.argv[3:])
+    end_timestamp = time.time()
 
     if outputs is not None:
         for i in range(len(outputs)):
             print('# output[{}]'.format(i))
             print(outputs[i])
+            print(f'# output[i].shape = {outputs[i].shape}')
+
+    # Print elapsed time
+    print(f'Elapsed time: {end_timestamp - start_timestamp} sec')
