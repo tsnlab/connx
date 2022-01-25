@@ -64,6 +64,8 @@ int Split(connx_Graph* graph, uint32_t output_count, uint32_t* outputs_, uint32_
         }
     }
 
+    assert(input->shape[axis] == connx_Int64_sum(output_count, split));
+
     // Calculate output shape and create tensor
     for (uint32_t i = 0; i < output_count; i++) {
         memcpy(output_shape[i], input->shape, sizeof(int32_t) * output_ndim);

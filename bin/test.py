@@ -57,48 +57,45 @@ for path in Path(HOME + '/test').rglob('*.connx'):
         outputs = run(CONNX, model_path, input_paths)
         end_time = time.time()
 
-        is_passed = True
+        is_failed = False
 
         if len(outputs) != len(output_paths):
-            if is_passed:
-                print(f'{FAIL}Failed{END}', flush=True)
-                fail_count += 1
-
             print('  Number of output count is different: inferenced: {}, reference: {}'
                   .format(len(outputs), len(output_paths)), flush=True)
 
-            is_passed = False
+            is_failed = True
 
         for idx, (output, output_path) in enumerate(zip(outputs, output_paths)):
             with open(output_path, 'rb') as io:
                 ref = read_tensor(io)
 
             if output.shape != ref.shape:
+                is_failed = True
                 print('  shape of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
                 print(output.shape)
                 print('  ## Reference tensor')
                 print(ref.shape, flush=True)
+                continue
 
             if not np.allclose(output, ref, atol=1e-07, rtol=0.001):
-                if is_passed:
-                    print(f'{FAIL}Failed{END}', flush=True)
-                    fail_count += 1
-
+                is_failed = True
                 print('  data of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
                 print(output)
                 print('  ## Reference tensor')
                 print(ref, flush=True)
-
-                is_passed = False
                 continue
 
-        if is_passed:
+        if is_failed:
+            print(f'{FAIL}Failed{END}', flush=True)
+            fail_count += 1
+        else:
             dt = end_time - start_time
             total += dt
             print(f'{dt * 1000:n} ms {PASS}Passed{END}', flush=True)
             pass_count += 1
+
 
 print(f'Time: {total * 1000:n} ms, '
       f'{PASS if fail_count == 0 else ""}PASS: {pass_count}{END if fail_count == 0 else ""}, '

@@ -108,6 +108,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
 
     bool is_scales_was_null = (scales == NULL); // To free after use
     bool is_sizes_was_null = (sizes == NULL);   // To free after use
+    const void* roi_original = roi;
 
     // Attributes
     const char* coordinate_transformation_mode = (const char*)attributes[0];
@@ -178,7 +179,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     if (is_sizes_was_null && sizes != NULL) {
         connx_free(sizes);
     }
-    if (roi != NULL) { // roi is always malloced
+    if (roi != roi_original && roi != NULL) {
         connx_free(roi);
     }
 
