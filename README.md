@@ -13,12 +13,12 @@ C implementation of Open Neural Network Exchange Runtime
 # Quick start
 ## Compile in release mode
 ~~~sh
-ports/linux$ mkdir build              # Make build directory
-ports/linux/build$ cmake .. -G Ninja  # Generate build files with "Release" mode
-ports/linux/build$ ninja              # Compile
+connx$ mkdir build; cd build                # Make build directory
+connx/build$ cmake ../ports/linux -G Ninja  # Generate build files with "Release" mode
+connx/build$ ninja                          # Compile
 ~~~
 
-You can find 'connx' executable in ports/linux/build directory.
+You can find 'connx' executable in connx/build directory.
 
 ## Compile with sub-opset (optional)
 If you want to compile CONNX with subset of operators, in case of inferencing MNIST only,
@@ -32,27 +32,22 @@ Add Conv MatMul MaxPool Relu Reshape
 Run MNIST example. (Mobilenet and YOLO will be coming soon)
 
 ~~~sh
-ports/linux/build$ ninja mnist
+connx/build$ ninja mnist
 ~~~
 
 Notice: If you want to run on Raspberry Pi 3, please compile with Release mode(CMAKE\_BUILD\_TYPE=Release) for sanitizer makes some problem.
 
 # ONNX compatibility test
-Run the test cases in 'test' directory which contains converted test cases from ONNX.
-python3 with Numpy is required.
-
-~~~sh
-ports/linux/build$ ninja onnx
-~~~
+ONNX compatibility test is moved to onnx-connx project.
 
 # Performance profile report
 If you want to profile performance, you need to compile CONNX in debugging mode first.
 
 ~~~sh
-ports/linux/build$ cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug  # Generate build files
-ports/linux/build$ ninja                                       # Compile
-ports/linux/build$ ninja mnist                                 # Run an any example
-ports/linux/build$ ninja prof                                  # Print performance profile report
+connx/build$ cmake ../ports/linux -G Ninja -DCMAKE_BUILD_TYPE=Debug  # Generate build files
+connx/build$ ninja                                                   # Compile
+connx/build$ ninja mnist                                             # Run an any example
+connx/build$ ninja prof                                              # Print performance profile report
 ~~~
 
 # Ports

@@ -3,3 +3,4 @@ max-line-length = 120
 import-order-style = edited
 exclude =
   .git
+  venv

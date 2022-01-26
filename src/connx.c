@@ -100,6 +100,16 @@ static char* _strdup(char* str) {
         str;                                \
     })
 
+#define skip_comment(token)          \
+    ({                               \
+        if (*token == '#') {         \
+            while (*token != '\n') { \
+                token++;             \
+            }                        \
+            token++;                 \
+        }                            \
+    })
+
 static int parse_Model(connx_Model* model, char* metadata) {
     char* token = metadata;
 
@@ -108,7 +118,7 @@ static int parse_Model(connx_Model* model, char* metadata) {
 
     model->version = next_integer(token);
 
-    if (model->version != 3) {
+    if (model->version != 4) {
         connx_error("Not supported CONNX version: %u\n", model->version);
         return CONNX_NOT_SUPPORTED_CONNX_VERSION;
     }
@@ -325,7 +335,7 @@ static int parse_Graph(connx_Graph* graph, char* text) {
         }
 
         if (node->op == NULL) {
-            connx_error("Operator %s is not supported yet.\n", node->op_type);
+            connx_error("Operator '%s' is not supported yet.\n", node->op_type);
             return CONNX_NOT_SUPPORTED_OPERATOR;
         }
 
@@ -361,7 +371,6 @@ static int parse_Graph(connx_Graph* graph, char* text) {
 
         // Parse attribute
         for (uint32_t i = 0; i < node->attribute_count; i++) {
-            next_string(token); // Drop name
             uint32_t type = next_integer(token);
 
             switch (type) {
@@ -460,6 +469,8 @@ static int parse_Graph(connx_Graph* graph, char* text) {
                 return CONNX_NOT_SUPPORTED_ATTRIBUTE;
             }
         }
+
+        skip_comment(token);
     }
 
     return CONNX_OK;
