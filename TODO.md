@@ -12,15 +12,15 @@
 [X] Cos
 [X] Cosh
 
-[ ] Mobilenet
+[X] Mobilenet
 [X] Add
-[ ] BatchNormalization
+[X] BatchNormalization
 [X] Conv
-[ ] GlobalAveragePool
+[X] GlobalAveragePool
 [X] Relu
 [X] Reshape
 
-[ ] YOLO v4
+[X] YOLO v4
 [X] Add
 [X] Cast (without string)
 [X] Concat
