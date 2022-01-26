@@ -1,6 +1,0 @@
-value_info 4
-initializer 0
-output 2 1 2
-input 2 3 4
-node 1
-Split 2 2 1 1 2 3 4 4 axis 2 1

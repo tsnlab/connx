@@ -1,6 +1,0 @@
-value_info 3
-initializer 0
-output 1 1
-input 2 2 3
-node 1
-Conv 1 2 6 1 2 3 8 auto_pad 3 6 NOTSET 9 dilations 7 0 5 group 2 1 12 kernel_shape 7 2 3 3 4 pads 7 4 1 0 1 0 7 strides 7 2 2 2
