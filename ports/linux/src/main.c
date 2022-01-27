@@ -381,10 +381,10 @@ int main(int argc, char** argv) {
             switch (get_file_type(argv[i])) {
             case -2: // I/O error
                 connx_error("Cannot get file state: '%s'\n", argv[i]);
-                break;
+                return CONNX_IO_ERROR;
             case -1: // Unsupported file type
                 connx_error("Unknown file type: '%s'\n", argv[i]);
-                break;
+                return CONNX_IO_ERROR;
             case 0: // FIFO
                 input_type = 0;
                 input_count = 1;
@@ -415,10 +415,10 @@ int main(int argc, char** argv) {
             switch (get_file_type(argv[i])) {
             case -2: // I/O error
                 connx_error("Cannot get file state: '%s'\n", argv[i]);
-                break;
+                return CONNX_IO_ERROR;
             case -1: // Unsupported file type
                 connx_error("Unknown file type: '%s'\n", argv[i]);
-                break;
+                return CONNX_IO_ERROR;
             case 0: // FIFO
                 output_path = argv[i];
                 state = 9;
@@ -438,6 +438,10 @@ int main(int argc, char** argv) {
     if (ret != 0) {
         goto done;
     }
+
+#if DEBUG
+    connx_debug("Model: %s\n", argv[1]);
+#endif /* DEBUG */
 
     switch (input_type) {
     case 0: // fifo

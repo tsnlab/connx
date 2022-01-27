@@ -22,6 +22,14 @@
 #include <string.h>
 #include <strings.h>
 
+#if DEBUG
+#include <errno.h> // open
+#include <fcntl.h> // open
+#include <sys/stat.h> // mkdir
+#include <sys/types.h> // mkdir
+#include <unistd.h> // write
+#endif /* DEBUG */
+
 #include <connx/accel.h>
 #include <connx/connx.h>
 #include <connx/hal.h>
@@ -100,14 +108,12 @@ static char* _strdup(char* str) {
         str;                                \
     })
 
-#define skip_comment(token)          \
-    ({                               \
-        if (*token == '#') {         \
-            while (*token != '\n') { \
-                token++;             \
-            }                        \
-            token++;                 \
-        }                            \
+#define skip_comment(token)      \
+    ({                           \
+        while (*token != '\n') { \
+            token++;             \
+        }                        \
+        token++;                 \
     })
 
 static int parse_Model(connx_Model* model, char* metadata) {
@@ -470,7 +476,30 @@ static int parse_Graph(connx_Graph* graph, char* text) {
             }
         }
 
-        skip_comment(token);
+        if (*token == '#') {
+#ifdef DEBUG
+            next_token(token); // skip '#'
+
+            node->name = _strdup(next_string(token));
+
+            node->output_names = connx_alloc(sizeof(char*) * node->output_count);
+            for (uint32_t i = 0; i < node->output_count; i++) {
+                node->output_names[i] = _strdup(next_string(token));
+            }
+
+            node->input_names = connx_alloc(sizeof(char*) * node->input_count);
+            for (uint32_t i = 0; i < node->input_count; i++) {
+                node->input_names[i] = _strdup(next_string(token));
+            }
+
+            node->attribute_names = connx_alloc(sizeof(char*) * node->attribute_count);
+            for (uint32_t i = 0; i < node->attribute_count; i++) {
+                node->attribute_names[i] = _strdup(next_string(token));
+            }
+#else
+            skip_comment(token);
+#endif /* DEBUG */
+        }
     }
 
     return CONNX_OK;
@@ -520,6 +549,33 @@ int connx_Graph_destroy(connx_Graph* graph) {
                 if (node->outputs != NULL) {
                     connx_free(node->outputs);
                 }
+
+#ifdef DEBUG
+                if (node->attribute_names != NULL) {
+                    for (uint32_t i = 0; i < node->attribute_count; i++) {
+                        connx_free(node->attribute_names[i]);
+                    }
+                    connx_free(node->attribute_names);
+                }
+
+                if (node->input_names != NULL) {
+                    for (uint32_t i = 0; i < node->input_count; i++) {
+                        connx_free(node->input_names[i]);
+                    }
+                    connx_free(node->input_names);
+                }
+
+                if (node->output_names != NULL) {
+                    for (uint32_t i = 0; i < node->output_count; i++) {
+                        connx_free(node->output_names[i]);
+                    }
+                    connx_free(node->output_names);
+                }
+
+                if (node->name != NULL) {
+                    connx_free(node->name);
+                }
+#endif /* DEBUG */
 
                 connx_free(node);
             }
@@ -579,6 +635,65 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
         if (ret != CONNX_OK) {
             return ret;
         }
+
+#if DEBUG
+        mkdir("connx.log", 0775);
+        for (uint32_t j = 0; j < node->output_count; j++) {
+            if (node->outputs[j] == 0)
+                continue;
+
+            char name[128];
+            sprintf(name, "%s", node->output_names[j]);
+            for (int i = 0; name[i] != '\0'; i++) {
+                if (name[i] == '/') {
+                    name[i] = '_';
+                }
+            }
+
+            char path[256];
+            sprintf(path, "connx.log/%s_%u.data", name, j);
+            int fd = open(path, O_CREAT | O_WRONLY, 0664);
+            if (fd < 0) {
+                connx_error("Cannot create log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                continue;
+            }
+
+            connx_Tensor* tensor = graph->value_infos[node->outputs[j]];
+
+            uint32_t dtype = tensor->dtype;
+            size_t len = write(fd, &dtype, sizeof(uint32_t));
+            if (len != sizeof(uint32_t)) {
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                close(fd);
+                continue;
+            }
+
+            uint32_t ndim = tensor->ndim;
+            len = write(fd, &ndim, sizeof(uint32_t));
+            if (len != sizeof(uint32_t)) {
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                close(fd);
+                continue;
+            }
+
+            len = write(fd, tensor->shape, sizeof(uint32_t) * tensor->ndim);
+            if (len != sizeof(uint32_t) * tensor->ndim) {
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                close(fd);
+                continue;
+            }
+
+            len = write(fd, tensor->buffer, tensor->size);
+            if (len != tensor->size) {
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                close(fd);
+                continue;
+            }
+
+            close(fd);
+        }
+
+#endif /* DEBUG */
 
         for (uint32_t i = 0; i < node->input_count; i++) {
             uint32_t id = node->inputs[i];

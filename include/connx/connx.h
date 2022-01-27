@@ -39,15 +39,27 @@ typedef int (*CONNX_OPERATOR)(connx_Graph* graph, uint32_t output_count, uint32_
 typedef struct _connx_Node {
     uint32_t output_count;
     uint32_t* outputs;
+#ifdef DEBUG
+    char** output_names;
+#endif /* DEBUG */
 
     uint32_t input_count;
     uint32_t* inputs;
+#ifdef DEBUG
+    char** input_names;
+#endif /* DEBUG */
 
     uint32_t attribute_count;
     void** attributes;
+#ifdef DEBUG
+    char** attribute_names;
+#endif /* DEBUG */
 
     char* op_type;
     CONNX_OPERATOR op;
+#ifdef DEBUG
+    char* name;
+#endif /* DEBUG */
 } connx_Node;
 
 typedef struct _connx_AttributeFloats {

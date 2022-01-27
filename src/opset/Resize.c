@@ -131,16 +131,19 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     } else
     /*{% endfor %}*/
     {
+        connx_error("coordinate_transformation_mode '%s' is not supported yet", coordinate_transformation_mode);
         return CONNX_NOT_SUPPORTED_ATTRIBUTE;
     }
 
     // Check modes
     /*{% for mode in supported_modes %}*/
     if (strncmp(mode_, "{{mode}}", {{mode | length + 1}}) == 0) {
+        connx_error("mode '%s' is not supported yet", mode_);
         mode = {{mode | upper}};
     } else
     /*{% endfor %}*/
     {
+        connx_error("mode '%s' is not supported yet", mode_);
         return CONNX_NOT_SUPPORTED_ATTRIBUTE;
     }
 
@@ -151,6 +154,7 @@ int Resize(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, ui
     } else
     /*{% endfor %}*/
     {
+        connx_error("nearest_mode '%s' is not supported yet", nearest_mode_);
         return CONNX_NOT_SUPPORTED_ATTRIBUTE;
     }
 

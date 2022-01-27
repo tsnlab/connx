@@ -398,8 +398,8 @@ void connx_debug(const char* format, ...) {
     va_list args;
     va_start(args, format);
 
-    fprintf(stdout, "DEBUG: ");
-    vfprintf(stdout, format, args);
+    fprintf(stderr, "DEBUG: ");
+    vfprintf(stderr, format, args);
 
     va_end(args);
 }
