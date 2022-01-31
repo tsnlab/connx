@@ -3,15 +3,15 @@ initializer 8
 output 1 21
 input 9 20 3 4 2 5 6 1 7 8
 node 12
-Reshape 1 2 1 9 1 7 2 0 # 17 Times212_reshape1 21 Parameter193_reshape1 12 Parameter193 27 Parameter193_reshape1_shape 9 allowzero
-Conv 1 2 6 10 20 3 3 10 SAME_UPPER 7 2 1 1 2 1 7 2 5 5 7 0 7 2 1 1 # 13 Convolution28 22 Convolution28_Output_0 6 Input3 10 Parameter5 8 auto_pad 9 dilations 5 group 12 kernel_shape 4 pads 7 strides
-Add 1 2 0 11 10 4 # 6 Plus30 15 Plus30_Output_0 22 Convolution28_Output_0 10 Parameter6
-Relu 1 1 0 12 11 # 6 ReLU32 15 ReLU32_Output_0 15 Plus30_Output_0
-MaxPool 1 1 7 13 12 3 6 NOTSET 2 0 7 0 7 2 2 2 7 4 0 0 0 0 2 0 7 2 2 2 # 9 Pooling66 18 Pooling66_Output_0 15 ReLU32_Output_0 8 auto_pad 9 ceil_mode 9 dilations 12 kernel_shape 4 pads 13 storage_order 7 strides
-Conv 1 2 6 14 13 2 3 10 SAME_UPPER 7 2 1 1 2 1 7 2 5 5 7 0 7 2 1 1 # 14 Convolution110 23 Convolution110_Output_0 18 Pooling66_Output_0 11 Parameter87 8 auto_pad 9 dilations 5 group 12 kernel_shape 4 pads 7 strides
-Add 1 2 0 15 14 5 # 7 Plus112 16 Plus112_Output_0 23 Convolution110_Output_0 11 Parameter88
-Relu 1 1 0 16 15 # 7 ReLU114 16 ReLU114_Output_0 16 Plus112_Output_0
-MaxPool 1 1 7 17 16 3 6 NOTSET 2 0 7 0 7 2 3 3 7 4 0 0 0 0 2 0 7 2 3 3 # 10 Pooling160 19 Pooling160_Output_0 16 ReLU114_Output_0 8 auto_pad 9 ceil_mode 9 dilations 12 kernel_shape 4 pads 13 storage_order 7 strides
-Reshape 1 2 1 18 17 6 2 0 # 17 Times212_reshape0 28 Pooling160_Output_0_reshape0 19 Pooling160_Output_0 34 Pooling160_Output_0_reshape0_shape 9 allowzero
-MatMul 1 2 0 19 18 9 # 8 Times212 17 Times212_Output_0 28 Pooling160_Output_0_reshape0 21 Parameter193_reshape1
-Add 1 2 0 21 19 8 # 7 Plus214 16 Plus214_Output_0 17 Times212_Output_0 12 Parameter194
+Reshape_1 1 2 1 9 1 7 2 0 # 17 Times212_reshape1 21 Parameter193_reshape1 12 Parameter193 27 Parameter193_reshape1_shape 9 allowzero
+Conv_1 1 2 6 10 20 3 3 10 SAME_UPPER 7 2 1 1 2 1 7 2 5 5 7 0 7 2 1 1 # 13 Convolution28 22 Convolution28_Output_0 6 Input3 10 Parameter5 8 auto_pad 9 dilations 5 group 12 kernel_shape 4 pads 7 strides
+Add_1 1 2 0 11 10 4 # 6 Plus30 15 Plus30_Output_0 22 Convolution28_Output_0 10 Parameter6
+Relu_1 1 1 0 12 11 # 6 ReLU32 15 ReLU32_Output_0 15 Plus30_Output_0
+MaxPool_1 1 1 7 13 12 3 6 NOTSET 2 0 7 0 7 2 2 2 7 4 0 0 0 0 2 0 7 2 2 2 # 9 Pooling66 18 Pooling66_Output_0 15 ReLU32_Output_0 8 auto_pad 9 ceil_mode 9 dilations 12 kernel_shape 4 pads 13 storage_order 7 strides
+Conv_1 1 2 6 14 13 2 3 10 SAME_UPPER 7 2 1 1 2 1 7 2 5 5 7 0 7 2 1 1 # 14 Convolution110 23 Convolution110_Output_0 18 Pooling66_Output_0 11 Parameter87 8 auto_pad 9 dilations 5 group 12 kernel_shape 4 pads 7 strides
+Add_1 1 2 0 15 14 5 # 7 Plus112 16 Plus112_Output_0 23 Convolution110_Output_0 11 Parameter88
+Relu_1 1 1 0 16 15 # 7 ReLU114 16 ReLU114_Output_0 16 Plus112_Output_0
+MaxPool_1 1 1 7 17 16 3 6 NOTSET 2 0 7 0 7 2 3 3 7 4 0 0 0 0 2 0 7 2 3 3 # 10 Pooling160 19 Pooling160_Output_0 16 ReLU114_Output_0 8 auto_pad 9 ceil_mode 9 dilations 12 kernel_shape 4 pads 13 storage_order 7 strides
+Reshape_1 1 2 1 18 17 6 2 0 # 17 Times212_reshape0 28 Pooling160_Output_0_reshape0 19 Pooling160_Output_0 34 Pooling160_Output_0_reshape0_shape 9 allowzero
+MatMul_1 1 2 0 19 18 9 # 8 Times212 17 Times212_Output_0 28 Pooling160_Output_0_reshape0 21 Parameter193_reshape1
+Add_1 1 2 0 21 19 8 # 7 Plus214 16 Plus214_Output_0 17 Times212_Output_0 12 Parameter194

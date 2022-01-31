@@ -26,7 +26,7 @@
 static int32_t get_broadcasted_input_offset(const connx_Tensor* output, const connx_Tensor* input,
                                             int32_t output_offset);
 
-int {{fname}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
+int {{fname}}_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
               __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
               __attribute__((unused)) void** attributes) {
     // Inputs

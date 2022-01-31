@@ -229,6 +229,13 @@ with open(output_source, 'w') as output:
                 line = input.readline()
                 line_no += 1
 
+    kwargs = {}
+
+    # get op_version
+    m = re.match(r'.*\/opset\/.*_([\d]+)\.c$', input_source)
+    if m is not None:
+        kwargs['op_version'] = int(m[1])
+
     content = buffer.getvalue()
-    rendered = jinja_env.from_string(content).render()
+    rendered = jinja_env.from_string(content).render(kwargs)
     output.write(rendered)
