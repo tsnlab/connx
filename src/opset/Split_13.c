@@ -50,13 +50,20 @@ int Split_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* ou
     connx_Tensor* outputs[output_count];
 
     // Get splits if given
-    if (input_count > 1) {
+    if (input_count > 1) { // split is in input
         connx_Tensor* split_tensor = connx_Graph_get(graph, inputs[1]);
         int64_t* split_array = (int64_t*)split_tensor->buffer;
         for (uint32_t i = 0; i < output_count; i++) {
             split[i] = split_array[i];
         }
-    } else {
+    } else if (attribute_count > 1 && attributes[1] != NULL) { // split is in attribute
+        connx_AttributeInts* attr_split = (connx_AttributeInts*)attributes[1];
+
+        assert(attr_split->count == output_count);
+        for (uint32_t i = 0; i < attr_split->count; i++) {
+            split[i] = attr_split->array[i];
+        }
+    } else { // there is no split ether input nor attribute
         // If not given, split evenly
         int64_t split_size = input->shape[axis] / output_count;
         for (uint32_t i = 0; i < output_count; i++) {
