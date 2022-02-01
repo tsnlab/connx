@@ -23,7 +23,8 @@
 #include <connx/connx.h>
 
 int Cast_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-         __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
+         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     connx_DataType to = *(int32_t*)attributes[0];
     connx_Tensor* input = connx_Graph_get(graph, inputs[0]);
     // FIXME: Remove this block after support string type

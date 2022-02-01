@@ -631,7 +631,7 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
     // Execute operators
     for (uint32_t i = 0; i < graph->node_count; i++) {
         connx_Node* node = graph->nodes[i];
-        int ret = node->op(graph, node->output_count, node->outputs, node->input_count, node->inputs, node->attributes);
+        int ret = node->op(graph, node->output_count, node->outputs, node->input_count, node->inputs, node->attribute_count, node->attributes);
         if (ret != CONNX_OK) {
             return ret;
         }

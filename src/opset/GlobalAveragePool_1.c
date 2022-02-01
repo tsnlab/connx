@@ -24,7 +24,7 @@
 
 int GlobalAveragePool_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
                       __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-                      __attribute__((unused)) void** attributes) {
+                      __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     // input
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
 

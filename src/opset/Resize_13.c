@@ -89,8 +89,9 @@ static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, fl
                                     bool exclude_outside, float extrapolation_value, enum MODE mode,
                                     enum NEAREST_MODE nearest_mode);
 
-int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs, uint32_t input_count,
-           uint32_t* inputs, void** attributes) {
+int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
+        uint32_t input_count, uint32_t* inputs,
+        __attribute__((unused)) uint32_t attribute_count, void** attributes) {
     // Inputs
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]); // T1
     // Optional Inputs

@@ -21,7 +21,8 @@
 #include <connx/connx.h>
 
 int Gather_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-           __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
+           __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+           __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     /*{% set supported_dtypes = [
         UINT8,
         UINT16,

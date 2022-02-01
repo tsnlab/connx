@@ -29,7 +29,8 @@ static int32_t get_input_index(const int32_t ndim, const int32_t* input_shape, c
                         const int32_t output_offset);
 
 int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-          __attribute__((unused)) uint32_t input_count, uint32_t* inputs, __attribute__((unused)) void** attributes) {
+          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     /*{% set supported_data_types = [
         INT8, INT16, INT32, INT64,
         UINT8, UINT16, UINT32, UINT64,

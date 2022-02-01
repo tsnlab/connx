@@ -19,7 +19,8 @@
 #include <connx/connx.h>
 
 int Reshape_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-            __attribute__((unused)) uint32_t input_count, uint32_t* inputs, void** attributes) {
+            __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+            __attribute__((unused)) uint32_t attribute_count, void** attributes) {
     connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* shape = connx_Graph_get(graph, inputs[1]);
     int32_t allowzero = *(int32_t*)attributes[0];

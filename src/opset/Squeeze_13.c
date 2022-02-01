@@ -22,8 +22,9 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-int Squeeze_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs, uint32_t input_count,
-            uint32_t* inputs, __attribute__((unused)) void** attributes) {
+int Squeeze_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
+        uint32_t input_count, uint32_t* inputs,
+        __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     // Inputs
     const connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
     const connx_Tensor* axes = input_count > 1 ? connx_Graph_get(graph, inputs[1]) : NULL;

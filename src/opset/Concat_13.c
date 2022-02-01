@@ -62,7 +62,8 @@
 */
 
 int Concat_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-           __attribute__((unused)) uint32_t input_count, uint32_t* inputs_, __attribute__((unused)) void** attributes) {
+           __attribute__((unused)) uint32_t input_count, uint32_t* inputs_,
+           __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     /*{% set SUPPORTED_DTYPES = [
        UINT8, UINT16, UINT32, UINT64,
        INT8, INT16, INT32, INT64,

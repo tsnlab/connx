@@ -22,7 +22,7 @@
 #include <connx/connx.h>
 
 int Split_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* outputs_, uint32_t input_count, uint32_t* inputs,
-          void** attributes) {
+          __attribute__((unused)) uint32_t attribute_count, void** attributes) {
     /*{% set supported_data_types = [
         INT8, INT16, INT32, INT64,
         UINT8, UINT16, UINT32, UINT64,
