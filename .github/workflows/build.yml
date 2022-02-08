@@ -41,7 +41,13 @@ jobs:
       working-directory: build
       run: |
           ninja mnist
+    - name: Clone onnx-connx
+      uses: actions/checkout@master
+      with:
+        repository: semihlab/onnx-connx
+        path: onnx-connx
     - name: ONNX Test Cases
-      working-directory: build
       run: |
-          ninja onnx
+        cd onnx-connx
+        ln -sf ../build/connx ./connx
+        make test
