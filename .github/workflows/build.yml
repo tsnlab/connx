@@ -50,5 +50,5 @@ jobs:
       run: |
         cd onnx-connx
         ln -sf ../build/connx ./connx
-        pip3 install onnx protobuf tabulate pytest
+        pip3 install -U onnx protobuf tabulate pytest
         pytest
