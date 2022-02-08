@@ -50,4 +50,5 @@ jobs:
       run: |
         cd onnx-connx
         ln -sf ../build/connx ./connx
-        make test
+        pip3 install onnx tabulate pytest
+        pytest
