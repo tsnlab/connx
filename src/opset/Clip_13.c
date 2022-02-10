@@ -15,17 +15,16 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <assert.h>
+
 #include <connx/accel.h>
 #include <connx/connx.h>
 
 int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+         uint32_t input_count, uint32_t* inputs,
          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     // input
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
-    float32_t max = *(float32_t*)attributes[0];
-    float32_t min = *(float32_t*)attributes[1];
-
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, X->shape);
 
     switch (X->dtype) {
@@ -37,6 +36,23 @@ int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 #define TEMPLATE_DTYPE_MIN FLOAT32
 #define TEMPLATE_DTYPE_MAX FLOAT32
     case TEMPLATE_DTYPE: {
+        TEMPLATE_TYPE min = TEMPLATE_DTYPE_MIN;
+        TEMPLATE_TYPE max = TEMPLATE_DTYPE_MAX;
+
+        if (input_count >= 2) {
+            connx_Tensor* _min = connx_Graph_get(graph, inputs[1]);
+            if (_min != NULL) {
+                min = *(TEMPLATE_TYPE*)_min->buffer;
+            }
+
+            if (input_count >= 3) {
+                connx_Tensor* _max = connx_Graph_get(graph, inputs[2]);
+                if (_max != NULL) {
+                    max = *(TEMPLATE_TYPE*)_max->buffer;
+                }
+            }
+        }
+
         TEMPLATE_TYPE* Y_base = (TEMPLATE_TYPE*)Y->buffer;
         TEMPLATE_TYPE* X_base = (TEMPLATE_TYPE*)X->buffer;
 
