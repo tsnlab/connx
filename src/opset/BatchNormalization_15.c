@@ -1,6 +1,6 @@
 /*
  *  CONNX, C implementation of Open Neural Network Exchange Runtime
- *  Copyright (C) 2019-2021 TSN Lab, Inc.
+ *  Copyright (C) 2019-2022 TSN Lab, Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
