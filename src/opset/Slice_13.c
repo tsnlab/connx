@@ -20,10 +20,6 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-static int32_t clip(int32_t value, int32_t min, int32_t max) {
-    return value < min ? min : (value > max ? max : value);
-}
-
 static int32_t get_input_index(const int32_t ndim, const int32_t* input_shape, const int32_t* output_shape,
                         const int32_t* starts, __attribute__((unused)) const int32_t* steps,
                         const int32_t output_offset);
@@ -84,15 +80,33 @@ int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
                 axis += output_ndim;
             }
 
-            if (start < 0) {
-                start += data->shape[axis];
-            }
-            if (end < 0) {
-                end += data->shape[axis];
-            }
+            if (step > 0) {
+                if (start < 0) {
+                    start += data->shape[axis];
+                } else if (start > data->shape[axis]) {
+                    start = data->shape[axis];
+                }
 
-            start = clip(start, 0, data->shape[axis] - 1);
-            end = clip(end, 0, data->shape[axis]);
+                if (end < 0) {
+                    end += data->shape[axis];
+                } else if (end > data->shape[axis]) {
+                    end = data->shape[axis];
+                }
+            } else if (step < 0) {
+                if (start >= data->shape[axis]) {
+                    start = data->shape[axis] - 1;
+                } else if (start < 0) {
+                    start += data->shape[axis];
+                }
+
+                if (end >= data->shape[axis]) {
+                    end = data->shape[axis] - 1;
+                } else if (end < 0) {
+                    end += data->shape[axis];
+                }
+            } else {
+                return CONNX_OK; // zero sized tensor return
+            }
 
             // if step is negative, then the slice is reversed
             int32_t axis_size;
@@ -144,13 +158,6 @@ int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
     }
 
     int32_t total = connx_Int32_product(output_ndim, output_shape);
-
-    // Somethimes, one of axis is 0, which means total is 0
-    // If without this check, the following loop will be endless
-    if (total == 0) {
-        return CONNX_OK;
-    }
-
     int64_t batch_size = 1;
     for (int32_t i = output_ndim - 1; i >= 0; i--) {
         if (normalised_steps[i] == 1) {
