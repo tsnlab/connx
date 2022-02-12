@@ -139,7 +139,6 @@ int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t o
     // Check modes
     /*{% for mode in supported_modes %}*/
     if (strncmp(mode_, "{{mode}}", {{mode | length + 1}}) == 0) {
-        connx_error("mode '%s' is not supported yet", mode_);
         mode = {{mode | upper}};
     } else
     /*{% endfor %}*/

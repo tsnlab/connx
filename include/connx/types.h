@@ -47,9 +47,10 @@ typedef enum _connx_ErrorCode {
     CONNX_NOT_SUPPORTED_OPERATOR = 6,
     CONNX_NOT_SUPPORTED_ATTRIBUTE = 7,
     CONNX_NOT_SUPPORTED_DATATYPE = 8,
-    CONNX_NOT_ENOUGH_MEMORY = 9,
-    CONNX_RESOURCE_NOT_FOUND = 10,
-    CONNX_IO_ERROR = 11,
+    CONNX_NOT_SUPPORTED_FEATURE = 9,
+    CONNX_NOT_ENOUGH_MEMORY = 10,
+    CONNX_RESOURCE_NOT_FOUND = 11,
+    CONNX_IO_ERROR = 12,
 } connx_ErrorCode;
 
 // The number of the enumeration follow ONNX's TensorProto.DataType code
