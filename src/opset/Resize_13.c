@@ -16,9 +16,6 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <assert.h>
-#include <float.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <connx/accel.h>
@@ -28,34 +25,26 @@
     INT8, INT16, INT32, INT64,
     UINT8, UINT16, UINT32, UINT64,
     FLOAT32, FLOAT64,
-    BOOL,
     ] %}*/
 // TODO: STRING
 
-/*{% set supported_roi_types = [ FLOAT32, FLOAT64, ] %}*/
-
-/*{% set supported_transform_modes = [
+/*{% set supported_coordinate_transformation_modes = [
     'half_pixel',
     'pytorch_half_pixel',
     'align_corners',
     'asymmetric',
-    'tf_crop_and_resize',
+    'tf_half_pixel_for_nn',
 ] %}*/
 
-/*{% set supported_modes = [
-    'nearest', 'linear', 'cubic',
-] %}*/
-
-/*{% set supported_nearest_modes = [
-    'round_prefer_floor', 'floor',
-    'round_prefer_ceil', 'ceil',
-] %}*/
-
-enum TRANSFORM_MODE {
-    /*{% for mode in supported_transform_modes %}*/
+enum COORDINATE_TRANSFORMATION_MODE {
+    /*{% for mode in supported_coordinate_transformation_modes %}*/
     {{mode | upper}},
     /*{% endfor %}*/
 };
+
+/*{% set supported_modes = [
+    'nearest', 'linear', 'cubic'
+] %}*/
 
 enum MODE {
     /*{% for mode in supported_modes %}*/
@@ -63,492 +52,620 @@ enum MODE {
     /*{% endfor %}*/
 };
 
+/*{% set supported_nearest_modes = [
+    'round_prefer_floor', 'floor',
+    'round_prefer_ceil', 'ceil',
+] %}*/
+
 enum NEAREST_MODE {
     /*{% for mode in supported_nearest_modes %}*/
     {{mode | upper}},
     /*{% endfor %}*/
 };
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_,
-                          enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a,
-                          bool exclude_outside, float32_t extrapolation_value, enum MODE mode,
-                          enum NEAREST_MODE nearest_mode, connx_Tensor** Y);
-
-static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes,
-                       enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a,
-                       bool exclude_outside, float32_t extrapolation_value, enum MODE mode,
-                       enum NEAREST_MODE nearest_mode);
-
-static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape, float* scales, uint32_t dim,
-                                    float* roi, enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
-                                    bool exclude_outside, float extrapolation_value, enum MODE mode,
-                                    enum NEAREST_MODE nearest_mode);
-
-static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, float scale, float* roi,
-                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
-                                    bool exclude_outside, float extrapolation_value, enum MODE mode,
-                                    enum NEAREST_MODE nearest_mode);
-
-int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-        uint32_t input_count, uint32_t* inputs,
-        __attribute__((unused)) uint32_t attribute_count, void** attributes) {
-    // Inputs
-    connx_Tensor* X = connx_Graph_get(graph, inputs[0]); // T1
-    // Optional Inputs
-    connx_Tensor* roi = (input_count > 1) ? connx_Graph_get(graph, inputs[1]) : NULL;    // T2
-    connx_Tensor* scales = (input_count > 2) ? connx_Graph_get(graph, inputs[2]) : NULL; // float32
-    connx_Tensor* sizes = (input_count > 3) ? connx_Graph_get(graph, inputs[3]) : NULL;  // int64
-
-    // If sizes is provided, scales are ignored because it can be exclusevely set. but input is ordered.
-    if (sizes != NULL) {
-        scales = NULL;
+static enum COORDINATE_TRANSFORMATION_MODE get_coordinate_transformation_mode(const char* mode) {
+    /*{% for _mode in supported_coordinate_transformation_modes %}*/
+    if (strncmp(mode, "{{_mode}}", {{_mode | length + 1}}) == 0) {
+        return {{_mode | upper}};
     }
-
-    // One of the following must exclusively set
-    assert((scales != NULL && sizes == NULL) || (scales == NULL && sizes != NULL));
-
-    bool is_scales_was_null = (scales == NULL); // To free after use
-    bool is_sizes_was_null = (sizes == NULL);   // To free after use
-    const void* roi_original = roi;
-
-    // Attributes
-    const char* coordinate_transformation_mode = (const char*)attributes[0];
-    const float32_t cubic_coeff_a = *(float32_t*)attributes[1];
-    const int32_t exclude_outside = *(int32_t*)attributes[2];
-    const float32_t extrapolation_value = *(float32_t*)attributes[3];
-    const char* mode_ = (const char*)attributes[4];
-    const char* nearest_mode_ = (const char*)attributes[5];
-
-    connx_Tensor* Y = NULL;
-
-    enum TRANSFORM_MODE transform_mode;
-    enum MODE mode;
-    enum NEAREST_MODE nearest_mode;
-
-    // Check transform modes
-    /*{% for mode in supported_transform_modes %}*/
-    if (strncmp(coordinate_transformation_mode, "{{mode}}", {{mode | length + 1}}) == 0) {
-        transform_mode = {{mode | upper}};
-    } else
     /*{% endfor %}*/
-    {
-        connx_error("coordinate_transformation_mode '%s' is not supported yet", coordinate_transformation_mode);
-        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
-    }
 
-    // Check modes
-    /*{% for mode in supported_modes %}*/
-    if (strncmp(mode_, "{{mode}}", {{mode | length + 1}}) == 0) {
-        mode = {{mode | upper}};
-    } else
+    return -1;
+}
+
+static enum MODE get_mode(const char* mode) {
+    /*{% for _mode in supported_modes %}*/
+    if (strncmp(mode, "{{_mode}}", {{_mode | length + 1}}) == 0) {
+        return {{_mode | upper}};
+    }
     /*{% endfor %}*/
-    {
-        connx_error("mode '%s' is not supported yet", mode_);
-        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
-    }
 
-    // Check nearest modes
-    /*{% for mode in supported_nearest_modes %}*/
-    if (strncmp(nearest_mode_, "{{mode}}", {{mode | length + 1}}) == 0) {
-        nearest_mode = {{mode | upper}};
-    } else
+    return -1;
+}
+
+static enum NEAREST_MODE get_nearest_mode(const char* mode) {
+    /*{% for _mode in supported_nearest_modes %}*/
+    if (strncmp(mode, "{{_mode}}", {{_mode | length + 1}}) == 0) {
+        return {{_mode | upper}};
+    }
     /*{% endfor %}*/
-    {
-        connx_error("nearest_mode '%s' is not supported yet", nearest_mode_);
-        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
-    }
 
-    int result;
-    result = Resize_prepare(X, &roi, &scales, &sizes, transform_mode, cubic_coeff_a, exclude_outside,
-                            extrapolation_value, mode, nearest_mode, &Y);
-
-    if (result != CONNX_OK) {
-        if (Y != NULL) {
-            connx_free(Y);
-        }
-        return result;
-    }
-    connx_Graph_set(graph, outputs[0], Y);
-
-    assert(sizes != NULL);
-    assert(scales != NULL);
-
-    result = Resize_exec(X, Y, roi, scales, sizes, transform_mode, cubic_coeff_a, exclude_outside, extrapolation_value,
-                         mode, nearest_mode);
-
-    // Free temporarily created tensors.
-    if (is_scales_was_null && scales != NULL) {
-        connx_free(scales);
-    }
-    if (is_sizes_was_null && sizes != NULL) {
-        connx_free(sizes);
-    }
-    if (roi != roi_original && roi != NULL) {
-        connx_free(roi);
-    }
-
-    return result;
+    return -1;
 }
 
-static int Resize_prepare(connx_Tensor* X, connx_Tensor** roi_, connx_Tensor** scales_, connx_Tensor** sizes_,
-                          enum TRANSFORM_MODE coordinate_transformation_mode,
-                          __attribute__((unused)) float32_t cubic_coeff_a, __attribute__((unused)) bool exclude_outside,
-                          __attribute__((unused)) float32_t extrapolation_value, __attribute__((unused)) enum MODE mode,
-                          __attribute__((unused)) enum NEAREST_MODE nearest_mode, connx_Tensor** Y) {
 
-    int32_t output_shape[X->ndim];
-
-    connx_Tensor* sizes = sizes_ ? *sizes_ : NULL;
-    connx_Tensor* scales = scales_ ? *scales_ : NULL;
-    connx_Tensor* roi = roi_ ? *roi_ : NULL;
-
-    // Calculate output shape
-    if (sizes != NULL) {
-        if (sizes->ndim != 1) {
-            connx_error("sizes must be a 1D tensor");
-            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
-        }
-
-        if (sizes->shape[0] != X->ndim) {
-            connx_error("sizes must have the same number of dimensions as X");
-            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
-        }
-
-        int64_t* sizes_array = (int64_t*)sizes->buffer;
-        for (int32_t i = 0; i < X->ndim; i++) {
-            output_shape[i] = (int32_t)sizes_array[i];
-        }
-        // Make scales from sizes
-        if (scales == NULL) {
-            scales = connx_Tensor_alloc(X->dtype, 1, &X->ndim);
-            // XXX: Free after use
-            if (scales == NULL) {
-                return CONNX_NOT_ENOUGH_MEMORY;
-            }
-            *scales_ = scales;
-            float32_t* scales_array = (float32_t*)scales->buffer;
-            for (int32_t i = 0; i < X->ndim; i++) {
-                scales_array[i] = (float32_t)sizes_array[i] / (float32_t)X->shape[i];
-            }
-        }
-    } else {
-        if (scales->ndim != 1) {
-            connx_error("scales must be a 1D tensor");
-            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
-        }
-
-        if (scales->shape[0] != X->ndim) {
-            connx_error("scales must have the same number of dimensions as X");
-            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
-        }
-
-        float32_t* scales_array = (float32_t*)scales->buffer;
-        for (int32_t i = 0; i < X->ndim; i++) {
-            output_shape[i] = (int32_t)(X->shape[i] * scales_array[i]);
-        }
-        // Make sizes from scales
-        if (sizes == NULL) {
-            sizes = connx_Tensor_alloc(CONNX_INT64, 1, &X->ndim);
-            // XXX: Free after use
-            if (sizes == NULL) {
-                return CONNX_NOT_ENOUGH_MEMORY;
-            }
-            *sizes_ = sizes;
-            int64_t* sizes_array = (int64_t*)sizes->buffer;
-            for (int32_t i = 0; i < X->ndim; i++) {
-                sizes_array[i] = (int64_t)output_shape[i];
-            }
-        }
-    }
-
-    switch (coordinate_transformation_mode) {
-    /*{% for mode in supported_transform_modes %}*/
-    case {{ mode | upper }}: {
-        /*{% if mode == 'tf_crop_and_resize' %}*/
-        if (roi != NULL && roi->ndim != 1) {
-            connx_error("roi must be 1D tensor");
-            return CONNX_TENSOR_SHAPE_NOT_MATCHING;
-        }
-
-        // Reformat roi. [start1, ..., startN, end1, ..., endN] -> [start1, end1, ..., startN, endN]
-        // And force type to float32
-        connx_Tensor* new_roi = connx_Tensor_alloc(CONNX_FLOAT32, 1, roi->shape);
-        if (new_roi == NULL) {
-            return CONNX_NOT_ENOUGH_MEMORY;
-        }
-        float32_t* new_roi_array = new_roi->buffer;
-        switch (roi->dtype) {
-            /*{% for DTYPE, TYPE in loop_types(*supported_roi_types) %}*/
-        case {{ DTYPE }}: {
-            {{TYPE}}* roi_array = ({{TYPE}}*)roi->buffer;
-            const int32_t len = roi->shape[0] / 2;
-            for (int32_t i = 0; i < len; i++) {
-                new_roi_array[i * 2] = roi_array[i];
-                new_roi_array[i * 2 + 1] = roi_array[i + len];
-            }
-        } break;
-            /*{% endfor %}*/ // roi->dtype
-        default:
-            connx_error("Unsupported ROI type: %d", roi->dtype);
-            return CONNX_NOT_SUPPORTED_DATATYPE;
-        }
-        roi = new_roi;
-        *roi_ = new_roi;
-        /*{% endif %}*/ // mode == 'tf_crop_and_resize'
-    } break;
-    /*{% endfor %}*/ // coordinate_transformation_mode
-    default:
-        connx_error("Unsupported coordinate transformation mode: %d", coordinate_transformation_mode);
-        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
-    }
-
-    *Y = connx_Tensor_alloc(X->dtype, X->ndim, output_shape);
-    if (*Y == NULL) {
-        return CONNX_NOT_ENOUGH_MEMORY;
-    }
-
-    // All checks are fine
-    return CONNX_OK;
-}
-
-static int Resize_exec(connx_Tensor* X, connx_Tensor* Y, connx_Tensor* roi, connx_Tensor* scales, connx_Tensor* sizes,
-                       enum TRANSFORM_MODE coordinate_transformation_mode, float32_t cubic_coeff_a,
-                       bool exclude_outside, float32_t extrapolation_value, enum MODE mode,
-                       enum NEAREST_MODE nearest_mode) {
-
-    uint32_t dimension = Y->ndim;
-    uint32_t shape[dimension];
-    uint32_t idxs[dimension];
-
-    bool has_next = false;
-    int64_t* sizes_array = (int64_t*)sizes->buffer;
-    for (uint32_t i = 0; i < dimension; i++) {
-        idxs[i] = 0;
-        shape[i] = sizes_array[i];
-
-        if (shape[i] > 0) {
-            has_next = true;
-        }
-    }
-
-    if (!has_next) {
-        return true;
-    }
-
-    // fixed type variables
-    float* scales_array = (float*)scales->buffer;
-    float* roi_array = roi ? (float*)roi->buffer : NULL; // Only for tf_crop_and_resize
-
-    // non-fixed type variables
-    float* Y_array = (float*)Y->buffer;
-    float* X_array = (float*)X->buffer;
-
-    int32_t total_count = connx_Int32_product(Y->ndim, Y->shape);
-
-    for (int32_t i = 0; i < total_count; i++) {
-        // process
-        Y_array[i] = interpolate_nd_float32(idxs, X_array, X->shape, scales_array, X->ndim, roi_array,
-                                            coordinate_transformation_mode, cubic_coeff_a, !!exclude_outside,
-                                            extrapolation_value, mode, nearest_mode);
-
-        // next index
-        for (int32_t dim = dimension - 1; dim >= 0; dim--) {
-            if (++idxs[dim] >= shape[dim]) {
-                idxs[dim] = 0;
-            } else {
-                break;
-            }
-        }
-    }
-
-    return CONNX_OK;
-}
-
-static float interpolate_nd_float32(uint32_t* idxs, float* data, int32_t* shape, float* scales, uint32_t dim,
-                                    float* roi, enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
-                                    bool exclude_outside, float extrapolation_value, enum MODE mode,
-                                    enum NEAREST_MODE nearest_mode) {
-    if (dim == 1) {
-        return interpolate_1d_float32(idxs[0], data, shape[0], scales[0], roi, coordinate_transformation_mode,
-                                      cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
-    }
-
-    uint32_t unit = 1;
-    for (uint32_t i = 0; i < dim - 1; i++) {
-        unit *= shape[dim - i - 1];
-    }
-
-    float interpolated[shape[0]];
-    for (int32_t i = 0; i < shape[0]; i++) {
-        interpolated[i] = interpolate_nd_float32(idxs + 1, data + unit * i, shape + 1, scales + 1, dim - 1,
-                                                 roi ? (roi + 2) : NULL, coordinate_transformation_mode, cubic_coeff_a,
-                                                 exclude_outside, extrapolation_value, mode, nearest_mode);
-    }
-
-    return interpolate_1d_float32(idxs[0], interpolated, shape[0], scales[0], roi, coordinate_transformation_mode,
-                                  cubic_coeff_a, exclude_outside, extrapolation_value, mode, nearest_mode);
-}
-
-static float interpolate_1d_float32(uint32_t idx, float* data, int32_t shape, float scale, float* roi,
-                                    enum TRANSFORM_MODE coordinate_transformation_mode, float cubic_coeff_a,
-                                    bool exclude_outside, float extrapolation_value, enum MODE mode,
-                                    enum NEAREST_MODE nearest_mode) {
-    float origin_index = 0;
-    float output_shape = scale * shape;
-
-    // Get original coordinate
+static void calc_coord(float32_t* bases, float32_t* steps, enum COORDINATE_TRANSFORMATION_MODE coordinate_transformation_mode, int32_t ndim, int32_t* X_shape, float32_t* scales) {
     switch (coordinate_transformation_mode) {
     case HALF_PIXEL:
-        origin_index = ((float)idx + 0.5) / scale - 0.5;
+        for (int32_t i = 0; i < ndim; i++) {
+            bases[i] = 0.5 / scales[i] - 0.5;
+            steps[i] = 1 / scales[i];
+        }
         break;
     case PYTORCH_HALF_PIXEL:
-        origin_index = output_shape > 1 ? ((float)idx + 0.5) / scale - 0.5 : 0;
+        for (int32_t i = 0; i < ndim; i++) {
+            if (X_shape[i] * scales[i] > 1) {
+                bases[i] = 0.5 / scales[i] - 0.5;
+                steps[i] = 1 / scales[i];
+            } else {
+                bases[i] = 0;
+                steps[i] = 0;
+            }
+        }
         break;
     case ALIGN_CORNERS:
-        if (output_shape == 1) {
-            origin_index = 0;
-        } else {
-            origin_index = (float)idx * (shape - 1) / (output_shape - 1);
+        for (int32_t i = 0; i < ndim; i++) {
+            bases[i] = 0;
+
+            float32_t Y_length = X_shape[i] * scales[i];
+            if (Y_length == 1) {
+                steps[i] = 0;
+            } else {
+                steps[i] = (float32_t)(X_shape[i] - 1)/ (float32_t)(Y_length - 1);
+            }
         }
         break;
     case ASYMMETRIC:
-        origin_index = idx / scale;
+        for (int32_t i = 0; i < ndim; i++) {
+            bases[i] = 0;
+            steps[i] = 1 / scales[i];
+        }
         break;
+    case TF_HALF_PIXEL_FOR_NN:
+        for (int32_t i = 0; i < ndim; i++) {
+            bases[i] = 0.5 / scales[i];
+            steps[i] = 1 / scales[i];
+        }
+        break;
+        /*
     case TF_CROP_AND_RESIZE:
-        if (output_shape == 1) {
-            origin_index = (roi[0] + roi[1]) * (shape - 1) / 2.0;
-        } else {
-            origin_index = idx * (roi[1] - roi[0]) * (shape - 1) / (output_shape - 1) + roi[0] * (shape - 1);
-        }
-
-        if (origin_index < 0 || origin_index > shape - 1) {
-            return extrapolation_value;
-        }
-
-        break;
-    default:
-        abort();
-    }
-
-    int32_t origin_index_int = origin_index >= 0 ? (int32_t)origin_index : (int32_t)origin_index - 1;
-    float ratio = 0;
-    if (origin_index == origin_index_int) {
-        ratio = 1;
-    } else {
-        ratio = origin_index - origin_index_int;
-    }
-
-    // Get coeffects
-    float coeffects[4];
-    uint32_t coeffects_count = 0;
-    switch (mode) {
-    case NEAREST:
-        if (ratio == (int32_t)ratio) {
-            coeffects[0] = 0;
-            coeffects[1] = 1;
-            coeffects_count = 2;
-        } else {
-            switch (nearest_mode) {
-            case ROUND_PREFER_FLOOR:
-                if (ratio <= 0.5) {
-                    coeffects[0] = 1;
-                    coeffects[1] = 0;
-                } else {
-                    coeffects[0] = 0;
-                    coeffects[1] = 1;
-                }
-                coeffects_count = 2;
-                break;
-            case ROUND_PREFER_CEIL:
-                if (ratio < 0.5) {
-                    coeffects[0] = 1;
-                    coeffects[1] = 0;
-                } else {
-                    coeffects[0] = 0;
-                    coeffects[1] = 1;
-                }
-                coeffects_count = 2;
-                break;
-            case FLOOR:
-                coeffects[0] = 1;
-                coeffects[1] = 0;
-                coeffects_count = 2;
-                break;
-            case CEIL:
-                coeffects[0] = 0;
-                coeffects[1] = 1;
-                coeffects_count = 2;
-                break;
-            default:
-                abort();
-            }
-        }
-        break;
-    case LINEAR:
-        coeffects[0] = 1 - ratio;
-        coeffects[1] = ratio;
-        coeffects_count = 2;
-        break;
-    case CUBIC:
-        coeffects[0] =
-            ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) -
-            4 * cubic_coeff_a;
-        coeffects[0] =
-            ((cubic_coeff_a * (ratio + 1) - 5 * cubic_coeff_a) * (ratio + 1) + 8 * cubic_coeff_a) * (ratio + 1) -
-            4 * cubic_coeff_a;
-        coeffects[1] = ((cubic_coeff_a + 2) * ratio - (cubic_coeff_a + 3)) * ratio * ratio + 1;
-        coeffects[2] = ((cubic_coeff_a + 2) * (1 - ratio) - (cubic_coeff_a + 3)) * (1 - ratio) * (1 - ratio) + 1;
-        coeffects[3] =
-            ((cubic_coeff_a * ((1 - ratio) + 1) - 5 * cubic_coeff_a) * ((1 - ratio) + 1) + 8 * cubic_coeff_a) *
-                ((1 - ratio) + 1) -
-            4 * cubic_coeff_a;
-        coeffects_count = 4;
-        break;
-    default:
-        abort();
-    }
-
-    // Calculate base
-    int32_t idx_base;
-    if (origin_index == origin_index_int) {
-        idx_base = origin_index_int - coeffects_count / 2;
-    } else {
-        idx_base = origin_index_int - coeffects_count / 2 + 1;
-    }
-
-    // exclude_outside
-    if (exclude_outside) {
-        float sum = 0;
-        for (uint32_t i = 0; i < coeffects_count; i++) {
-            int j = idx_base + i;
-            if (j < 0 || j >= shape) {
-                coeffects[i] = 0;
+        for (int32_t i = 0; i < ndim; i++) {
+            float32_t Y_length = X_shape[i] * scales[i];
+            float32_t start_x = roi[i];
+            float32_t end_x = roi[i + ndim];
+            if (Y_length > 1) {
+                bases[i] = start_x * (X_shape[i] - 1);
+                steps[i] = (end_x - start_x) * (X_shape[i] - 1) / (Y_length - 1);
             } else {
-                sum += coeffects[i];
+                bases[i] = 0.5 * (start_x + end_x) * (X_shape[i] - 1);
+                steps[i] = 0;
             }
         }
-
-        if (sum != 0) {
-            for (uint32_t i = 0; i < coeffects_count; i++) {
-                coeffects[i] /= sum;
-            }
-        }
+        break;
+        */
+    default:
+        assert(false);
+        break;
     }
+}
 
-    float interpolate = 0;
-    for (uint32_t i = 0; i < coeffects_count; i++) {
-        float value;
-        int j = idx_base + i;
-        if (j < 0) { // left edge padding
-            value = data[0];
-        } else if (j >= shape) { // right edge padding
-            value = data[shape - 1];
+static int32_t _round_floor(float32_t f) {
+    if (f - (int32_t)f > 0.5) {
+        return (int32_t)f + 1;
+    } else {
+        return (int32_t)f;
+    }
+}
+
+static int32_t _floor(float32_t f) {
+    return (int32_t)f;
+}
+
+static int32_t _round_ceil(float32_t f) {
+    return (int32_t)(f + 0.5);
+}
+
+static int32_t _ceil(float32_t f) {
+    if (f >= 0) {
+        int32_t i = (int32_t)f;
+        if (i == f) {
+            return i;
         } else {
-            value = data[j];
+            return i + 1;
         }
+    } else {
+        return (int32_t)f;
+    }
+}
 
-        interpolate += coeffects[i] * value;
+#define bound(v, size) ((v) < 0 ? 0 : (v) >= (size) ? (size) - 1 : (v))
+
+/*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
+static void interpolate_2d_nearest_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape, {{TYPE}}* X_array, int32_t* Y_shape, float32_t* bases, float32_t* steps, enum NEAREST_MODE nearest_mode, int32_t loop_count) {
+
+    int32_t(*round)(float32_t);
+
+    switch (nearest_mode) {
+    case ROUND_PREFER_FLOOR:
+        round = _round_floor;
+        break;
+    case FLOOR:
+        round = _floor;
+        break;
+    case ROUND_PREFER_CEIL:
+        round = _round_ceil;
+        break;
+    case CEIL:
+        round = _ceil;
+        break;
+    default:
+        // Not possible
+        assert(false);
     }
 
-    return interpolate;
+    int32_t X_step = connx_Int32_product(2, X_shape);
+
+    for (int32_t loop = 0; loop < loop_count; loop++) {
+        float32_t y0_idx = bases[0];
+        for (int32_t y0 = 0; y0 < Y_shape[0]; y0++) {
+
+            float32_t y1_idx = bases[1];
+            for (int32_t y1 = 0; y1 < Y_shape[1]; y1++) {
+
+                int32_t rounded_y0_idx = round(y0_idx);
+                int32_t rounded_y1_idx = round(y1_idx);
+                int32_t bounded_y0_idx = bound(rounded_y0_idx, X_shape[0]);
+                int32_t bounded_y1_idx = bound(rounded_y1_idx, X_shape[1]);
+                int32_t X_offset = bounded_y0_idx * X_shape[1] + bounded_y1_idx;
+
+                *Y_array++ = X_array[X_offset];
+
+                y1_idx += steps[1];
+            }
+
+            y0_idx += steps[0];
+        }
+
+        X_array += X_step;
+    }
+}
+/*{% endfor %}*/
+
+/*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
+static void interpolate_2d_linear_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape, {{TYPE}}* X_array, int32_t* Y_shape, float32_t* bases, float32_t* steps, bool exclude_outside, int32_t loop_count) {
+
+    int32_t X_step = connx_Int32_product(2, X_shape);
+
+    for (int32_t loop = 0; loop < loop_count; loop++) {
+        float32_t y0_idx = bases[0];
+        for (int32_t y0 = 0; y0 < Y_shape[0]; y0++) {
+
+            float32_t y1_idx = bases[1];
+            for (int32_t y1 = 0; y1 < Y_shape[1]; y1++) {
+
+                int32_t y0_idx_int = y0_idx >= 0 ? (int32_t)y0_idx : (int32_t)y0_idx - 1;
+                int32_t y1_idx_int = y1_idx >= 0 ? (int32_t)y1_idx : (int32_t)y1_idx - 1;
+                float32_t ratio_y0 = y0_idx - y0_idx_int;
+                float32_t ratio_y1 = y1_idx - y1_idx_int;
+
+                // coeffects
+                float32_t coeffects[4] = {
+                    (1 - ratio_y0) * (1 - ratio_y1), (1 - ratio_y0) * ratio_y1,
+                    ratio_y0 * (1 - ratio_y1), ratio_y0 * ratio_y1
+                };
+
+                // exclude outside
+                if (exclude_outside) {
+                    float32_t excluded = 0.0;
+                    if (y0_idx_int < 0) {
+                        excluded += coeffects[0];
+                        excluded += coeffects[1];
+                        coeffects[0] = 0;
+                        coeffects[1] = 0;
+                    }
+
+                    if (y0_idx_int + 1 >= X_shape[0]) {
+                        excluded += coeffects[2];
+                        excluded += coeffects[3];
+                        coeffects[2] = 0;
+                        coeffects[3] = 0;
+                    }
+
+                    if (y1_idx_int < 0) {
+                        excluded += coeffects[0];
+                        excluded += coeffects[2];
+                        coeffects[0] = 0;
+                        coeffects[2] = 0;
+                    }
+
+                    if (y1_idx_int + 1 >= X_shape[1]) {
+                        excluded += coeffects[1];
+                        excluded += coeffects[3];
+                        coeffects[1] = 0;
+                        coeffects[3] = 0;
+                    }
+
+                    if (excluded != 0) {
+                        float32_t included = 1 - excluded;
+                        coeffects[0] /= included;
+                        coeffects[1] /= included;
+                        coeffects[2] /= included;
+                        coeffects[3] /= included;
+                    }
+                }
+
+                float32_t values[4] = {
+                        X_array[bound(y0_idx_int, X_shape[0]) * X_shape[1] + bound(y1_idx_int, X_shape[1])],
+                        X_array[bound(y0_idx_int, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int, X_shape[1])],
+                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])]
+                    };
+
+                *Y_array++ = ({{TYPE}})(coeffects[0] * values[0] + coeffects[1] * values[1] + 
+                                        coeffects[2] * values[2] + coeffects[3] * values[3]);
+
+                y1_idx += steps[1];
+            }
+
+            y0_idx += steps[0];
+        }
+
+        X_array += X_step;
+    }
+}
+/*{% endfor %}*/
+
+/*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
+static void interpolate_2d_cubic_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape, {{TYPE}}* X_array, int32_t* Y_shape, float32_t* bases, float32_t* steps, bool exclude_outside, float32_t cubic_coeff_a, int32_t loop_count) {
+
+    int32_t X_step = connx_Int32_product(2, X_shape);
+
+    for (int32_t loop = 0; loop < loop_count; loop++) {
+        float32_t y0_idx = bases[0];
+        for (int32_t y0 = 0; y0 < Y_shape[0]; y0++) {
+
+            float32_t y1_idx = bases[1];
+            for (int32_t y1 = 0; y1 < Y_shape[1]; y1++) {
+
+                int32_t y0_idx_int = y0_idx >= 0 ? (int32_t)y0_idx : (int32_t)y0_idx - 1;
+                int32_t y1_idx_int = y1_idx >= 0 ? (int32_t)y1_idx : (int32_t)y1_idx - 1;
+                float32_t y0_ratio = y0_idx - y0_idx_int;
+                float32_t y1_ratio = y1_idx - y1_idx_int;
+
+                // coeffects
+                float32_t y0_coeffects[4] = {
+                        ((cubic_coeff_a * (y0_ratio + 1) - 5 * cubic_coeff_a) * (y0_ratio + 1) + 8 * cubic_coeff_a) * (y0_ratio + 1) - 4 * cubic_coeff_a,
+                        ((cubic_coeff_a + 2) * y0_ratio - (cubic_coeff_a + 3)) * y0_ratio * y0_ratio + 1,
+                        ((cubic_coeff_a + 2) * (1 - y0_ratio) - (cubic_coeff_a + 3)) * (1 - y0_ratio) * (1 - y0_ratio) + 1,
+                        ((cubic_coeff_a * ((1 - y0_ratio) + 1) - 5 * cubic_coeff_a) * ((1 - y0_ratio) + 1) + 8 * cubic_coeff_a) * ((1 - y0_ratio) + 1) - 4 * cubic_coeff_a
+                    };
+
+                float32_t y1_coeffects[4] = {
+                        ((cubic_coeff_a * (y1_ratio + 1) - 5 * cubic_coeff_a) * (y1_ratio + 1) + 8 * cubic_coeff_a) * (y1_ratio + 1) - 4 * cubic_coeff_a,
+                        ((cubic_coeff_a + 2) * y1_ratio - (cubic_coeff_a + 3)) * y1_ratio * y1_ratio + 1,
+                        ((cubic_coeff_a + 2) * (1 - y1_ratio) - (cubic_coeff_a + 3)) * (1 - y1_ratio) * (1 - y1_ratio) + 1,
+                        ((cubic_coeff_a * ((1 - y1_ratio) + 1) - 5 * cubic_coeff_a) * ((1 - y1_ratio) + 1) + 8 * cubic_coeff_a) * ((1 - y1_ratio) + 1) - 4 * cubic_coeff_a
+                    };
+
+                float32_t coeffects[16];
+                for (int32_t y0_co_idx = 0; y0_co_idx < 4; y0_co_idx++) {
+                    float32_t y0_coeffect = y0_coeffects[y0_co_idx];
+
+                    for (int32_t y1_co_idx = 0; y1_co_idx < 4; y1_co_idx++) {
+                        float32_t y1_coeffect = y1_coeffects[y1_co_idx];
+
+                        coeffects[y0_co_idx * 4 + y1_co_idx] = y0_coeffect * y1_coeffect;
+                    }
+                }
+
+                // exclude outside
+                if (exclude_outside) {
+                    float32_t excluded = 0.0;
+                    if (y0_idx_int < 0) {
+                        excluded += coeffects[0 * 4 + 0];
+                        excluded += coeffects[0 * 4 + 1];
+                        excluded += coeffects[0 * 4 + 2];
+                        excluded += coeffects[0 * 4 + 3];
+                        excluded += coeffects[1 * 4 + 0];
+                        excluded += coeffects[1 * 4 + 1];
+                        excluded += coeffects[1 * 4 + 2];
+                        excluded += coeffects[1 * 4 + 3];
+
+                        coeffects[0 * 4 + 0] = 0;
+                        coeffects[0 * 4 + 1] = 0;
+                        coeffects[0 * 4 + 2] = 0;
+                        coeffects[0 * 4 + 3] = 0;
+                        coeffects[1 * 4 + 0] = 0;
+                        coeffects[1 * 4 + 1] = 0;
+                        coeffects[1 * 4 + 2] = 0;
+                        coeffects[1 * 4 + 3] = 0;
+                    } else if (y0_idx_int - 1 < 0) {
+                        excluded += coeffects[0 * 4 + 0];
+                        excluded += coeffects[0 * 4 + 1];
+                        excluded += coeffects[0 * 4 + 2];
+                        excluded += coeffects[0 * 4 + 3];
+
+                        coeffects[0 * 4 + 0] = 0;
+                        coeffects[0 * 4 + 1] = 0;
+                        coeffects[0 * 4 + 2] = 0;
+                        coeffects[0 * 4 + 3] = 0;
+                    }
+
+                    if (y0_idx_int + 1 >= X_shape[0]) {
+                        excluded += coeffects[2 * 4 + 0];
+                        excluded += coeffects[2 * 4 + 1];
+                        excluded += coeffects[2 * 4 + 2];
+                        excluded += coeffects[2 * 4 + 3];
+                        excluded += coeffects[3 * 4 + 0];
+                        excluded += coeffects[3 * 4 + 1];
+                        excluded += coeffects[3 * 4 + 2];
+                        excluded += coeffects[3 * 4 + 3];
+
+                        coeffects[2 * 4 + 0] = 0;
+                        coeffects[2 * 4 + 1] = 0;
+                        coeffects[2 * 4 + 2] = 0;
+                        coeffects[2 * 4 + 3] = 0;
+                        coeffects[3 * 4 + 0] = 0;
+                        coeffects[3 * 4 + 1] = 0;
+                        coeffects[3 * 4 + 2] = 0;
+                        coeffects[3 * 4 + 3] = 0;
+                    } else if (y0_idx_int + 2 >= X_shape[0]) {
+                        excluded += coeffects[3 * 4 + 0];
+                        excluded += coeffects[3 * 4 + 1];
+                        excluded += coeffects[3 * 4 + 2];
+                        excluded += coeffects[3 * 4 + 3];
+
+                        coeffects[3 * 4 + 0] = 0;
+                        coeffects[3 * 4 + 1] = 0;
+                        coeffects[3 * 4 + 2] = 0;
+                        coeffects[3 * 4 + 3] = 0;
+                    }
+
+                    if (y1_idx_int < 0) {
+                        excluded += coeffects[0 * 4 + 0];
+                        excluded += coeffects[1 * 4 + 0];
+                        excluded += coeffects[2 * 4 + 0];
+                        excluded += coeffects[3 * 4 + 0];
+                        excluded += coeffects[0 * 4 + 1];
+                        excluded += coeffects[1 * 4 + 1];
+                        excluded += coeffects[2 * 4 + 1];
+                        excluded += coeffects[3 * 4 + 1];
+
+                        coeffects[0 * 4 + 0] = 0;
+                        coeffects[1 * 4 + 0] = 0;
+                        coeffects[2 * 4 + 0] = 0;
+                        coeffects[3 * 4 + 0] = 0;
+                        coeffects[0 * 4 + 1] = 0;
+                        coeffects[1 * 4 + 1] = 0;
+                        coeffects[2 * 4 + 1] = 0;
+                        coeffects[3 * 4 + 1] = 0;
+                    } else if (y1_idx_int - 1 < 0) {
+                        excluded += coeffects[0 * 4 + 0];
+                        excluded += coeffects[1 * 4 + 0];
+                        excluded += coeffects[2 * 4 + 0];
+                        excluded += coeffects[3 * 4 + 0];
+
+                        coeffects[0 * 4 + 0] = 0;
+                        coeffects[1 * 4 + 0] = 0;
+                        coeffects[2 * 4 + 0] = 0;
+                        coeffects[3 * 4 + 0] = 0;
+                    }
+
+                    if (y1_idx_int + 1 >= X_shape[1]) {
+                        excluded += coeffects[0 * 4 + 2];
+                        excluded += coeffects[1 * 4 + 2];
+                        excluded += coeffects[2 * 4 + 2];
+                        excluded += coeffects[3 * 4 + 2];
+                        excluded += coeffects[0 * 4 + 3];
+                        excluded += coeffects[1 * 4 + 3];
+                        excluded += coeffects[2 * 4 + 3];
+                        excluded += coeffects[3 * 4 + 3];
+
+                        coeffects[0 * 4 + 2] = 0;
+                        coeffects[1 * 4 + 2] = 0;
+                        coeffects[2 * 4 + 2] = 0;
+                        coeffects[3 * 4 + 2] = 0;
+                        coeffects[0 * 4 + 3] = 0;
+                        coeffects[1 * 4 + 3] = 0;
+                        coeffects[2 * 4 + 3] = 0;
+                        coeffects[3 * 4 + 3] = 0;
+                    } else if (y1_idx_int + 2 >= X_shape[1]) {
+                        excluded += coeffects[0 * 4 + 3];
+                        excluded += coeffects[1 * 4 + 3];
+                        excluded += coeffects[2 * 4 + 3];
+                        excluded += coeffects[3 * 4 + 3];
+
+                        coeffects[0 * 4 + 3] = 0;
+                        coeffects[1 * 4 + 3] = 0;
+                        coeffects[2 * 4 + 3] = 0;
+                        coeffects[3 * 4 + 3] = 0;
+                    }
+
+                    if (excluded != 0) {
+                        float32_t included = 1 - excluded;
+                        for (int32_t k = 0; k < 16; k++) {
+                            coeffects[k] /= included;
+                        }
+                    }
+                }
+
+                float32_t values[16] = {
+                        X_array[bound(y0_idx_int - 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int - 1, X_shape[1])],
+                        X_array[bound(y0_idx_int - 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 0, X_shape[1])],
+                        X_array[bound(y0_idx_int - 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
+                        X_array[bound(y0_idx_int - 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 2, X_shape[1])],
+
+                        X_array[bound(y0_idx_int + 0, X_shape[0]) * X_shape[1] + bound(y1_idx_int - 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 0, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 0, X_shape[1])],
+                        X_array[bound(y0_idx_int + 0, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 0, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 2, X_shape[1])],
+
+                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int - 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 0, X_shape[1])],
+                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 2, X_shape[1])],
+
+                        X_array[bound(y0_idx_int + 2, X_shape[0]) * X_shape[1] + bound(y1_idx_int - 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 2, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 0, X_shape[1])],
+                        X_array[bound(y0_idx_int + 2, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
+                        X_array[bound(y0_idx_int + 2, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 2, X_shape[1])],
+                    };
+
+                float32_t v = 0;
+                for (int32_t k = 0; k < 16; k++) {
+                    v += coeffects[k] * values[k];
+                }
+                *Y_array++ = ({{TYPE}})v;
+
+                y1_idx += steps[1];
+            }
+
+            y0_idx += steps[0];
+        }
+
+        X_array += X_step;
+    }
+}
+/*{% endfor %}*/
+
+int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
+        uint32_t input_count, uint32_t* inputs, __attribute__((unused)) uint32_t attribute_count, void** attributes) {
+    // Inputs
+    connx_Tensor* X = connx_Graph_get(graph, inputs[0]); // T1
+    __attribute__((unused)) connx_Tensor* _roi = connx_Graph_get(graph, inputs[1]); // T2
+    connx_Tensor* _scales = connx_Graph_get(graph, inputs[2]); // float32 (can be empty)
+    connx_Tensor* _sizes = input_count > 3 ? connx_Graph_get(graph, inputs[3]) : NULL; // int64 (optional)
+
+    // Attributes
+    enum COORDINATE_TRANSFORMATION_MODE coordinate_transformation_mode = get_coordinate_transformation_mode(attributes[0]);
+    if (coordinate_transformation_mode < 0) {
+        connx_error("coordinate_transformation_mode '%s' is not supported yet", (char*)attributes[0]);
+        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
+    }
+
+    float32_t cubic_coeff_a = *(float32_t*)attributes[1];
+
+    int32_t exclude_outside = *(int32_t*)attributes[2];
+
+    __attribute__((unused)) float32_t extrapolation_value = *(float32_t*)attributes[3];
+
+    enum MODE mode = get_mode(attributes[4]);
+    if (mode < 0) {
+        connx_error("mode '%s' is not supported yet", (char*)attributes[4]);
+        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
+    }
+
+    enum NEAREST_MODE nearest_mode = get_nearest_mode(attributes[5]);
+    if (nearest_mode < 0) {
+        connx_error("nearest_mode '%s' is not supported yet", (char*)attributes[5]);
+        return CONNX_NOT_SUPPORTED_ATTRIBUTE;
+    }
+
+    // Normalize roi
+    /*
+    float32_t roi[X->ndim * 2];
+    if (coordinate_transformation_mode == TF_CROP_AND_RESIZE) {
+        if (_roi->dtype == CONNX_FLOAT32) {
+            memcpy(roi, _roi->buffer, X->ndim * sizeof(float32_t));
+        } else if (_roi->dtype == CONNX_FLOAT64) {
+            for (int32_t i = 0; i < X->ndim; i++) {
+                roi[i] = ((float64_t*)_roi->buffer)[i];
+            }
+        } else {
+            assert(false);
+        }
+    }
+    */
+
+    // Normalize scales and sizes
+    float32_t scales[X->ndim - 2];
+    int32_t sizes[X->ndim - 2];
+
+    // Important note: dim 0 and 1 is assumed batch and channel
+    if (_scales != NULL && _scales->ndim == 1 && _scales->shape[0] == X->ndim) {
+        assert(((float32_t*)_scales->buffer)[0] == 1 && ((float32_t*)_scales->buffer)[1] == 1);
+
+        memcpy(scales, &((float32_t*)_scales->buffer)[2], sizeof(float32_t) * (X->ndim - 2));
+        for (int32_t i = 0; i < _scales->shape[0] - 2; i++) {
+            sizes[i] = scales[i] * X->shape[2 + i];
+        }
+    } else if (_sizes != NULL && _sizes->ndim == 1 && _sizes->shape[0] == X->ndim) {
+        assert(((int64_t*)_sizes->buffer)[0] == X->shape[0] && ((int64_t*)_sizes->buffer)[1] == X->shape[1]);
+
+        for (int32_t i = 0; i < _sizes->shape[0] - 2; i++) {
+            sizes[i] = ((int64_t*)_sizes->buffer)[2 + i];
+            scales[i] = (float32_t)sizes[i] / (float32_t)X->shape[2 + i];
+        }
+    } else {
+        assert(false);
+    }
+
+    // prepare Y
+    int32_t shape[X->ndim];
+    shape[0] = X->shape[0];
+    shape[1] = X->shape[1];
+    memcpy(shape + 2, sizes, (X->ndim - 2) * sizeof(int32_t));
+
+    connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, shape);
+    if (Y == NULL) {
+        return CONNX_NOT_ENOUGH_MEMORY;
+    }
+
+    connx_Graph_set(graph, outputs[0], Y);
+
+    // calculate coordinations
+    float32_t bases[X->ndim - 2];
+    float32_t steps[X->ndim - 2];
+
+    calc_coord(bases, steps, coordinate_transformation_mode, X->ndim - 2, X->shape + 2, scales);
+
+    // interpolate
+    int32_t loop_count = connx_Int32_product(2, Y->shape);
+
+    switch (X->ndim - 2) {
+    case 2: // 2d interpolation
+        switch (X->dtype) {
+        /*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
+            case {{DTYPE}}: {
+                {{TYPE}}* Y_buffer = ({{TYPE}}*)Y->buffer;
+                {{TYPE}}* X_buffer = ({{TYPE}}*)X->buffer;
+
+                switch (mode) {
+                    case NEAREST:
+                        interpolate_2d_nearest_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2, bases, steps, nearest_mode, loop_count);
+
+                        break;
+                    case LINEAR:
+                        interpolate_2d_linear_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2, bases, steps, exclude_outside == 1, loop_count);
+                        break;
+                    case CUBIC:
+                        interpolate_2d_cubic_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2, bases, steps, exclude_outside == 1, cubic_coeff_a, loop_count);
+                        break;
+                    default:
+                        assert(false); // Not possible
+                }
+           } 
+                break;
+        /*{% endfor %}*/
+            default:
+                connx_error("Not supported dtype: %d", X->dtype);
+                return CONNX_NOT_SUPPORTED_FEATURE;
+        }
+        break;
+    default:
+        connx_error("Not supported Resize dimension: %u", X->ndim - 2);
+        return CONNX_NOT_SUPPORTED_FEATURE;
+    }
+
+    return CONNX_OK;
 }
