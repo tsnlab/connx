@@ -642,6 +642,9 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
             if (node->outputs[j] == 0)
                 continue;
 
+            if (node->output_names == NULL)
+                continue;
+
             char name[128];
             sprintf(name, "%s", node->output_names[j]);
             for (int i = 0; name[i] != '\0'; i++) {
