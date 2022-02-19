@@ -49,6 +49,6 @@ jobs:
     - name: ONNX Test Cases
       run: |
         cd onnx-connx
-        ln -sf ../build/connx ./connx
+        cp ../build/connx ./onnx_connx/connx
         pip3 install -U onnx protobuf tabulate pytest
         pytest

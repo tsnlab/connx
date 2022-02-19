@@ -222,17 +222,15 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
             return ret;
         }
 
-        for (int i = 0; i < input_count; i++) {
-            connx_Tensor* tensor;
-            ret = read_tensor(&tensor);
+        connx_Tensor* tensor;
+        ret = read_tensor(&tensor);
 
-            if (ret != CONNX_OK) {
-                connx_error("Cannot read tensor: %s\n", input_files[i]);
-                return ret;
-            }
-
-            inputs[i] = tensor;
+        if (ret != CONNX_OK) {
+            connx_error("Cannot read tensor: %s\n", input_files[i]);
+            return ret;
         }
+
+        inputs[i] = tensor;
 
         // Close file
         connx_set_tensorin(NULL);
