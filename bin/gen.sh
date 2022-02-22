@@ -136,9 +136,15 @@ fi
 # Generate template jinja first
 for FILE in ${INPUT_DIR}/opset/__*.jinja.c; do
     fname=$(basename ${FILE})
-    if [[ ${FILE} -nt ${OUTPUT_DIR}/templates/${fname} ]]; then
-        echo "Generating ${OUTPUT_DIR}/templates/${fname}"
-        TEMPLATE=1 ${HOME}/preprocessor.py ${FILE} ${OUTPUT_DIR}/templates/${fname}
+    if [[ ${IS_DUMP} == 1 ]]; then
+        # Do not echo. This is for generating template jinja
+        continue
+    else
+        if [[ ${FILE} -nt ${OUTPUT_DIR}/templates/${fname} ]] || \
+            [[ ${HOME}/preprocessor.py -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
+            echo "Generating ${OUTPUT_DIR}/templates/${fname}"
+            TEMPLATE=1 ${HOME}/preprocessor.py ${FILE} ${OUTPUT_DIR}/templates/${fname}
+        fi
     fi
 done
 
