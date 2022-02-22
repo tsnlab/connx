@@ -22,9 +22,11 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* outputs,
-        __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-        __attribute__((unused)) uint32_t attribute_count, void** attributes) {
+                            // clang-format on
+                            __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                            __attribute__((unused)) uint32_t attribute_count, void** attributes) {
     // inputs
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
 

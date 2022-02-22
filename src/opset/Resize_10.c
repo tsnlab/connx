@@ -81,10 +81,13 @@ static int32_t _ceil(float32_t f) {
 }
 */
 
-#define bound(v, size) ((v) < 0 ? 0 : (v) >= (size) ? (size) - 1 : (v))
+#define bound(v, size) ((v) < 0 ? 0 : (v) >= (size) ? (size)-1 : (v))
 
 /*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
-static void interpolate_2d_nearest_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape, {{TYPE}}* X_array, int32_t* Y_shape, float32_t* scales, int32_t loop_count) {
+// clang-format off
+static void interpolate_2d_nearest_{{DTYPE}}({{TYPE}} * Y_array, int32_t* X_shape, {{TYPE}} * X_array,
+                                              // clang-format on
+                                              int32_t* Y_shape, float32_t* scales, int32_t loop_count) {
 
     float32_t bases[2];
     float32_t steps[2];
@@ -123,7 +126,10 @@ static void interpolate_2d_nearest_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape
 /*{% endfor %}*/
 
 /*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
-static void interpolate_2d_linear_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape, {{TYPE}}* X_array, int32_t* Y_shape, float32_t* scales, int32_t loop_count) {
+// clang-format off
+static void interpolate_2d_linear_{{DTYPE}}({{TYPE}} * Y_array, int32_t* X_shape, {{TYPE}} * X_array, int32_t* Y_shape,
+                                             // clang-format on
+                                             float32_t* scales, int32_t loop_count) {
 
     float32_t bases[2];
     float32_t steps[2];
@@ -148,20 +154,17 @@ static void interpolate_2d_linear_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape,
                 float32_t ratio_y1 = y1_idx - y1_idx_int;
 
                 // coeffects
-                float32_t coeffects[4] = {
-                    (1 - ratio_y0) * (1 - ratio_y1), (1 - ratio_y0) * ratio_y1,
-                    ratio_y0 * (1 - ratio_y1), ratio_y0 * ratio_y1
-                };
+                float32_t coeffects[4] = {(1 - ratio_y0) * (1 - ratio_y1), (1 - ratio_y0) * ratio_y1,
+                                          ratio_y0 * (1 - ratio_y1), ratio_y0 * ratio_y1};
 
                 float32_t values[4] = {
-                        X_array[bound(y0_idx_int, X_shape[0]) * X_shape[1] + bound(y1_idx_int, X_shape[1])],
-                        X_array[bound(y0_idx_int, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
-                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int, X_shape[1])],
-                        X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])]
-                    };
+                    X_array[bound(y0_idx_int, X_shape[0]) * X_shape[1] + bound(y1_idx_int, X_shape[1])],
+                    X_array[bound(y0_idx_int, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])],
+                    X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int, X_shape[1])],
+                    X_array[bound(y0_idx_int + 1, X_shape[0]) * X_shape[1] + bound(y1_idx_int + 1, X_shape[1])]};
 
-                *Y_array++ = ({{TYPE}})(coeffects[0] * values[0] + coeffects[1] * values[1] + 
-                                        coeffects[2] * values[2] + coeffects[3] * values[3]);
+                *Y_array++ = ({{TYPE}})(coeffects[0] * values[0] + coeffects[1] * values[1] + coeffects[2] * values[2] +
+                                        coeffects[3] * values[3]);
 
                 y1_idx += steps[1];
             }
@@ -174,11 +177,13 @@ static void interpolate_2d_linear_{{DTYPE}}({{TYPE}}* Y_array, int32_t* X_shape,
 }
 /*{% endfor %}*/
 
+// clang-format off
 int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-        __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-        __attribute__((unused)) uint32_t attribute_count, void** attributes) {
+                           // clang-format on
+                           __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                           __attribute__((unused)) uint32_t attribute_count, void** attributes) {
     // Inputs
-    connx_Tensor* X = connx_Graph_get(graph, inputs[0]); // T
+    connx_Tensor* X = connx_Graph_get(graph, inputs[0]);      // T
     connx_Tensor* scales = connx_Graph_get(graph, inputs[1]); // float32
 
     // Attributes
@@ -187,7 +192,6 @@ int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t o
         connx_error("mode '%s' is not supported yet", (char*)attributes[4]);
         return CONNX_NOT_SUPPORTED_ATTRIBUTE;
     }
-
 
     // prepare Y
     assert(scales->ndim == 1);
@@ -211,28 +215,33 @@ int Resize_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t o
     switch (X->ndim - 2) {
     case 2: // 2d interpolation
         switch (X->dtype) {
-        /*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
-            case {{DTYPE}}: {
-                {{TYPE}}* Y_buffer = ({{TYPE}}*)Y->buffer;
-                {{TYPE}}* X_buffer = ({{TYPE}}*)X->buffer;
+            /*{% for DTYPE, TYPE in loop_types(*supported_data_types) %}*/
+        case {{ DTYPE }}: {
+            {{TYPE}}* Y_buffer = ({{TYPE}}*)Y->buffer;
+            {{TYPE}}* X_buffer = ({{TYPE}}*)X->buffer;
 
-                switch (mode) {
-                    case NEAREST:
-                        interpolate_2d_nearest_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2, &((float32_t*)scales->buffer)[2], loop_count);
+            switch (mode) {
+            case NEAREST:
+                // clang-format off
+                interpolate_2d_nearest_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2,
+                                                  // clang-format on
+                                                  &((float32_t*)scales->buffer)[2], loop_count);
 
-                        break;
-                    case LINEAR:
-                        interpolate_2d_linear_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2, &((float32_t*)scales->buffer)[2], loop_count);
-                        break;
-                    default:
-                        assert(false); // Not possible
-                }
-           } 
                 break;
-        /*{% endfor %}*/
+            case LINEAR:
+                // clang-format off
+                interpolate_2d_linear_{{DTYPE}}(Y_buffer, X->shape + 2, X_buffer, Y->shape + 2,
+                                                 // clang-format on
+                                                 &((float32_t*)scales->buffer)[2], loop_count);
+                break;
             default:
-                connx_error("Not supported dtype: %d", X->dtype);
-                return CONNX_NOT_SUPPORTED_FEATURE;
+                assert(false); // Not possible
+            }
+        } break;
+            /*{% endfor %}*/
+        default:
+            connx_error("Not supported dtype: %d", X->dtype);
+            return CONNX_NOT_SUPPORTED_FEATURE;
         }
         break;
     default:

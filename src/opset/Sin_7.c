@@ -20,9 +20,11 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int Sin_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-        __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-        __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                        // clang-format on
+                        __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                        __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* Y = connx_Tensor_alloc_like(X);
     if (Y == NULL) {

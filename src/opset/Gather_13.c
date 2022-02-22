@@ -20,9 +20,12 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int Gather_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-           __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-           __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                           // clang-format on
+                           __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                           __attribute__((unused)) uint32_t attribute_count,
+                           __attribute__((unused)) void** attributes) {
     /*{% set supported_dtypes = [
         UINT8,
         UINT16,
