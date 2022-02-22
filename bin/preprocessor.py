@@ -164,6 +164,13 @@ templates_dir = os.path.join(
     'templates',
 )
 
+if IS_TEMPLATE and not os.path.exists(templates_dir):
+    # Create templates directory
+    try:
+        os.makedirs(templates_dir)
+    except OSError:
+        pass
+
 jinja_env = jinja2.Environment(
     loader=jinja2.FileSystemLoader(templates_dir),
     block_start_string='/*{%',
