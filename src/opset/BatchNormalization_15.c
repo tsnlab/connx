@@ -48,27 +48,25 @@ int BatchNormalization_{{op_version}}(connx_Graph* graph, __attribute__((unused)
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, X->shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* Y_base = (TEMPLATE_TYPE*)Y->buffer;
-        TEMPLATE_TYPE* X_base = (TEMPLATE_TYPE*)X->buffer;
+        /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+    case {{ DTYPE }}: {
+        {{TYPE}}* Y_base = ({{TYPE}}*)Y->buffer;
+        {{TYPE}}* X_base = ({{TYPE}}*)X->buffer;
 
-        TEMPLATE_TYPE* scales = (TEMPLATE_TYPE*)scale->buffer;
-        TEMPLATE_TYPE* Bs = (TEMPLATE_TYPE*)B->buffer;
-        TEMPLATE_TYPE* means = (TEMPLATE_TYPE*)mean->buffer;
-        TEMPLATE_TYPE* vars = (TEMPLATE_TYPE*)var->buffer;
+        {{TYPE}}* scales = ({{TYPE}}*)scale->buffer;
+        {{TYPE}}* Bs = ({{TYPE}}*)B->buffer;
+        {{TYPE}}* means = ({{TYPE}}*)mean->buffer;
+        {{TYPE}}* vars = ({{TYPE}}*)var->buffer;
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
             for (int32_t channel = 0; channel < channel_count; channel++) {
-                TEMPLATE_TYPE scale_value = scales[channel];
-                TEMPLATE_TYPE B_value = Bs[channel];
-                TEMPLATE_TYPE mean_value = means[channel];
-                TEMPLATE_TYPE sqrt_value = sqrtf(vars[channel] + epsilon);
-                TEMPLATE_TYPE scale_div_sqrt_value = scale_value / sqrt_value;
+                // clang-format off
+                {{TYPE}} scale_value = scales[channel];
+                {{TYPE}} B_value = Bs[channel];
+                {{TYPE}} mean_value = means[channel];
+                {{TYPE}} sqrt_value = sqrtf(vars[channel] + epsilon);
+                {{TYPE}} scale_div_sqrt_value = scale_value / sqrt_value;
+                // clang-format on
 
                 for (int32_t i = 0; i < unit; i++) {
                     *Y_base++ = (*X_base++ - mean_value) * scale_div_sqrt_value + B_value;
@@ -77,7 +75,7 @@ int BatchNormalization_{{op_version}}(connx_Graph* graph, __attribute__((unused)
         }
         break;
     }
-        TEMPLATE_END()
+        /*{% endfor %}*/
     default:
         connx_error("BatchNormalization: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

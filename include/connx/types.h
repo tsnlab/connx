@@ -75,13 +75,6 @@ typedef enum _connx_DataType {
 
 uint32_t connx_DataType_size(connx_DataType dtype);
 
-// Template engine
-#define TEMPLATE_START(...)
-#define TEMPLATE_END(...)
-#define TEMPLATE_DTYPE
-#define TEMPLATE_TYPE
-#define TEMPLATE_NAME
-
 #define UINT8 CONNX_UINT8
 #define INT8 CONNX_INT8
 #define UINT16 CONNX_UINT16

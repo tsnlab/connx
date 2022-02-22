@@ -167,14 +167,10 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
     int32_t X_unit = connx_Int32_product(feature_dim, X->shape + 2);
 
     switch (X->dtype) {
-        TEMPLATE_START(UINT8, UINT16, FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE INT32
-#define TEMPLATE_TYPE int32_t
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* Y_flatten = Y->buffer;
-        TEMPLATE_TYPE* X_flatten = X->buffer;
+        /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
+    case {{ DTYPE }}: {
+        {{TYPE}}* Y_flatten = Y->buffer;
+        {{TYPE}}* X_flatten = X->buffer;
         int32_t X_offset = 0;
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
@@ -189,7 +185,7 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                 connx_Iterator_init(&x_iter, feature_dim, x_slices);
 
                 while (connx_Iterator_next(&x_iter, 1)) {
-                    TEMPLATE_TYPE y = 0;
+                    {{TYPE}} y = 0;
                     int64_t argmax_idx = -1;
                     int32_t k_idx[feature_dim];
 
@@ -229,7 +225,7 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                     if (x_patch_batch == 1) {
                         while (connx_Iterator_next(&x_patch_iter, x_patch_batch)) {
                             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
-                            TEMPLATE_TYPE tmp_y = X_flatten[x_patch_offset];
+                            {{TYPE}} tmp_y = X_flatten[x_patch_offset];
                             if (kernel_offset < 0 || tmp_y > y) {
                                 y = tmp_y;
                                 kernel_offset = X_offset + x_patch_iter.idx;
@@ -239,14 +235,14 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                         while (connx_Iterator_next(&x_patch_iter, x_patch_batch)) {
                             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
 
-                            TEMPLATE_TYPE tmp_y = TEMPLATE_DTYPE_MIN;
+                            {{TYPE}} tmp_y = CONNX_{{DTYPE}}_MIN;
                             for (int i = 0; i < x_patch_batch; i++) {
                                 if (X_flatten[x_patch_offset + i] > tmp_y) {
                                     tmp_y = X_flatten[x_patch_offset + i];
                                 }
                             }
                             int32_t tmp_kernel_offset =
-                                connx_TEMPLATE_NAME_argmax(x_patch_batch, &tmp_y, X_flatten + x_patch_offset);
+                                connx_{{DTYPE | to_name }}_argmax(x_patch_batch, &tmp_y, X_flatten + x_patch_offset);
 
                             if (kernel_offset < 0 || tmp_y > y) {
                                 y = tmp_y;
@@ -294,7 +290,7 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
         }
         break;
     }
-        TEMPLATE_END()
+        /*{% endfor %}*/
     default:
         connx_error("MaxPool: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

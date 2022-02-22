@@ -21,18 +21,13 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-TEMPLATE_START(FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-#define connx_TEMPLATE_NAME_add connx_Float32_add
-static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, TEMPLATE_TYPE* X_flatten, int32_t feature_dim,
-                                int32_t* feature_shape, connx_Iterator* x_iter, TEMPLATE_TYPE* W_flatten,
+/*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+static void _conv_{{ DTYPE | to_name }}({{TYPE}}* Y_flatten, {{TYPE}}* X_flatten, int32_t feature_dim,
+                                int32_t* feature_shape, connx_Iterator* x_iter, {{TYPE}}* W_flatten,
                                 int32_t* kernel_shape, int32_t* dilations) {
 
     while (connx_Iterator_next(x_iter, 1)) {
-        TEMPLATE_TYPE y = 0;
+        {{TYPE}} y = 0;
 
         // Calculate x_patch_slices and w_slices
         connx_Slice x_patch_slices[feature_dim];
@@ -83,19 +78,19 @@ static void _conv_TEMPLATE_NAME(TEMPLATE_TYPE* Y_flatten, TEMPLATE_TYPE* X_flatt
             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
             int32_t w_offset = connx_Iterator_offset(&w_iter, kernel_shape);
 
-            y += connx_TEMPLATE_NAME_mul_and_sum(mini_batch, (TEMPLATE_TYPE*)X_flatten + x_patch_offset,
-                                                 (TEMPLATE_TYPE*)W_flatten + w_offset);
+            y += connx_{{ DTYPE | to_name }}_mul_and_sum(mini_batch, ({{TYPE}}*)X_flatten + x_patch_offset,
+                                                 ({{TYPE}}*)W_flatten + w_offset);
         }
 
         *Y_flatten++ += y;
     }
 }
 
-struct Parameter_TEMPLATE_NAME {
-    TEMPLATE_TYPE* Y_flatten;
-    TEMPLATE_TYPE* X_flatten;
-    TEMPLATE_TYPE* B_flatten;
-    TEMPLATE_TYPE* W_flatten;
+struct Parameter_{{ DTYPE | to_name }} {
+    {{TYPE}}* Y_flatten;
+    {{TYPE}}* X_flatten;
+    {{TYPE}}* B_flatten;
+    {{TYPE}}* W_flatten;
     int32_t feature_dim;
     int32_t* feature_shape;
     int32_t* kernel_shape;
@@ -107,13 +102,13 @@ struct Parameter_TEMPLATE_NAME {
     int32_t channel_count;
 };
 
-static void* run_TEMPLATE_NAME(void* context) {
-    struct Parameter_TEMPLATE_NAME* params = context;
+static void* run_{{ DTYPE | to_name }}(void* context) {
+    struct Parameter_{{ DTYPE | to_name }}* params = context;
 
-    TEMPLATE_TYPE* Y_flatten = params->Y_flatten;
-    TEMPLATE_TYPE* X_flatten = params->X_flatten;
-    TEMPLATE_TYPE* B_flatten = params->B_flatten;
-    TEMPLATE_TYPE* W_flatten = params->W_flatten;
+    {{TYPE}}* Y_flatten = params->Y_flatten;
+    {{TYPE}}* X_flatten = params->X_flatten;
+    {{TYPE}}* B_flatten = params->B_flatten;
+    {{TYPE}}* W_flatten = params->W_flatten;
     int32_t feature_dim = params->feature_dim;
     int32_t* feature_shape = params->feature_shape;
     int32_t* kernel_shape = params->kernel_shape;
@@ -125,7 +120,7 @@ static void* run_TEMPLATE_NAME(void* context) {
     int32_t channel_count = params->channel_count;
 
     for (int32_t channel = 0; channel < channel_count; channel++) {
-        _conv_TEMPLATE_NAME(Y_flatten, X_flatten, feature_dim, feature_shape, x_iter, W_flatten, kernel_shape,
+        _conv_{{ DTYPE | to_name }}(Y_flatten, X_flatten, feature_dim, feature_shape, x_iter, W_flatten, kernel_shape,
                             dilations);
 
         X_flatten += X_unit;
@@ -133,16 +128,16 @@ static void* run_TEMPLATE_NAME(void* context) {
     }
 
     if (B_flatten != NULL) {
-        TEMPLATE_TYPE B_array[Y_unit];
-        connx_TEMPLATE_NAME_broadcast(Y_unit, B_array, 1, B_flatten);
-        connx_TEMPLATE_NAME_add(Y_unit, Y_flatten, Y_flatten, B_array);
+        {{TYPE}} B_array[Y_unit];
+        connx_{{ DTYPE | to_name }}_broadcast(Y_unit, B_array, 1, B_flatten);
+        connx_{{ DTYPE | to_name }}_add(Y_unit, Y_flatten, Y_flatten, B_array);
         B_flatten++;
     }
 
     return NULL;
 }
 
-TEMPLATE_END()
+/*{% endfor %}*/
 
 // clang-format off
 int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
@@ -249,17 +244,11 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
     connx_Iterator_init(&x_iter, feature_dim, x_slices);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-#define connx_TEMPLATE_NAME_add connx_Float32_add
-#define connx_TEMPLATE_NAME_broadcast connx_Float32_broadcast
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* X_flatten = (TEMPLATE_TYPE*)X->buffer;
-        TEMPLATE_TYPE* Y_flatten = (TEMPLATE_TYPE*)Y->buffer;
-        TEMPLATE_TYPE* B_flatten = NULL;
+        /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+    case {{ DTYPE }}: {
+        {{TYPE}}* X_flatten = ({{TYPE}}*)X->buffer;
+        {{TYPE}}* Y_flatten = ({{TYPE}}*)Y->buffer;
+        {{TYPE}}* B_flatten = NULL;
 
         int32_t batch_count = X->shape[0];
         int32_t channel_count = W->shape[1];
@@ -271,14 +260,14 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         int32_t Y_unit = connx_Int32_product(feature_dim, output_shape);
 
         int32_t work_count = batch_count * group * feature_group;
-        struct Parameter_TEMPLATE_NAME works[work_count];
+        struct Parameter_{{ DTYPE | to_name }} works[work_count];
 
         for (int32_t batch = 0, work_id = 0; batch < batch_count; batch++) {
             if (B != NULL) {
-                B_flatten = (TEMPLATE_TYPE*)B->buffer;
+                B_flatten = ({{TYPE}}*)B->buffer;
             }
 
-            TEMPLATE_TYPE* W_flatten = (TEMPLATE_TYPE*)W->buffer;
+            {{TYPE}}* W_flatten = ({{TYPE}}*)W->buffer;
 
             for (int32_t g = 0, feature_map = 0; g < group; g++) {
                 for (int32_t f = 0; f < feature_group; f++, feature_map++) {
@@ -299,14 +288,14 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
                     /*
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_TEMPLATE_NAME(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape,
+                        _conv_{{ DTYPE | to_name }}(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape,
                                             &x_iter, W_flatten + channel * W_unit, kernel_shape, dilations);
                     }
 
                     if (B_flatten != NULL) {
-                        TEMPLATE_TYPE B_array[Y_unit];
-                        connx_TEMPLATE_NAME_broadcast(Y_unit, B_array, 1, B_flatten);
-                        connx_TEMPLATE_NAME_add(Y_unit, Y_flatten, Y_flatten, B_array);
+                        {{TYPE}} B_array[Y_unit];
+                        connx_{{ DTYPE | to_name }}_broadcast(Y_unit, B_array, 1, B_flatten);
+                        connx_{{ DTYPE | to_name }}_add(Y_unit, Y_flatten, Y_flatten, B_array);
                         B_flatten++;
                     }
                     */
@@ -322,11 +311,11 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
             }
         }
 
-        connx_Thread_run_all(run_TEMPLATE_NAME, work_count, works, sizeof(struct Parameter_TEMPLATE_NAME));
+        connx_Thread_run_all(run_{{ DTYPE | to_name }}, work_count, works, sizeof(struct Parameter_{{ DTYPE | to_name }}));
 
         break;
     }
-        TEMPLATE_END()
+        /*{% endfor %}*/
     default:
         connx_error("Conv: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

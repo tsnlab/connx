@@ -48,18 +48,16 @@ int GlobalAveragePool_{{op_version}}(connx_Graph* graph, __attribute__((unused))
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, Y_shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT32, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* Y_base = (TEMPLATE_TYPE*)Y->buffer;
-        TEMPLATE_TYPE* X_base = (TEMPLATE_TYPE*)X->buffer;
+        /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+    case {{ DTYPE }}: {
+        {{TYPE}}* Y_base = ({{TYPE}}*)Y->buffer;
+        {{TYPE}}* X_base = ({{TYPE}}*)X->buffer;
 
         for (int32_t batch = 0; batch < batch_count; batch++) {
             for (int32_t channel = 0; channel < channel_count; channel++) {
-                TEMPLATE_TYPE average = 0;
+                // clang-format off
+                {{TYPE}} average = 0;
+                // clang-format on
                 for (int32_t i = 0; i < unit; i++) {
                     average += (*X_base++) / unit;
                 }
@@ -69,7 +67,7 @@ int GlobalAveragePool_{{op_version}}(connx_Graph* graph, __attribute__((unused))
         }
         break;
     }
-        TEMPLATE_END()
+        /*{% endfor %}*/
     default:
         connx_error("GlobalAveragePool: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
