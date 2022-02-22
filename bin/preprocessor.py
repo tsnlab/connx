@@ -153,6 +153,7 @@ consts = {
 
 jinja2_filters = {
     'pointer': pointer,
+    'to_name': get_NAME,
 }
 
 jinja_env = jinja2.Environment(
