@@ -14,6 +14,8 @@ if len(sys.argv) != 3:
 input_source = os.path.abspath(sys.argv[1])
 output_source = sys.argv[2]
 
+IS_TEMPLATE = os.environ.get('TEMPLATE', '0') == '1'
+
 
 def is_DTYPE(dtype):
     if dtype == 'UINT8':
@@ -156,8 +158,14 @@ jinja2_filters = {
     'to_name': get_NAME,
 }
 
+templates_dir = os.path.join(
+    os.path.dirname(output_source),
+    '..',
+    'templates',
+)
+
 jinja_env = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(os.path.dirname(input_source)),
+    loader=jinja2.FileSystemLoader(templates_dir),
     block_start_string='/*{%',
     block_end_string='%}*/',
     variable_start_string='{{',
@@ -180,7 +188,7 @@ with open(output_source, 'w') as output:
 
     with open(input_source, 'r') as input:
         for idx, line in enumerate(input.readlines()):
-            line_no  = idx + 1
+            line_no = idx + 1
 
             if any(token in line for token in jinja_end_tokens):
                 line += '#line {} "{}"\n'.format(line_no+1, input_source)
@@ -197,5 +205,10 @@ with open(output_source, 'w') as output:
         kwargs['op_version'] = int(m[1])
 
     content = buffer.getvalue()
-    rendered = jinja_env.from_string(content).render(kwargs)
+
+    if not IS_TEMPLATE:
+        rendered = jinja_env.from_string(content).render(kwargs)
+    else:
+        rendered = content
+
     output.write(rendered)
