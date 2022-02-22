@@ -22,12 +22,16 @@
 #include <connx/connx.h>
 
 /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+// clang-format off
 static void _conv_{{ DTYPE | to_name }}({{TYPE}}* Y_flatten, {{TYPE}}* X_flatten, int32_t feature_dim,
                                 int32_t* feature_shape, connx_Iterator* x_iter, {{TYPE}}* W_flatten,
                                 int32_t* kernel_shape, int32_t* dilations) {
+    // clang-format on
 
     while (connx_Iterator_next(x_iter, 1)) {
+        // clang-format off
         {{TYPE}} y = 0;
+        // clang-format on
 
         // Calculate x_patch_slices and w_slices
         connx_Slice x_patch_slices[feature_dim];
@@ -78,19 +82,23 @@ static void _conv_{{ DTYPE | to_name }}({{TYPE}}* Y_flatten, {{TYPE}}* X_flatten
             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
             int32_t w_offset = connx_Iterator_offset(&w_iter, kernel_shape);
 
+            // clang-format off
             y += connx_{{ DTYPE | to_name }}_mul_and_sum(mini_batch, ({{TYPE}}*)X_flatten + x_patch_offset,
                                                  ({{TYPE}}*)W_flatten + w_offset);
+            // clang-format on
         }
 
         *Y_flatten++ += y;
     }
 }
 
+// clang-format off
 struct Parameter_{{ DTYPE | to_name }} {
     {{TYPE}}* Y_flatten;
     {{TYPE}}* X_flatten;
     {{TYPE}}* B_flatten;
     {{TYPE}}* W_flatten;
+    // clang-format on
     int32_t feature_dim;
     int32_t* feature_shape;
     int32_t* kernel_shape;
@@ -102,6 +110,7 @@ struct Parameter_{{ DTYPE | to_name }} {
     int32_t channel_count;
 };
 
+// clang-format off
 static void* run_{{ DTYPE | to_name }}(void* context) {
     struct Parameter_{{ DTYPE | to_name }}* params = context;
 
@@ -109,6 +118,7 @@ static void* run_{{ DTYPE | to_name }}(void* context) {
     {{TYPE}}* X_flatten = params->X_flatten;
     {{TYPE}}* B_flatten = params->B_flatten;
     {{TYPE}}* W_flatten = params->W_flatten;
+    // clang-format on
     int32_t feature_dim = params->feature_dim;
     int32_t* feature_shape = params->feature_shape;
     int32_t* kernel_shape = params->kernel_shape;
@@ -120,17 +130,21 @@ static void* run_{{ DTYPE | to_name }}(void* context) {
     int32_t channel_count = params->channel_count;
 
     for (int32_t channel = 0; channel < channel_count; channel++) {
-        _conv_{{ DTYPE | to_name }}(Y_flatten, X_flatten, feature_dim, feature_shape, x_iter, W_flatten, kernel_shape,
-                            dilations);
+        // clang-format off
+        _conv_{{DTYPE | to_name}}(Y_flatten, X_flatten, feature_dim, feature_shape, x_iter, W_flatten, kernel_shape,
+                                  dilations);
+        // clang-format on
 
         X_flatten += X_unit;
         W_flatten += W_unit;
     }
 
     if (B_flatten != NULL) {
+        // clang-format off
         {{TYPE}} B_array[Y_unit];
         connx_{{ DTYPE | to_name }}_broadcast(Y_unit, B_array, 1, B_flatten);
         connx_{{ DTYPE | to_name }}_add(Y_unit, Y_flatten, Y_flatten, B_array);
+        // clang-format on
         B_flatten++;
     }
 
@@ -260,14 +274,20 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         int32_t Y_unit = connx_Int32_product(feature_dim, output_shape);
 
         int32_t work_count = batch_count * group * feature_group;
+        // clang-format off
         struct Parameter_{{ DTYPE | to_name }} works[work_count];
+        // clang-format on
 
         for (int32_t batch = 0, work_id = 0; batch < batch_count; batch++) {
             if (B != NULL) {
+                // clang-format off
                 B_flatten = ({{TYPE}}*)B->buffer;
+                // clang-format on
             }
 
+            // clang-format off
             {{TYPE}}* W_flatten = ({{TYPE}}*)W->buffer;
+            // clang-format on
 
             for (int32_t g = 0, feature_map = 0; g < group; g++) {
                 for (int32_t f = 0; f < feature_group; f++, feature_map++) {
@@ -311,7 +331,10 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
             }
         }
 
-        connx_Thread_run_all(run_{{ DTYPE | to_name }}, work_count, works, sizeof(struct Parameter_{{ DTYPE | to_name }}));
+        // clang-format off
+        connx_Thread_run_all(run_{{DTYPE | to_name}}, work_count, works,
+                             sizeof(struct Parameter_{{DTYPE | to_name}}));
+        // clang-format on
 
         break;
     }

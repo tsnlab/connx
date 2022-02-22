@@ -30,10 +30,13 @@ int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, X->shape);
 
     switch (X->dtype) {
-        /*{% for DTYPE, TYPE in loop_types(FLOAT16, FLOAT32, FLOAT64, UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64) %}*/
+        /*{% for DTYPE, TYPE in loop_types(
+            FLOAT16, FLOAT32, FLOAT64, UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64) %}*/
     case {{ DTYPE }}: {
+        // clang-format off
         {{TYPE}} min = CONNX_{{ DTYPE }}_MIN;
         {{TYPE}} max = CONNX_{{ DTYPE }}_MAX;
+        // clang-format on
 
         if (input_count >= 2) {
             connx_Tensor* _min = connx_Graph_get(graph, inputs[1]);
@@ -49,12 +52,16 @@ int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
             }
         }
 
+        // clang-format off
         {{TYPE}}* Y_base = ({{TYPE}}*)Y->buffer;
         {{TYPE}}* X_base = ({{TYPE}}*)X->buffer;
+        // clang-format on
 
         int32_t total = connx_Int32_product(X->ndim, X->shape);
         for (int32_t i = 0; i < total; i++) {
+            // clang-format off
             {{TYPE}} x = *X_base++;
+            // clang-format on
             if (x < min) {
                 x = min;
             }

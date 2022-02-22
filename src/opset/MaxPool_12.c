@@ -185,7 +185,9 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                 connx_Iterator_init(&x_iter, feature_dim, x_slices);
 
                 while (connx_Iterator_next(&x_iter, 1)) {
+                    // clang-format off
                     {{TYPE}} y = 0;
+                    // clang-format on
                     int64_t argmax_idx = -1;
                     int32_t k_idx[feature_dim];
 
@@ -225,7 +227,9 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                     if (x_patch_batch == 1) {
                         while (connx_Iterator_next(&x_patch_iter, x_patch_batch)) {
                             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
+                            // clang-format off
                             {{TYPE}} tmp_y = X_flatten[x_patch_offset];
+                            // clang-format on
                             if (kernel_offset < 0 || tmp_y > y) {
                                 y = tmp_y;
                                 kernel_offset = X_offset + x_patch_iter.idx;
@@ -234,15 +238,17 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                     } else {
                         while (connx_Iterator_next(&x_patch_iter, x_patch_batch)) {
                             int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
-
+                            // clang-format off
                             {{TYPE}} tmp_y = CONNX_{{DTYPE}}_MIN;
+                            // clang-format on
                             for (int i = 0; i < x_patch_batch; i++) {
                                 if (X_flatten[x_patch_offset + i] > tmp_y) {
                                     tmp_y = X_flatten[x_patch_offset + i];
                                 }
                             }
-                            int32_t tmp_kernel_offset =
-                                connx_{{DTYPE | to_name }}_argmax(x_patch_batch, &tmp_y, X_flatten + x_patch_offset);
+                            // clang-format off
+                            int32_t tmp_kernel_offset = connx_{{DTYPE | to_name }}_argmax(x_patch_batch, &tmp_y, X_flatten + x_patch_offset);
+                            // clang-format on
 
                             if (kernel_offset < 0 || tmp_y > y) {
                                 y = tmp_y;
