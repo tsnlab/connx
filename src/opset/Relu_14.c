@@ -18,9 +18,11 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int Relu_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                         // clang-format on
+                         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* Y = connx_Tensor_alloc_like(X);
     if (Y == NULL) {
@@ -30,21 +32,17 @@ int Relu_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT32, INT32, INT8, INT16, INT64, FLOAT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* X_array = X->buffer;
-        TEMPLATE_TYPE* Y_array = Y->buffer;
+        /*{% for DTYPE, TYPE in loop_types(FLOAT32, INT32, INT8, INT16, INT64, FLOAT64) %}*/
+    case {{ DTYPE }}: {
+        {{TYPE}}* X_array = X->buffer;
+        {{TYPE}}* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
             Y_array[i] = X_array[i] < 0 ? 0 : X_array[i];
         }
         break;
     }
-        TEMPLATE_END()
+        /*{% endfor %}*/
     default:
         connx_error("Relu: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

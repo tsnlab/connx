@@ -35,9 +35,11 @@ static inline void get_indices(int32_t ndim, int32_t* shape, int32_t offset, int
 static void copy_input(void* output_buffer, void* input_buffer, int32_t ndim, int64_t* repeats_shape,
                        int32_t* input_shape, size_t type_size);
 
+// clang-format off
 int Tile_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                         // clang-format on
+                         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     /*{% set supported_dtypes = [
         UINT8, UINT16, UINT32, UINT64,
         INT8, INT16, INT32, INT64,

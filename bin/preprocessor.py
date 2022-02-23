@@ -14,6 +14,8 @@ if len(sys.argv) != 3:
 input_source = os.path.abspath(sys.argv[1])
 output_source = sys.argv[2]
 
+IS_TEMPLATE = os.environ.get('TEMPLATE', '0') == '1'
+
 
 def is_DTYPE(dtype):
     if dtype == 'UINT8':
@@ -153,10 +155,24 @@ consts = {
 
 jinja2_filters = {
     'pointer': pointer,
+    'to_name': get_NAME,
 }
 
+templates_dir = os.path.join(
+    os.path.dirname(output_source),
+    '..',
+    'templates',
+)
+
+if IS_TEMPLATE and not os.path.exists(templates_dir):
+    # Create templates directory
+    try:
+        os.makedirs(templates_dir)
+    except OSError:
+        pass
+
 jinja_env = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(os.path.dirname(input_source)),
+    loader=jinja2.FileSystemLoader(templates_dir),
     block_start_string='/*{%',
     block_end_string='%}*/',
     variable_start_string='{{',
@@ -168,8 +184,7 @@ jinja_env.filters.update(jinja2_filters)
 
 with open(output_source, 'w') as output:
     buffer = io.StringIO()
-    line_no = 1
-    buffer.write('#line {} "{}"\n'.format(line_no, input_source))
+    buffer.write('#line {} "{}"\n'.format(1, input_source))
 
     jinja_start_tokens = [
         getattr(jinja_env, attr)
@@ -179,55 +194,15 @@ with open(output_source, 'w') as output:
         for attr in ('block_end_string', 'variable_end_string', 'comment_end_string',)]
 
     with open(input_source, 'r') as input:
+        for idx, line in enumerate(input.readlines()):
+            line_no = idx + 1
 
-        line = input.readline()
-        while line:
             if any(token in line for token in jinja_end_tokens):
                 line += '#line {} "{}"\n'.format(line_no+1, input_source)
             elif any(token in line for token in jinja_start_tokens):
                 buffer.write('#line {} "{}"\n'.format(line_no, input_source))
 
-            if 'TEMPLATE_START(' in line:
-                # Parse _DTYPE and _TYPE
-                tokens = re.split(r',|\(|\)', line)
-                tokens.pop(0)  # drop TEMPLATE_START
-                dtypes = []
-                while(len(tokens) > 0):
-                    name = tokens.pop(0).strip()
-                    if is_DTYPE(name):
-                        dtypes.append(name)
-
-                # Parse template
-                line = input.readline()
-                template = []
-                while 'TEMPLATE_END()' not in line:
-                    if line[0] == '#' and 'CONNX(alive)' not in line:
-                        template.append('\n')
-                    else:
-                        template.append(line)
-
-                    line = input.readline()
-
-                for dtype in dtypes:
-                    type = get_TYPE(dtype)
-                    name = get_NAME(dtype)
-
-                    buffer.write('#line {} "{}"\n'.format(line_no + 1, input_source))  # plus header
-
-                    for idx, (line) in enumerate(template):
-                        line = line.replace('TEMPLATE_DTYPE', 'CONNX_' + dtype)
-                        line = line.replace('TEMPLATE_TYPE', type)
-                        line = line.replace('TEMPLATE_NAME', name)
-
-                        buffer.write(line)
-
-                line = input.readline()
-                line_no += len(template) + 2  # lines of template + header + tail
-            else:
-                buffer.write(line)
-
-                line = input.readline()
-                line_no += 1
+            buffer.write(line)
 
     kwargs = {}
 
@@ -237,5 +212,10 @@ with open(output_source, 'w') as output:
         kwargs['op_version'] = int(m[1])
 
     content = buffer.getvalue()
-    rendered = jinja_env.from_string(content).render(kwargs)
+
+    if not IS_TEMPLATE:
+        rendered = jinja_env.from_string(content).render(kwargs)
+    else:
+        rendered = content
+
     output.write(rendered)

@@ -23,11 +23,14 @@
 #include <strings.h>
 
 #if DEBUG
-#include <errno.h> // open
-#include <fcntl.h> // open
-#include <sys/stat.h> // mkdir
-#include <sys/types.h> // mkdir
+
+#include <errno.h>  // open
+#include <fcntl.h>  // open
 #include <unistd.h> // write
+
+#include <sys/stat.h>  // mkdir
+#include <sys/types.h> // mkdir
+
 #endif /* DEBUG */
 
 #include <connx/accel.h>
@@ -631,7 +634,8 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
     // Execute operators
     for (uint32_t i = 0; i < graph->node_count; i++) {
         connx_Node* node = graph->nodes[i];
-        int ret = node->op(graph, node->output_count, node->outputs, node->input_count, node->inputs, node->attribute_count, node->attributes);
+        int ret = node->op(graph, node->output_count, node->outputs, node->input_count, node->inputs,
+                           node->attribute_count, node->attributes);
         if (ret != CONNX_OK) {
             return ret;
         }
@@ -657,7 +661,8 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
             sprintf(path, "connx.log/%s_%u.data", name, j);
             int fd = open(path, O_CREAT | O_WRONLY, 0664);
             if (fd < 0) {
-                connx_error("Cannot create log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                connx_error("Cannot create log file: %s, error_code: %d, error_message: %s\n", path, errno,
+                            strerror(errno));
                 continue;
             }
 
@@ -666,7 +671,8 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
             uint32_t dtype = tensor->dtype;
             size_t len = write(fd, &dtype, sizeof(uint32_t));
             if (len != sizeof(uint32_t)) {
-                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno,
+                            strerror(errno));
                 close(fd);
                 continue;
             }
@@ -674,21 +680,24 @@ int connx_Graph_run(connx_Graph* graph, uint32_t input_count, connx_Tensor** inp
             uint32_t ndim = tensor->ndim;
             len = write(fd, &ndim, sizeof(uint32_t));
             if (len != sizeof(uint32_t)) {
-                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno,
+                            strerror(errno));
                 close(fd);
                 continue;
             }
 
             len = write(fd, tensor->shape, sizeof(uint32_t) * tensor->ndim);
             if (len != sizeof(uint32_t) * tensor->ndim) {
-                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno,
+                            strerror(errno));
                 close(fd);
                 continue;
             }
 
             len = write(fd, tensor->buffer, tensor->size);
             if (len != tensor->size) {
-                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+                connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno,
+                            strerror(errno));
                 close(fd);
                 continue;
             }

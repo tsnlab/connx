@@ -18,9 +18,11 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                         // clang-format on
+                         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     // input
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
     float32_t max = *(float32_t*)attributes[0];
@@ -29,20 +31,17 @@ int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, X->ndim, X->shape);
 
     switch (X->dtype) {
-        TEMPLATE_START(FLOAT16, FLOAT32, FLOAT64, UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64)
-#undef TEMPLATE_DTYPE
-#undef TEMPLATE_TYPE
-#define TEMPLATE_DTYPE FLOAT32
-#define TEMPLATE_TYPE float32_t
-#define TEMPLATE_DTYPE_MIN FLOAT32
-#define TEMPLATE_DTYPE_MAX FLOAT32
-    case TEMPLATE_DTYPE: {
-        TEMPLATE_TYPE* Y_base = (TEMPLATE_TYPE*)Y->buffer;
-        TEMPLATE_TYPE* X_base = (TEMPLATE_TYPE*)X->buffer;
+        /*{% for DTYPE, TYPE in loop_types(
+            FLOAT16, FLOAT32, FLOAT64, UINT8, UINT16, UINT32, UINT64, INT8, INT16, INT32, INT64) %}*/
+    case {{ DTYPE }}: {
+        {{TYPE}}* Y_base = ({{TYPE}}*)Y->buffer;
+        {{TYPE}}* X_base = ({{TYPE}}*)X->buffer;
 
         int32_t total = connx_Int32_product(X->ndim, X->shape);
         for (int32_t i = 0; i < total; i++) {
-            TEMPLATE_TYPE x = *X_base++;
+            // clang-format off
+            {{TYPE}} x = *X_base++;
+            // clang-format on
             if (x < min) {
                 x = min;
             }
@@ -56,7 +55,7 @@ int Clip_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
         break;
     }
-        TEMPLATE_END()
+        /*{% endfor %}*/
     default:
         connx_error("Clip: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

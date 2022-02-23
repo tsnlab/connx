@@ -34,9 +34,12 @@ static inline void get_indices(int32_t ndim, int32_t* shape, int32_t offset, int
     }
 }
 
+// clang-format off
 int NonZero_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-            __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-            __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                            // clang-format on
+                            __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                            __attribute__((unused)) uint32_t attribute_count,
+                            __attribute__((unused)) void** attributes) {
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
 
     int32_t total = connx_Int32_product(X->ndim, X->shape);

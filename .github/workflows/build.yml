@@ -44,11 +44,11 @@ jobs:
     - name: Clone onnx-connx
       uses: actions/checkout@master
       with:
-        repository: semihlab/onnx-connx
+        repository: tsnlab/onnx-connx
         path: onnx-connx
     - name: ONNX Test Cases
       run: |
         cd onnx-connx
         cp ../build/connx ./onnx_connx/connx
         pip3 install -U onnx protobuf tabulate pytest
-        pytest
+        pytest -v

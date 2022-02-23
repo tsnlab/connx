@@ -20,12 +20,15 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-static int32_t get_output_index(const int32_t ndim, const int32_t* input_shape, const int32_t* output_shape, int32_t* perm,
-                         const int32_t input_index);
+static int32_t get_output_index(const int32_t ndim, const int32_t* input_shape, const int32_t* output_shape,
+                                int32_t* perm, const int32_t input_index);
 
+// clang-format off
 int Transpose_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-              __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-              __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                              // clang-format on
+                              __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                              __attribute__((unused)) uint32_t attribute_count,
+                              __attribute__((unused)) void** attributes) {
     /*{% set supported_data_types = [
         INT8, INT16, INT32, INT64,
         UINT8, UINT16, UINT32, UINT64,

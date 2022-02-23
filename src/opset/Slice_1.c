@@ -21,11 +21,13 @@
 #include <connx/connx.h>
 
 static int32_t get_input_index(const int32_t ndim, const int32_t* input_shape, const int32_t* output_shape,
-                        const int32_t* starts, const int32_t output_offset);
+                               const int32_t* starts, const int32_t output_offset);
 
+// clang-format off
 int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                          // clang-format on
+                          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     /*{% set supported_data_types = [
         INT8, INT16, INT32, INT64,
         UINT8, UINT16, UINT32, UINT64,
@@ -84,7 +86,8 @@ int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
     connx_Graph_set(graph, outputs[0], output);
 
     // Get data type size
-    size_t data_type_size = connx_DataType_size(data->dtype);;
+    size_t data_type_size = connx_DataType_size(data->dtype);
+    ;
     int32_t total = connx_Int32_product(output_ndim, output_shape);
 
     // Somethimes, one of axis is 0, which means total is 0

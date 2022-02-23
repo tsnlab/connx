@@ -22,9 +22,11 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int Squeeze_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-        __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-        __attribute__((unused)) uint32_t attribute_count, void** attributes) {
+                            // clang-format on
+                            __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                            __attribute__((unused)) uint32_t attribute_count, void** attributes) {
     // Inputs
     const connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
 
@@ -44,7 +46,8 @@ int Squeeze_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t 
             }
 
             if (axes_array[i] < 0 || axes_array[i] >= data->ndim || data->shape[axes_array[i]] != 1) {
-                connx_error("Squeeze: Invalid axes. %d is not a valid axis for %d-D tensor.", axes_array[i], data->ndim);
+                connx_error("Squeeze: Invalid axes. %d is not a valid axis for %d-D tensor.", axes_array[i],
+                            data->ndim);
                 return CONNX_TENSOR_SHAPE_NOT_MATCHING;
             }
         }

@@ -45,89 +45,37 @@ float hsum256_ps(__m256 v) {
 #endif /* __AVX__ */
 
 // Array utilities
-TEMPLATE_START(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64)
-#undef TEMPLATE_TYPE
-#define TEMPLATE_TYPE int32_t
-#undef TEMPLATE_NAME
-#define TEMPLATE_NAME Int32
-#define TEMPLATE_DTYPE_MAX CONNX_INT32_MAX
-#define TEMPLATE_DTYPE_MIN CONNX_INT32_MIN
+/*{% for DTYPE, TYPE in loop_types(
+UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64) %}*/
 
-void connx_TEMPLATE_NAME_add(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
+// clang-format off
+void connx_{{ DTYPE | to_name }}_add(int32_t count, {{TYPE}}* c, {{TYPE}}* a, {{TYPE}}* b) {
+    // clang-format on
     for (int32_t i = 0; i < count; i++) {
         c[i] = a[i] + b[i];
     }
 }
 
-void connx_TEMPLATE_NAME_sub(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
+// clang-format off
+void connx_{{ DTYPE | to_name }}_sub(int32_t count, {{TYPE}}* c, {{TYPE}}* a, {{TYPE}}* b) {
+    // clang-format on
     for (int32_t i = 0; i < count; i++) {
         c[i] = a[i] - b[i];
     }
 }
 
-void connx_TEMPLATE_NAME_mul(int32_t count, TEMPLATE_TYPE* c, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
+// clang-format off
+void connx_{{ DTYPE | to_name }}_mul(int32_t count, {{TYPE}}* c, {{TYPE}}* a, {{TYPE}}* b) {
+    // clang-format on
     for (int32_t i = 0; i < count; i++) {
         c[i] = a[i] * b[i];
     }
 }
 
-TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, TEMPLATE_TYPE* b) {
-    TEMPLATE_TYPE sum = 0;
-
-#if TEMPLATE_DTYPE == 1 // if FLOAT32 CONNX(alive)
-#ifdef __AVX2__         // CONNX(alive)
-    while (count >= 16) {
-        __m512 va = _mm512_loadu_ps(a);
-        __m512 vb = _mm512_loadu_ps(b);
-
-        __m512 vc = _mm512_mul_ps(va, vb);
-
-        // sum += hsum512_ps(vc); TODO implement it
-        float c[16];
-        _mm512_storeu_ps(c, vc);
-
-        __m256 vc1 = _mm256_loadu_ps(c);
-        __m256 vc2 = _mm256_loadu_ps(c + 8);
-
-        sum += hsum256_ps(vc1);
-        sum += hsum256_ps(vc2);
-
-        count -= 16;
-        a += 16;
-        b += 16;
-    }
-#endif /* __AVX2__ */ // CONNX(alive)
-
-#ifdef __AVX__ // CONNX(alive)
-    while (count >= 8) {
-        __m256 va = _mm256_loadu_ps(a);
-        __m256 vb = _mm256_loadu_ps(b);
-
-        __m256 vc = _mm256_mul_ps(va, vb);
-
-        sum += hsum256_ps(vc);
-
-        count -= 8;
-        a += 8;
-        b += 8;
-    }
-#endif /* __AVX__ */ // CONNX(alive)
-
-#ifdef __SSE3__ // CONNX(alive)
-    while (count >= 4) {
-        __m128 va = _mm_loadu_ps(a);
-        __m128 vb = _mm_loadu_ps(b);
-
-        __m128 vc = _mm_mul_ps(va, vb);
-
-        sum += hsum_ps(vc);
-
-        count -= 4;
-        a += 4;
-        b += 4;
-    }
-#endif /* __SSE3__ */            // CONNX(alive)
-#endif /* TEMPLATE_DTYPE == 1 */ // CONNX(alive)
+// clang-format off
+{{TYPE}} connx_{{ DTYPE | to_name }}_mul_and_sum(int32_t count, {{TYPE}}* a, {{TYPE}}* b) {
+    {{TYPE}} sum = 0;
+    // clang-format on
 
     for (int32_t i = 0; i < count; i++) {
         sum += a[i] * b[i];
@@ -136,15 +84,19 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_mul_and_sum(int32_t count, TEMPLATE_TYPE* a, T
     return sum;
 }
 
-void connx_TEMPLATE_NAME_broadcast(int32_t y_count, TEMPLATE_TYPE* y, int32_t x_count, TEMPLATE_TYPE* x) {
+// clang-format off
+void connx_{{ DTYPE | to_name }}_broadcast(int32_t y_count, {{TYPE}}* y, int32_t x_count, {{TYPE}}* x) {
+    // clang-format on
     for (int32_t i = 0; i < y_count / x_count; i++) {
-        memcpy(y + i, x, sizeof(TEMPLATE_TYPE) * x_count);
+        memcpy(y + i, x, sizeof({{TYPE}}) * x_count);
     }
 }
 
-int32_t connx_TEMPLATE_NAME_argmax(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYPE* x) {
+// clang-format off
+int32_t connx_{{ DTYPE | to_name }}_argmax(int32_t count, {{TYPE}}* y, {{TYPE}}* x) {
     int32_t argmax = -1;
-    TEMPLATE_TYPE max = TEMPLATE_DTYPE_MIN;
+    {{TYPE}} max = CONNX_{{ DTYPE }}_MIN;
+    // clang-format on
 
     for (int32_t i = 0; i < count; i++) {
         if (argmax == -1 || x[i] > max) {
@@ -160,9 +112,11 @@ int32_t connx_TEMPLATE_NAME_argmax(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYP
     return argmax;
 }
 
-int32_t connx_TEMPLATE_NAME_argmin(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYPE* x) {
+// clang-format off
+int32_t connx_{{ DTYPE | to_name }}_argmin(int32_t count, {{TYPE}}* y, {{TYPE}}* x) {
     int32_t argmin = -1;
-    TEMPLATE_TYPE min = TEMPLATE_DTYPE_MAX;
+    {{TYPE}} min = CONNX_{{ DTYPE }}_MAX;
+    // clang-format on
 
     for (int32_t i = 0; i < count; i++) {
         if (argmin == -1 || x[i] < min) {
@@ -178,8 +132,10 @@ int32_t connx_TEMPLATE_NAME_argmin(int32_t count, TEMPLATE_TYPE* y, TEMPLATE_TYP
     return argmin;
 }
 
-TEMPLATE_TYPE connx_TEMPLATE_NAME_sum(int32_t count, TEMPLATE_TYPE* array) {
-    TEMPLATE_TYPE result = 0;
+// clang-format off
+{{TYPE}} connx_{{ DTYPE | to_name }}_sum(int32_t count, {{TYPE}}* array) {
+    {{TYPE}} result = 0;
+    // clang-format on
 
     for (int32_t i = 0; i < count; i++) {
         result += array[i];
@@ -188,8 +144,10 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_sum(int32_t count, TEMPLATE_TYPE* array) {
     return result;
 }
 
-TEMPLATE_TYPE connx_TEMPLATE_NAME_product(int32_t count, TEMPLATE_TYPE* array) {
-    TEMPLATE_TYPE result = 1;
+// clang-format off
+{{TYPE}} connx_{{ DTYPE | to_name }}_product(int32_t count, {{TYPE}}* array) {
+    {{TYPE}} result = 1;
+    // clang-format on
 
     for (int32_t i = 0; i < count; i++) {
         result *= array[i];
@@ -197,6 +155,6 @@ TEMPLATE_TYPE connx_TEMPLATE_NAME_product(int32_t count, TEMPLATE_TYPE* array) {
 
     return result;
 }
-TEMPLATE_END()
+/*{% endfor %}*/
 
 // TODO: Implement basic function sfor STRING, BOOL, COMPLEX64, COMPLEX128
