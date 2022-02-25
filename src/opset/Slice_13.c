@@ -24,6 +24,16 @@ static int32_t get_input_index(const int32_t ndim, const int32_t* input_shape, c
                                const int32_t* starts, __attribute__((unused)) const int32_t* steps,
                                const int32_t output_offset);
 
+static inline int32_t minmax(int32_t value, int32_t min, int32_t max) {
+    if (value < min) {
+        return min;
+    } else if (value > max) {
+        return max;
+    } else {
+        return value;
+    }
+}
+
 // clang-format off
 int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
                           // clang-format on
@@ -85,27 +95,23 @@ int Slice_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
             if (step > 0) {
                 if (start < 0) {
                     start += data->shape[axis];
-                } else if (start > data->shape[axis]) {
-                    start = data->shape[axis];
                 }
+                start = minmax(start, 0, data->shape[axis]);
 
                 if (end < 0) {
                     end += data->shape[axis];
-                } else if (end > data->shape[axis]) {
-                    end = data->shape[axis];
                 }
+                end = minmax(end, 0, data->shape[axis]);
             } else if (step < 0) {
-                if (start >= data->shape[axis]) {
-                    start = data->shape[axis] - 1;
-                } else if (start < 0) {
+                if (start < 0) {
                     start += data->shape[axis];
                 }
+                start = minmax(start, 0, data->shape[axis] - 1);
 
-                if (end >= data->shape[axis]) {
-                    end = data->shape[axis] - 1;
-                } else if (end < 0) {
+                if (end < 0) {
                     end += data->shape[axis];
                 }
+                end = minmax(end, 0, data->shape[axis] - 1);
             } else {
                 return CONNX_OK; // zero sized tensor return
             }
