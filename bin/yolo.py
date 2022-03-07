@@ -4,10 +4,9 @@ import random
 import cv2
 import numpy as np
 
-from PIL import Image, ImageDraw
-from scipy import special
-
+from PIL import Image
 from run import run
+from scipy import special
 
 ANCHORS = [
     [
