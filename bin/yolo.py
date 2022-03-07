@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+
+"""
+This code snippet contains MIT licensed code snippet from YOLOv4 repository.
+See: https://github.com/onnx/models/tree/main/vision/object_detection_segmentation/yolov4
+"""
+
 import colorsys
 import random
 
