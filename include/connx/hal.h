@@ -61,6 +61,8 @@ void connx_Thread_run_all(void* (*run)(void*), int32_t count, void* contexts, in
 
 // debugging message
 struct _connx_Tensor;
+struct _connx_Graph;
+struct _connx_Node;
 void connx_debug(const char* format, ...);
 void connx_info(const char* format, ...);
 void connx_error(const char* format, ...);
@@ -68,6 +70,8 @@ void connx_error(const char* format, ...);
 void connx_Iterator_dump(int32_t* iterator);
 void connx_Tensor_dump(struct _connx_Tensor* tensor);
 void connx_Tensor_dump_header(struct _connx_Tensor* tensor);
+
+void connx_dump_node_outputs(struct _connx_Graph* graph, struct _connx_Node* node);
 
 uint64_t connx_time();
 void connx_watch_start(int32_t idx);
