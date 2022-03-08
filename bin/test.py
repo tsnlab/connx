@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+import argparse
 import locale
 import os
 import sys
@@ -8,12 +10,17 @@ from pathlib import Path
 import numpy as np
 from run import read_tensor, run
 
+parser = argparse.ArgumentParser(description='Test connx model')
+parser.add_argument('--atol', type=float, default=1e-7, help='absolute tolerance')
+parser.add_argument('--rtol', type=float, default=0.001, help='relative tolerance')
+parser.add_argument('connx', type=str, default='./connx', help='connx executable file')
+parser.add_argument('model', type=str, help='model directory')
+parser.add_argument(
+    'tests', type=str, metavar='test case', nargs="*",
+    help='test case directories')
+
 
 np.set_printoptions(suppress=True, linewidth=160, threshold=sys.maxsize)
-
-if len(sys.argv) < 3:
-    print('Usage: {} [connx path] [connx home path] [[test case] ...]'.format(sys.argv[0]))
-    sys.exit(0)
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -21,25 +28,19 @@ PASS = '\033[92m'
 FAIL = '\033[91m'
 END = '\033[0m'
 
-CONNX = sys.argv[1]
-HOME = sys.argv[2]
+args = parser.parse_args()
+
+CONNX = args.connx
+HOME = args.model
 
 total = 0  # total time consumption
 
 pass_count = 0
 fail_count = 0
 
-for path in Path(HOME + '/test').rglob('*.connx'):
-    if len(sys.argv) > 3:
-        is_found = False
-
-        for tc in sys.argv[3:]:
-            if tc in str(path):
-                is_found = True
-                break
-
-        if not is_found:
-            continue
+for path in Path(HOME).rglob('*.connx'):
+    if args.tests and not any(tc in str(path) for tc in args.tests):
+        continue
 
     dataset = glob(os.path.join(path.parent, 'test_data_set_*'))
 
@@ -78,7 +79,7 @@ for path in Path(HOME + '/test').rglob('*.connx'):
                 print(ref.shape, flush=True)
                 continue
 
-            if not np.allclose(output, ref, atol=1e-07, rtol=0.001):
+            if not np.allclose(output, ref, atol=args.atol, rtol=args.rtol):
                 is_failed = True
                 print('  data of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
