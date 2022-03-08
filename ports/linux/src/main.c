@@ -28,26 +28,28 @@
 
 // HAL API from hal.c
 int connx_set_model(const char* path);
-int connx_set_tensorin(const char* path);
-int connx_set_tensorout(const char* path);
+int hal_set_tensorin(const char* path);
+int hal_set_tensorout(const char* path);
+int32_t hal_read(void* buf, int32_t size);
+int32_t hal_write(void* buf, int32_t size);
 
 static int read_tensor(connx_Tensor** tensor) {
     int32_t dtype;
-    if (connx_read(&dtype, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
+    if (hal_read(&dtype, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
         connx_error("Cannot read input data type from Tensor I/O module.\n");
 
         return CONNX_IO_ERROR;
     }
 
     int32_t ndim;
-    if (connx_read(&ndim, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
+    if (hal_read(&ndim, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
         connx_error("Cannot read input ndim from Tensor I/O module.\n");
 
         return CONNX_IO_ERROR;
     }
 
     int32_t shape[ndim];
-    if (connx_read(&shape, sizeof(int32_t) * ndim) != (int32_t)(sizeof(int32_t) * ndim)) {
+    if (hal_read(&shape, sizeof(int32_t) * ndim) != (int32_t)(sizeof(int32_t) * ndim)) {
         connx_error("Cannot read input shape from Tensor I/O module.\n");
 
         return CONNX_IO_ERROR;
@@ -60,7 +62,7 @@ static int read_tensor(connx_Tensor** tensor) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
 
-    int32_t len = connx_read((*tensor)->buffer, (*tensor)->size);
+    int32_t len = hal_read((*tensor)->buffer, (*tensor)->size);
     if (len != (int32_t)(*tensor)->size) {
         connx_error("Cannot read input data from Tensor I/O moudle.\n");
 
@@ -74,38 +76,38 @@ static int write_tensor(connx_Tensor* tensor) {
     int ret;
 
     int32_t dtype = tensor->dtype;
-    if (connx_write(&dtype, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
+    if (hal_write(&dtype, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
         connx_error("Cannot write tensor data type to Tensor I/O module.\n");
 
         ret = -CONNX_IO_ERROR;
-        connx_write(&ret, sizeof(int32_t));
+        hal_write(&ret, sizeof(int32_t));
 
         return CONNX_IO_ERROR;
     }
 
-    if (connx_write(&tensor->ndim, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
+    if (hal_write(&tensor->ndim, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
         connx_error("Cannot write tensor ndim to Tensor I/O module.\n");
 
         ret = -CONNX_IO_ERROR;
-        connx_write(&ret, sizeof(int32_t));
+        hal_write(&ret, sizeof(int32_t));
 
         return CONNX_IO_ERROR;
     }
 
-    if (connx_write(tensor->shape, sizeof(int32_t) * tensor->ndim) != (int32_t)(sizeof(int32_t) * tensor->ndim)) {
+    if (hal_write(tensor->shape, sizeof(int32_t) * tensor->ndim) != (int32_t)(sizeof(int32_t) * tensor->ndim)) {
         connx_error("Cannot write tensor shape to Tensor I/O module.\n");
 
         ret = -CONNX_IO_ERROR;
-        connx_write(&ret, sizeof(int32_t));
+        hal_write(&ret, sizeof(int32_t));
 
         return CONNX_IO_ERROR;
     }
 
-    if (connx_write(tensor->buffer, tensor->size) != (int32_t)tensor->size) {
+    if (hal_write(tensor->buffer, tensor->size) != (int32_t)tensor->size) {
         connx_error("Cannot write tensor data to Tensor I/O module.\n");
 
         ret = -CONNX_IO_ERROR;
-        connx_write(&ret, sizeof(int32_t));
+        hal_write(&ret, sizeof(int32_t));
 
         return CONNX_IO_ERROR;
     }
@@ -116,12 +118,12 @@ static int write_tensor(connx_Tensor* tensor) {
 static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
     int ret;
 
-    ret = connx_set_tensorin(tensorin);
+    ret = hal_set_tensorin(tensorin);
     if (ret != 0) {
         return ret;
     }
 
-    ret = connx_set_tensorout(tensorout);
+    ret = hal_set_tensorout(tensorout);
     if (ret != 0) {
         return ret;
     }
@@ -131,11 +133,11 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
     while (true) {
         // Read input count from HAL
         uint32_t input_count;
-        if (connx_read(&input_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
+        if (hal_read(&input_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
             connx_error("Cannot read input count from Tensor I/O module.\n");
 
             ret = -CONNX_IO_ERROR;
-            connx_write(&ret, sizeof(int32_t));
+            hal_write(&ret, sizeof(int32_t));
 
             return CONNX_IO_ERROR;
         }
@@ -152,7 +154,7 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
 
             if (ret != CONNX_OK) {
                 int code = -ret;
-                connx_write(&code, sizeof(int32_t));
+                hal_write(&code, sizeof(int32_t));
 
                 return ret;
             }
@@ -167,18 +169,18 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
         ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
         if (ret != CONNX_OK) {
             int32_t ret2 = -ret;
-            connx_write(&ret2, sizeof(int32_t));
+            hal_write(&ret2, sizeof(int32_t));
 
             return ret;
         }
 
         // Write outputs
         // Write output count
-        if (connx_write(&output_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
+        if (hal_write(&output_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
             connx_error("Cannot write output data to Tensor I/O moudle.\n");
 
             ret = -CONNX_IO_ERROR;
-            connx_write(&ret, sizeof(int32_t));
+            hal_write(&ret, sizeof(int32_t));
 
             return CONNX_IO_ERROR;
         }
@@ -188,7 +190,7 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
 
             if (ret != CONNX_OK) {
                 int code = -ret;
-                connx_write(&code, sizeof(int32_t));
+                hal_write(&code, sizeof(int32_t));
 
                 return ret;
             }
@@ -217,7 +219,7 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
 
     for (int i = 0; i < input_count; i++) {
         // Open file
-        ret = connx_set_tensorin(input_files[i]);
+        ret = hal_set_tensorin(input_files[i]);
         if (ret != CONNX_OK) {
             return ret;
         }
@@ -233,7 +235,7 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
         inputs[i] = tensor;
 
         // Close file
-        connx_set_tensorin(NULL);
+        hal_set_tensorin(NULL);
     }
 
     // Run model

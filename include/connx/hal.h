@@ -41,10 +41,6 @@ void connx_free(void* ptr);
 void* connx_load(const char* name);
 void connx_unload(void* buf);
 
-// Tensor I/O
-int32_t connx_read(void* buf, int32_t size);
-int32_t connx_write(void* buf, int32_t size);
-
 // Lock
 #ifdef __linux__
 typedef pthread_mutex_t connx_Lock;

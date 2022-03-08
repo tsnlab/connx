@@ -166,7 +166,7 @@ int connx_set_model(const char* path) {
     }
 }
 
-int connx_set_tensorin(const char* path) {
+int hal_set_tensorin(const char* path) {
     if (path == NULL && _tensorin != NULL) {
         fclose(_tensorin);
         _tensorin = NULL;
@@ -187,7 +187,7 @@ int connx_set_tensorin(const char* path) {
     }
 }
 
-int connx_set_tensorout(const char* path) {
+int hal_set_tensorout(const char* path) {
     if (path == NULL && _tensorout != NULL) {
         fclose(_tensorout);
         _tensorout = NULL;
@@ -254,7 +254,7 @@ void connx_unload(__attribute__((unused)) void* buf) {
 }
 
 // Tensor I/O
-int32_t connx_read(void* buf, int32_t size) {
+int32_t hal_read(void* buf, int32_t size) {
     FILE* file = _tensorin != NULL ? _tensorin : stdin;
 
     void* p = buf;
@@ -274,7 +274,7 @@ int32_t connx_read(void* buf, int32_t size) {
     return size;
 }
 
-int32_t connx_write(void* buf, int32_t size) {
+int32_t hal_write(void* buf, int32_t size) {
     FILE* file = _tensorout != NULL ? _tensorout : stdout;
 
     void* p = buf;
