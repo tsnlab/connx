@@ -78,7 +78,7 @@ for path in Path(HOME).rglob('*.connx'):
                 print(ref.shape, flush=True)
                 continue
 
-            if not np.allclose(output, ref, atol=1e-04, rtol=0.001):
+            if not np.allclose(output, ref, atol=1e-07, rtol=0.001):
                 is_failed = True
                 print('  data of output[{}] is differ:'.format(idx))
                 print('  ## Inferenced tensor')
