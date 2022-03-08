@@ -70,7 +70,7 @@ add_custom_target(yolov4_single
     COMMAND python3 -u ${CONNX_HOME}/bin/run.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/yolov4/ ${CONNX_HOME}/examples/yolov4/test_data_set_0/input_0.data
     DEPENDS ${PROJECT_NAME})
 add_custom_target(yolov4
-    COMMAND python3 -u ${CONNX_HOME}/bin/test.py ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/yolov4/
+    COMMAND python3 -u ${CONNX_HOME}/bin/test.py --atol 1e-4 ${CMAKE_CURRENT_BINARY_DIR}/connx ${CONNX_HOME}/examples/yolov4/
     DEPENDS ${PROJECT_NAME})
 add_custom_target(prof
     COMMAND gprof ${CMAKE_CURRENT_BINARY_DIR}/connx ${CMAKE_CURRENT_BINARY_DIR}/gmon.out
