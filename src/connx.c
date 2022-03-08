@@ -167,9 +167,9 @@ static int parse_Model(connx_Model* model, char* metadata) {
 
 int connx_Model_init(connx_Model* model) {
     // Parse model
-    void* metadata = connx_load("model.connx");
+    void* metadata = connx_load_model();
     int ret = parse_Model(model, metadata);
-    connx_unload(metadata);
+    connx_unload_model(metadata);
 
     if (ret != CONNX_OK) {
         return ret;
@@ -233,10 +233,7 @@ int connx_Model_run(connx_Model* model, uint32_t input_count, connx_Tensor** inp
 }
 
 static int parse_initializer(connx_Tensor** tensor, uint32_t graph_id, uint32_t initializer_id) {
-    char name[16];
-    snprintf(name, 16, "%u_%u.data", graph_id, initializer_id);
-
-    void* buf = connx_load(name);
+    void* buf = connx_load_data(graph_id, initializer_id);
     if (buf == NULL) {
         return CONNX_RESOURCE_NOT_FOUND;
     }
@@ -246,7 +243,7 @@ static int parse_initializer(connx_Tensor** tensor, uint32_t graph_id, uint32_t 
         return CONNX_NOT_ENOUGH_MEMORY;
     }
 
-    connx_unload(buf);
+    connx_unload_data(buf);
 
     return CONNX_OK;
 }
@@ -513,12 +510,9 @@ int connx_Graph_init(connx_Graph* graph, connx_Model* model, uint32_t graph_id) 
     graph->id = graph_id;
 
     // Parse value_info
-    char name[256];
-    snprintf(name, 256, "%u.text", graph_id);
-
-    void* text = connx_load(name);
+    void* text = connx_load_text(graph_id);
     int ret = parse_Graph(graph, text);
-    connx_unload(text);
+    connx_unload_text(text);
 
     if (ret != CONNX_OK) {
         return ret;

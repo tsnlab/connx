@@ -37,9 +37,13 @@ void connx_destroy();
 void* connx_alloc(uint32_t size);
 void connx_free(void* ptr);
 
-// Model loader
-void* connx_load(const char* name);
-void connx_unload(void* buf);
+// Loaders
+void* connx_load_model();
+void connx_unload_model(void* buf);
+void* connx_load_data(uint32_t graph_id, uint32_t id);
+void connx_unload_data(void* buf);
+void* connx_load_text(uint32_t graph_id);
+void connx_unload_text(void* buf);
 
 // Lock
 #ifdef __linux__

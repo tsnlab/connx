@@ -208,7 +208,7 @@ int hal_set_tensorout(const char* path) {
     }
 }
 
-void* connx_load(const char* name) {
+void* _load(const char* name) {
     char path[256];
     snprintf(path, 256, "%s/%s", _model_path, name);
 
@@ -249,8 +249,37 @@ void* connx_load(const char* name) {
     return buf;
 }
 
-void connx_unload(__attribute__((unused)) void* buf) {
+
+void* connx_load_model() {
+    return _load("model.connx");
+}
+
+void* connx_load_data(uint32_t graph_id, uint32_t id) {
+    char name[16];
+    snprintf(name, 16, "%u_%u.data", graph_id, id);
+    return _load(name);
+}
+
+void* connx_load_text(uint32_t graph_id) {
+    char name[256];
+    snprintf(name, 256, "%u.text", graph_id);
+    return _load(name);
+}
+
+static inline void _unload(void* buf) {
     free(buf);
+}
+
+void connx_unload_model(void* buf) {
+    _unload(buf);
+}
+
+void connx_unload_data(void* buf) {
+    _unload(buf);
+}
+
+void connx_unload_text(void* buf) {
+    _unload(buf);
 }
 
 // Tensor I/O
