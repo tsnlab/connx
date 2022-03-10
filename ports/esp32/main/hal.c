@@ -126,15 +126,6 @@ void connx_unload(__attribute__((unused)) void* buf) {
     free(buf);
 }
 
-// Tensor I/O
-int32_t connx_read(void* buf, int32_t size) {
-    return -1;
-}
-
-int32_t connx_write(void* buf, int32_t size) {
-    return -1;
-}
-
 // Lock
 void connx_Lock_init(connx_Lock* lock) {
     pthread_mutex_init(lock, NULL);

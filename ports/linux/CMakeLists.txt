@@ -56,6 +56,7 @@ endif()
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CONNX_HOME}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -std=c99)
 target_link_libraries(${PROJECT_NAME} m pthread)
 

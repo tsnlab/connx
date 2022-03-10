@@ -15,8 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __CONNX_HAL_H__
-#define __CONNX_HAL_H__
+#ifndef __CONNX_HAL_COMMON_H__
+#define __CONNX_HAL_COMMON_H__
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,13 +37,13 @@ void connx_destroy();
 void* connx_alloc(uint32_t size);
 void connx_free(void* ptr);
 
-// Model loader
-void* connx_load(const char* name);
-void connx_unload(void* buf);
-
-// Tensor I/O
-int32_t connx_read(void* buf, int32_t size);
-int32_t connx_write(void* buf, int32_t size);
+// Loaders
+void* connx_load_model();
+void connx_unload_model(void* buf);
+void* connx_load_data(uint32_t graph_id, uint32_t id);
+void connx_unload_data(void* buf);
+void* connx_load_text(uint32_t graph_id);
+void connx_unload_text(void* buf);
 
 // Lock
 #ifdef __linux__
@@ -61,6 +61,8 @@ void connx_Thread_run_all(void* (*run)(void*), int32_t count, void* contexts, in
 
 // debugging message
 struct _connx_Tensor;
+struct _connx_Graph;
+struct _connx_Node;
 void connx_debug(const char* format, ...);
 void connx_info(const char* format, ...);
 void connx_error(const char* format, ...);
@@ -69,9 +71,11 @@ void connx_Iterator_dump(int32_t* iterator);
 void connx_Tensor_dump(struct _connx_Tensor* tensor);
 void connx_Tensor_dump_header(struct _connx_Tensor* tensor);
 
+void connx_dump_node_outputs(struct _connx_Graph* graph, struct _connx_Node* node);
+
 uint64_t connx_time();
 void connx_watch_start(int32_t idx);
 void connx_watch_stop(int32_t idx);
 void connx_watch_dump();
 
-#endif /* __CONNX_HAL_H__ */
+#endif /* __CONNX_HAL_COMMON_H__ */

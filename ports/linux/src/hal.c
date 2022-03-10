@@ -27,12 +27,22 @@
 #include <sys/stat.h>
 
 #include <connx/accel.h>
+#include <connx/connx.h>
 #include <connx/hal.h>
 #include <connx/tensor.h>
 
+#ifdef DEBUG
+
+#include <errno.h>  // open
+#include <fcntl.h>  // open
+#include <unistd.h> // write
+
+#include <sys/stat.h>  // mkdir
+#include <sys/types.h> // mkdir
+
+#endif /* DEBUG */
+
 static char _model_path[128];
-static FILE* _tensorin;
-static FILE* _tensorout;
 
 #define CONNX_WATCH_COUNT 20
 
@@ -135,14 +145,6 @@ void connx_destroy() {
         pthread_cond_destroy(&_threads[i].cond);
         pthread_mutex_destroy(&_threads[i].lock);
     }
-
-    if (_tensorin != NULL) {
-        fclose(_tensorin);
-    }
-
-    if (_tensorout != NULL) {
-        fclose(_tensorout);
-    }
 }
 
 // Memory management
@@ -155,7 +157,7 @@ void connx_free(void* ptr) {
 }
 
 // Model loader
-int connx_set_model(const char* path) {
+int hal_set_model(const char* path) {
     snprintf(_model_path, 128, "%s", path);
     struct stat st;
     if (stat(_model_path, &st) == 0 && S_ISDIR(st.st_mode)) {
@@ -166,49 +168,7 @@ int connx_set_model(const char* path) {
     }
 }
 
-int connx_set_tensorin(const char* path) {
-    if (path == NULL && _tensorin != NULL) {
-        fclose(_tensorin);
-        _tensorin = NULL;
-        return CONNX_OK;
-    } else {
-        if (strncmp("-", path, 2) == 0) {
-            _tensorin = stdin;
-        } else {
-            _tensorin = fopen(path, "r");
-        }
-
-        if (_tensorin != NULL) {
-            return CONNX_OK;
-        } else {
-            connx_error("Tensor input PIPE not found in path: '%s'\n", path);
-            return CONNX_RESOURCE_NOT_FOUND;
-        }
-    }
-}
-
-int connx_set_tensorout(const char* path) {
-    if (path == NULL && _tensorout != NULL) {
-        fclose(_tensorout);
-        _tensorout = NULL;
-        return CONNX_OK;
-    } else {
-        if (strncmp("-", path, 2) == 0) {
-            _tensorout = stdout;
-        } else {
-            _tensorout = fopen(path, "w");
-        }
-
-        if (_tensorout != NULL) {
-            return CONNX_OK;
-        } else {
-            connx_error("Tensor output PIPE not found in path: '%s'\n", path);
-            return CONNX_RESOURCE_NOT_FOUND;
-        }
-    }
-}
-
-void* connx_load(const char* name) {
+static void* _load(const char* name) {
     char path[256];
     snprintf(path, 256, "%s/%s", _model_path, name);
 
@@ -249,50 +209,36 @@ void* connx_load(const char* name) {
     return buf;
 }
 
-void connx_unload(__attribute__((unused)) void* buf) {
+void* connx_load_model() {
+    return _load("model.connx");
+}
+
+void* connx_load_data(uint32_t graph_id, uint32_t id) {
+    char name[16];
+    snprintf(name, 16, "%u_%u.data", graph_id, id);
+    return _load(name);
+}
+
+void* connx_load_text(uint32_t graph_id) {
+    char name[256];
+    snprintf(name, 256, "%u.text", graph_id);
+    return _load(name);
+}
+
+static inline void _unload(void* buf) {
     free(buf);
 }
 
-// Tensor I/O
-int32_t connx_read(void* buf, int32_t size) {
-    FILE* file = _tensorin != NULL ? _tensorin : stdin;
-
-    void* p = buf;
-    size_t remain = size;
-    while (remain > 0) {
-        int len = fread(p, 1, remain, file);
-
-        if (len < 0) {
-            fprintf(stderr, "HAL ERROR: Cannot read input data");
-            return -1;
-        }
-
-        p += len;
-        remain -= len;
-    }
-
-    return size;
+void connx_unload_model(void* buf) {
+    _unload(buf);
 }
 
-int32_t connx_write(void* buf, int32_t size) {
-    FILE* file = _tensorout != NULL ? _tensorout : stdout;
+void connx_unload_data(void* buf) {
+    _unload(buf);
+}
 
-    void* p = buf;
-    size_t remain = size;
-    while (remain > 0) {
-        int len = fwrite(p, 1, remain, file);
-        if (len < 0) {
-            fprintf(stderr, "HAL ERROR: Cannot read input data");
-            return -1;
-        }
-
-        p += len;
-        remain -= len;
-    }
-
-    fflush(file);
-
-    return size;
+void connx_unload_text(void* buf) {
+    _unload(buf);
 }
 
 // Lock
@@ -605,6 +551,70 @@ void connx_Tensor_dump_header(connx_Tensor* tensor) {
 
     int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
     fprintf(stderr, "> = %u\n", total);
+}
+
+void connx_dump_node_outputs(__attribute__((unused)) connx_Graph* graph, __attribute__((unused)) connx_Node* node) {
+#ifdef DEBUG
+    mkdir("connx.log", 0775);
+    for (uint32_t j = 0; j < node->output_count; j++) {
+        if (node->outputs[j] == 0)
+            continue;
+
+        if (node->output_names == NULL)
+            continue;
+
+        char name[128];
+        sprintf(name, "%s", node->output_names[j]);
+        for (int i = 0; name[i] != '\0'; i++) {
+            if (name[i] == '/') {
+                name[i] = '_';
+            }
+        }
+
+        char path[256];
+        sprintf(path, "connx.log/%s_%u.data", name, j);
+        int fd = open(path, O_CREAT | O_WRONLY, 0664);
+        if (fd < 0) {
+            connx_error("Cannot create log file: %s, error_code: %d, error_message: %s\n", path, errno,
+                        strerror(errno));
+            continue;
+        }
+
+        connx_Tensor* tensor = graph->value_infos[node->outputs[j]];
+
+        uint32_t dtype = tensor->dtype;
+        size_t len = write(fd, &dtype, sizeof(uint32_t));
+        if (len != sizeof(uint32_t)) {
+            connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+            close(fd);
+            continue;
+        }
+
+        uint32_t ndim = tensor->ndim;
+        len = write(fd, &ndim, sizeof(uint32_t));
+        if (len != sizeof(uint32_t)) {
+            connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+            close(fd);
+            continue;
+        }
+
+        len = write(fd, tensor->shape, sizeof(uint32_t) * tensor->ndim);
+        if (len != sizeof(uint32_t) * tensor->ndim) {
+            connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+            close(fd);
+            continue;
+        }
+
+        len = write(fd, tensor->buffer, tensor->size);
+        if (len != tensor->size) {
+            connx_error("Cannot write log file: %s, error_code: %d, error_message: %s\n", path, errno, strerror(errno));
+            close(fd);
+            continue;
+        }
+
+        close(fd);
+    }
+#endif /* DEBUG */
 }
 
 uint64_t connx_time() {

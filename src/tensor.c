@@ -21,7 +21,7 @@
 #include <string.h> // memcpy
 
 #include <connx/accel.h>
-#include <connx/hal.h>
+#include <connx/hal_common.h>
 #include <connx/tensor.h>
 
 uint32_t connx_DataType_size(connx_DataType dtype) {
