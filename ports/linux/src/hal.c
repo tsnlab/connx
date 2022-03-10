@@ -43,8 +43,6 @@
 #endif /* DEBUG */
 
 static char _model_path[128];
-static FILE* _tensorin;
-static FILE* _tensorout;
 
 #define CONNX_WATCH_COUNT 20
 
@@ -147,14 +145,6 @@ void connx_destroy() {
         pthread_cond_destroy(&_threads[i].cond);
         pthread_mutex_destroy(&_threads[i].lock);
     }
-
-    if (_tensorin != NULL) {
-        fclose(_tensorin);
-    }
-
-    if (_tensorout != NULL) {
-        fclose(_tensorout);
-    }
 }
 
 // Memory management
@@ -178,49 +168,7 @@ int hal_set_model(const char* path) {
     }
 }
 
-int hal_set_tensorin(const char* path) {
-    if (path == NULL && _tensorin != NULL) {
-        fclose(_tensorin);
-        _tensorin = NULL;
-        return CONNX_OK;
-    } else {
-        if (strncmp("-", path, 2) == 0) {
-            _tensorin = stdin;
-        } else {
-            _tensorin = fopen(path, "r");
-        }
-
-        if (_tensorin != NULL) {
-            return CONNX_OK;
-        } else {
-            connx_error("Tensor input PIPE not found in path: '%s'\n", path);
-            return CONNX_RESOURCE_NOT_FOUND;
-        }
-    }
-}
-
-int hal_set_tensorout(const char* path) {
-    if (path == NULL && _tensorout != NULL) {
-        fclose(_tensorout);
-        _tensorout = NULL;
-        return CONNX_OK;
-    } else {
-        if (strncmp("-", path, 2) == 0) {
-            _tensorout = stdout;
-        } else {
-            _tensorout = fopen(path, "w");
-        }
-
-        if (_tensorout != NULL) {
-            return CONNX_OK;
-        } else {
-            connx_error("Tensor output PIPE not found in path: '%s'\n", path);
-            return CONNX_RESOURCE_NOT_FOUND;
-        }
-    }
-}
-
-void* _load(const char* name) {
+static void* _load(const char* name) {
     char path[256];
     snprintf(path, 256, "%s/%s", _model_path, name);
 
@@ -291,48 +239,6 @@ void connx_unload_data(void* buf) {
 
 void connx_unload_text(void* buf) {
     _unload(buf);
-}
-
-// Tensor I/O
-int32_t hal_read(void* buf, int32_t size) {
-    FILE* file = _tensorin != NULL ? _tensorin : stdin;
-
-    void* p = buf;
-    size_t remain = size;
-    while (remain > 0) {
-        int len = fread(p, 1, remain, file);
-
-        if (len < 0) {
-            fprintf(stderr, "HAL ERROR: Cannot read input data");
-            return -1;
-        }
-
-        p += len;
-        remain -= len;
-    }
-
-    return size;
-}
-
-int32_t hal_write(void* buf, int32_t size) {
-    FILE* file = _tensorout != NULL ? _tensorout : stdout;
-
-    void* p = buf;
-    size_t remain = size;
-    while (remain > 0) {
-        int len = fwrite(p, 1, remain, file);
-        if (len < 0) {
-            fprintf(stderr, "HAL ERROR: Cannot read input data");
-            return -1;
-        }
-
-        p += len;
-        remain -= len;
-    }
-
-    fflush(file);
-
-    return size;
 }
 
 // Lock
