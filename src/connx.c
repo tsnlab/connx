@@ -24,7 +24,7 @@
 
 #include <connx/accel.h>
 #include <connx/connx.h>
-#include <connx/hal.h>
+#include <connx/hal_common.h>
 #include <connx/opset.h>
 
 #include "ver.h"

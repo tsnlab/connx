@@ -15,8 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef __CONNX_HAL_H__
-#define __CONNX_HAL_H__
+#ifndef __CONNX_HAL_COMMON_H__
+#define __CONNX_HAL_COMMON_H__
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -78,4 +78,4 @@ void connx_watch_start(int32_t idx);
 void connx_watch_stop(int32_t idx);
 void connx_watch_dump();
 
-#endif /* __CONNX_HAL_H__ */
+#endif /* __CONNX_HAL_COMMON_H__ */

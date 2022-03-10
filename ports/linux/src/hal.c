@@ -167,7 +167,7 @@ void connx_free(void* ptr) {
 }
 
 // Model loader
-int connx_set_model(const char* path) {
+int hal_set_model(const char* path) {
     snprintf(_model_path, 128, "%s", path);
     struct stat st;
     if (stat(_model_path, &st) == 0 && S_ISDIR(st.st_mode)) {

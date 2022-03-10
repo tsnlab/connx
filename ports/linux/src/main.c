@@ -25,13 +25,7 @@
 #include <sys/stat.h>
 
 #include <connx/connx.h>
-
-// HAL API from hal.c
-int connx_set_model(const char* path);
-int hal_set_tensorin(const char* path);
-int hal_set_tensorout(const char* path);
-int32_t hal_read(void* buf, int32_t size);
-int32_t hal_write(void* buf, int32_t size);
+#include <connx/hal.h>
 
 static int read_tensor(connx_Tensor** tensor) {
     int32_t dtype;
@@ -344,7 +338,7 @@ int main(int argc, char** argv) {
     }
 
     // Load connx model
-    ret = connx_set_model(argv[1]);
+    ret = hal_set_model(argv[1]);
     if (ret != 0) {
         goto done;
     }
