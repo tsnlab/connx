@@ -48,7 +48,11 @@ void connx_unload_text(void* buf);
 // Lock
 #ifdef __linux__
 typedef pthread_mutex_t connx_Lock;
-#endif /* __linux__ */
+#else
+typedef struct connx_Lock {
+    ;
+} connx_Lock;
+#endif
 
 void connx_Lock_init(connx_Lock* lock);
 void connx_Lock_destroy(connx_Lock* lock);
