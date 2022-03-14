@@ -8,3 +8,4 @@ test_system
 .analytics
 IDE.log
 gen
+*.xsa
