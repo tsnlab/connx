@@ -52,7 +52,7 @@ typedef pthread_mutex_t connx_Lock;
 typedef struct connx_Lock {
     ;
 } connx_Lock;
-#endif
+#endif /* __linux__ */
 
 void connx_Lock_init(connx_Lock* lock);
 void connx_Lock_destroy(connx_Lock* lock);

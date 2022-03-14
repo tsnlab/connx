@@ -19,6 +19,7 @@
 #include <malloc.h>
 #include <stdarg.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
