@@ -2,7 +2,8 @@
 
 set -eo pipefail
 
-source /opt/Xilinx/Vitis/2021.2/settings64.sh
+VITIS_HOME="${XILINX_VITIS:-/opt/Xilinx/Vitis/2021.2}"
+source "${VITIS_HOME}/settings64.sh"
 
 path=$(dirname "$(readlink -e "$0")")
 cd "$path" || true
