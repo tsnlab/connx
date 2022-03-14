@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 LIST=`ls $1/src/opset/*.c`
 OPSET=''
 

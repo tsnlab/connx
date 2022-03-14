@@ -1,11 +1,18 @@
 #!/bin/bash
 
-BASEDIR=`pwd`
-cd ../../
-INCLUDEDIR=`pwd`
-cd $BASEDIR
+set -eo pipefail
 
 source /opt/Xilinx/Vitis/2021.2/settings64.sh
+
+path=$(dirname "$(readlink -e "$0")")
+cd "$path" || true
+cd ..
+BASEDIR=`pwd`
+
+cd ../../
+INCLUDEDIR=`pwd`
+
+cd $BASEDIR
 
 # create platform
 xsct << EOF

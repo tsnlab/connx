@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -eo pipefail
+
+source /opt/Xilinx/Vitis/2021.2/settings64.sh
+
 xsct << EOF
 setws
 connect
