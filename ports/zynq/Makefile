@@ -5,10 +5,7 @@ OPSET ?= $(shell bin/opset_list.sh)
 all: gen
 
 clean:
-	rm -rf gen
-
-fclean:
-	rm -rf .metadata .Xil design_1_wrapper gen test test_system .analytics IDE.log *.str *.log RemoteSystemsTempFiles
+	rm -rf gen .metadata .Xil design_1_wrapper gen test test_system .analytics IDE.log *.str *.log RemoteSystemsTempFiles
 
 gen: src/accel.c
 	../../bin/gen.sh -o gen -p src

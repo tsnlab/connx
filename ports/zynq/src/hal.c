@@ -18,21 +18,21 @@
 #include <inttypes.h>
 #include <malloc.h>
 #include <stdarg.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
 #include <connx/hal.h>
-#include <connx/tensor.h>
 #include <connx/hal_common.h>
+#include <connx/tensor.h>
 
-#include "xparameters.h"	/* SDK generated parameters */
-#include "xsdps.h"		/* SD device driver */
-#include "xil_printf.h"
 #include "ff.h"
 #include "xil_cache.h"
+#include "xil_printf.h"
+#include "xparameters.h" /* SDK generated parameters */
 #include "xplatform_info.h"
+#include "xsdps.h" /* SD device driver */
 
 // Memory management
 void* connx_alloc(uint32_t size) {
@@ -43,70 +43,65 @@ void connx_free(void* ptr) {
     free(ptr);
 }
 
-void *_load(const char* name) {
-	FRESULT Res;
+void* _load(const char* name) {
+    FRESULT Res;
     FIL file;
     FATFS fatfs;
-	TCHAR *root = "0:/";
+    TCHAR* root = "0:/";
 
-	Res = f_mount(&fatfs, root, 0);
+    Res = f_mount(&fatfs, root, 0);
 
-	if (Res != FR_OK) {
-		connx_error("%s %s\n", __func__, "f_mount fails\n");
-		return XST_FAILURE;
-	}
+    if (Res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_mount fails\n");
+        return XST_FAILURE;
+    }
 
-	Res = f_open(&file, name, FA_READ);
-	if (Res) {
-		connx_error("%s %s\n", __func__, "f_open fails\n");
-		return XST_FAILURE;
-	}
+    Res = f_open(&file, name, FA_READ);
+    if (Res) {
+        connx_error("%s %s\n", __func__, "f_open fails\n");
+        return XST_FAILURE;
+    }
 
-	Res = f_lseek(&file, f_size(&file));
-	if (Res != FR_OK)
-	{
-		connx_error("%s %s\n", __func__, "f_lseek fails\n");
-		return XST_FAILURE;
-	}
-	size_t size = f_tell(&file);
+    Res = f_lseek(&file, f_size(&file));
+    if (Res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_lseek fails\n");
+        return XST_FAILURE;
+    }
+    size_t size = f_tell(&file);
 
-	Res = f_lseek(&file, 0);
-	if (Res != FR_OK)
-	{
-		connx_error("%s %s\n", __func__, "f_lseek fails\n");
-		return XST_FAILURE;
-	}
+    Res = f_lseek(&file, 0);
+    if (Res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_lseek fails\n");
+        return XST_FAILURE;
+    }
 
-	void *buf = malloc(size + 1);
-	if (buf == NULL)
-	{
-		connx_error("%s %s\n", __func__, "HAL ERROR: Cannot allocate memory\n");
-		f_close(&file);
-		return XST_FAILURE;
-	}
+    void* buf = malloc(size + 1);
+    if (buf == NULL) {
+        connx_error("%s %s\n", __func__, "HAL ERROR: Cannot allocate memory\n");
+        f_close(&file);
+        return XST_FAILURE;
+    }
 
-	void *p = buf;
+    void* p = buf;
 
-	size_t remain = size;
-	UINT br;
+    size_t remain = size;
+    UINT br;
 
-	while (remain > 0)
-	{
-		Res = f_read(&file, p, 1, &br);
-		if (Res != FR_OK)
-		{
-			connx_error("%s %s\n", __func__, "f_read fails\n");
-			f_close(&file);
-			return XST_FAILURE;
-		}
-		p += br;
-		remain -= br;
-	}
-	f_close(&file);
+    while (remain > 0) {
+        Res = f_read(&file, p, 1, &br);
+        if (Res != FR_OK) {
+            connx_error("%s %s\n", __func__, "f_read fails\n");
+            f_close(&file);
+            return XST_FAILURE;
+        }
+        p += br;
+        remain -= br;
+    }
+    f_close(&file);
 
-	((uint8_t*)buf)[size] = 0;
+    ((uint8_t*)buf)[size] = 0;
 
-	return buf;
+    return buf;
 }
 
 void* connx_load_model() {
@@ -159,12 +154,12 @@ void connx_Lock_unlock(connx_Lock* lock) {
 }
 
 void connx_Thread_run_all(void* (*run)(void*), int32_t count, void* contexts, int32_t context_size) {
- #define BATCH_COUNT 16
+#define BATCH_COUNT 16
     int32_t batch_count = BATCH_COUNT;
-    if (batch_count > count)
+    if (batch_count > count) {
         batch_count = count;
-    for (int i = 0; i < batch_count; i++)
-    {
+    }
+    for (int i = 0; i < batch_count; i++) {
         run(contexts);
         contexts += context_size;
     }

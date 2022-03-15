@@ -1,103 +1,102 @@
-/* FreeRTOS includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "timers.h"
-/* Xilinx includes. */
-#include "xil_printf.h"
-#include "xparameters.h"
+#include <ff.h>
 #include <stdio.h>
 
 #include <connx/connx.h>
 #include <connx/hal.h>
-#include <ff.h>
+
+/* FreeRTOS includes. */
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "task.h"
+#include "timers.h"
+
+/* Xilinx includes. */
+#include "xil_printf.h"
+#include "xparameters.h"
 
 static FIL* open_tensorin(const char* path) {
-	TCHAR *root = "0:/";
+    TCHAR* root = "0:/";
     FIL* tensorin;
     FATFS fatfs;
-	FRESULT res;
+    FRESULT res;
 
-	res = f_mount(&fatfs, root, 0);
+    res = f_mount(&fatfs, root, 0);
 
-	if (res != FR_OK) {
-		connx_error("%s %s\n", __func__, "f_mount fails\n");
-		return NULL;
-	}
+    if (res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_mount fails\n");
+        return NULL;
+    }
 
-	res = f_open(tensorin, path, FA_READ);
-	if (res != FR_OK) {
-		connx_error("%s %s\n", __func__, "f_open fails\n");
-		return NULL;
-	}
-	return tensorin;
+    res = f_open(tensorin, path, FA_READ);
+    if (res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_open fails\n");
+        return NULL;
+    }
+    return tensorin;
 }
 
-static FIL* open_tensorout(const char *path) {
-	TCHAR *root = "0:/";
-	FIL * tensorout;
-	FATFS fatfs;
-	FRESULT res;
+static FIL* open_tensorout(const char* path) {
+    TCHAR* root = "0:/";
+    FIL* tensorout;
+    FATFS fatfs;
+    FRESULT res;
 
-	res = f_mount(&fatfs, root, 0);
+    res = f_mount(&fatfs, root, 0);
 
-	if (res != FR_OK) {
-		connx_error("%s %s\n", __func__, "f_mount fails\n");
-		return NULL;
-	}
+    if (res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_mount fails\n");
+        return NULL;
+    }
 
-	res = f_open(tensorout, path, FA_CREATE_NEW | FA_WRITE);
+    res = f_open(tensorout, path, FA_CREATE_NEW | FA_WRITE);
 
-	if (res != FR_OK) {
-		connx_error("%s %s\n", __func__, "f_open fails\n");
-		return NULL;
-	}
+    if (res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_open fails\n");
+        return NULL;
+    }
 
-	return tensorout;
+    return tensorout;
 }
 
-static int close_tensor(FIL *fp) {
-	return f_close(fp);
+static int close_tensor(FIL* fp) {
+    return f_close(fp);
 }
 
 static int32_t file_read(FIL* fp, void* buf, int32_t size) {
-	size_t remain = size;
-	void *p = buf;
-	FRESULT res;
-	UINT br;
+    size_t remain = size;
+    void* p = buf;
+    FRESULT res;
+    UINT br;
 
-	while (remain > 0)
-	{
-		res = f_read(fp, p, remain, &br);
-		if (res != FR_OK)
-		{
-			connx_error("%s %s\n", __func__, "Cannot read input data\n");
-			f_close(fp);
-			return -1;
-		}
-		p += br;
-		remain -= br;
-	}
+    while (remain > 0) {
+        res = f_read(fp, p, remain, &br);
+        if (res != FR_OK) {
+            connx_error("%s %s\n", __func__, "Cannot read input data\n");
+            f_close(fp);
+            return -1;
+        }
+        p += br;
+        remain -= br;
+    }
 
     return size;
 }
 
 static int32_t file_write(FIL* fp, void* buf, int32_t size) {
-	void* p = buf;
-	FRESULT res;
+    void* p = buf;
+    FRESULT res;
     UINT br;
 
     size_t remain = size;
     while (remain > 0) {
-    	res = f_write(fp, p, remain, &br);
-		if (res != FR_OK)
-		{
-			connx_error("%s %s\n", __func__, "f_write fails\n");
-			f_close(fp);
-			return -1;
-		}
-		p += br;
-		remain -= br;
+        res = f_write(fp, p, remain, &br);
+        if (res != FR_OK) {
+            connx_error("%s %s\n", __func__, "f_write fails\n");
+            f_close(fp);
+            return -1;
+        }
+        p += br;
+        remain -= br;
     }
 
     return size;
@@ -145,9 +144,8 @@ static int read_tensor(FIL* fp, connx_Tensor** tensor) {
     return CONNX_OK;
 }
 
-static int run_from_file(connx_Model* model, int input_count)
-{
-	FIL *tensorin;
+static int run_from_file(connx_Model* model, int input_count) {
+    FIL* tensorin;
     int ret;
 
     // Read input tensors
@@ -171,46 +169,42 @@ static int run_from_file(connx_Model* model, int input_count)
         inputs[i] = tensor;
 
         // Close file
-         close_tensor(tensorin);
+        close_tensor(tensorin);
     }
 
     // Run model
     uint32_t output_count = 16;
     connx_Tensor* outputs[output_count];
 
-     ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
-     if (ret != CONNX_OK) {
-          connx_error("%s %s\n", __func__, "Cannot run model\n");
-          return ret;
-     }
+    ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
+    if (ret != CONNX_OK) {
+        connx_error("%s %s\n", __func__, "Cannot run model\n");
+        return ret;
+    }
 
-     for (uint32_t j = 0; j < output_count; j++) {
-          connx_Tensor_dump(outputs[j]);
-     }
+    for (uint32_t j = 0; j < output_count; j++) {
+        connx_Tensor_dump(outputs[j]);
+    }
 
-     return CONNX_OK;
+    return CONNX_OK;
 }
 
-int main(void)
-{
-	int32_t ret = CONNX_OK;
-	int input_count = 1;
+int main(void) {
+    int32_t ret = CONNX_OK;
+    int input_count = 1;
+    connx_Model model;
 
-     connx_Model model;
+    ret = connx_Model_init(&model);
+    if (ret != CONNX_OK) {
+        connx_error("%s %s\n", __func__, "connx_Model_init fails\n");
+        return -1;
+    }
 
-     ret = connx_Model_init(&model);
-     if (ret != CONNX_OK)
-     {
-    	 connx_error("%s %s\n", __func__, "connx_Model_init fails\n");
-    	 return -1;
-     }
+    ret = run_from_file(&model, input_count);
+    if (ret != CONNX_OK)
+        connx_error("%s %s\n", __func__, "run_from_file fails\n");
 
-     ret = run_from_file(&model, input_count);
-     if (ret != CONNX_OK)
-    	 connx_error("%s %s\n", __func__, "run_from_file fails\n");
+    connx_Model_destroy(&model);
 
-     connx_Model_destroy(&model);
-
-     return 0;
-
+    return 0;
 }

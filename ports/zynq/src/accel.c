@@ -15,34 +15,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifdef __SSE__
-#include <immintrin.h>
-#endif /* __SSE__ */
 
 #include <string.h>
 
 #include <connx/accel.h>
-
-// Ref: https://newbedev.com/fastest-way-to-do-horizontal-sse-vector-sum-or-other-reduction
-#ifdef __SSE3__
-float hsum_ps(__m128 v) {
-    __m128 shuf = _mm_movehdup_ps(v); // broadcast elements 3,1 to 2,0
-    __m128 sums = _mm_add_ps(v, shuf);
-    shuf = _mm_movehl_ps(shuf, sums); // high half -> low half
-    sums = _mm_add_ss(sums, shuf);
-    return _mm_cvtss_f32(sums);
-}
-#endif /* __SSE3__ */
-
-#ifdef __AVX__
-float hsum256_ps(__m256 v) {
-    __m128 vlow = _mm256_castps256_ps128(v);
-    __m128 vhigh = _mm256_extractf128_ps(v, 1); // high 128
-    vlow = _mm_add_ps(vlow, vhigh);             // add the low 128
-    return hsum_ps(vlow);                       // and inline the sse3 version, which is optimal for AVX
-    // (no wasted instructions, and all of them are the 4B minimum)
-}
-#endif /* __AVX__ */
 
 // Array utilities
 /*{% for DTYPE, TYPE in loop_types(
