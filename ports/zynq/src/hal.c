@@ -20,57 +20,22 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
-
-#include <sys/stat.h>
 
 #include <connx/accel.h>
+#include <connx/connx.h>
 #include <connx/hal.h>
+#include <connx/hal_common.h>
 #include <connx/tensor.h>
-#include <connx/types.h>
 
-#include "esp_log.h"
-#include "esp_spiffs.h"
-
-// Lifecycle
-void connx_init() {
-    // SPIFFS
-    esp_vfs_spiffs_conf_t conf = {.base_path = "/spiffs",
-                                  .partition_label = NULL,
-                                  .max_files = 5,
-                                  .format_if_mount_failed = true};
-
-    esp_err_t ret = esp_vfs_spiffs_register(&conf);
-
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            ESP_LOGE("SPIFFS", "Failed to mount or format filesystem");
-        } else if (ret == ESP_ERR_NOT_FOUND) {
-            ESP_LOGE("SPIFFS", "Failed to find SPIFFS partition");
-        } else {
-            ESP_LOGE("SPIFFS", "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
-        }
-
-        return;
-    }
-
-    size_t total = 0, used = 0;
-    ret = esp_spiffs_info(conf.partition_label, &total, &used);
-    if (ret != ESP_OK) {
-        ESP_LOGE("SPIFFS", "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
-    } else {
-        ESP_LOGE("SPIFFS", "Partition size: total: %d, used: %d", total, used);
-    }
-}
-
-void connx_destroy() {
-}
+#include "ff.h"
+#include "xil_cache.h"
+#include "xil_printf.h"
+#include "xparameters.h" /* SDK generated parameters */
+#include "xplatform_info.h"
+#include "xsdps.h" /* SD device driver */
 
 // Memory management
 void* connx_alloc(uint32_t size) {
-    if (size == 0) // ESP32 returns NULL when size is 0
-        size = 1;
-
     return calloc(1, size);
 }
 
@@ -78,78 +43,126 @@ void connx_free(void* ptr) {
     free(ptr);
 }
 
-// Model loader
-void* connx_load(const char* name) {
-    char path[128];
-    snprintf(path, 128, "/spiffs/%s", name);
+void* _load(const char* name) {
+    FRESULT Res;
+    FIL file;
+    FATFS fatfs;
+    TCHAR* root = "0:/";
 
-    FILE* file = fopen(path, "r");
-    if (file == NULL) {
-        fprintf(stderr, "HAL ERROR: There is no such file: '%s'\n", path);
-        return NULL;
+    Res = f_mount(&fatfs, root, 0);
+
+    if (Res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_mount fails\n");
+        return XST_FAILURE;
     }
 
-    fseek(file, 0L, SEEK_END);
-    size_t size = ftell(file);
-    fseek(file, 0L, SEEK_SET);
+    Res = f_open(&file, name, FA_READ);
+    if (Res) {
+        connx_error("%s %s\n", __func__, "f_open fails\n");
+        return XST_FAILURE;
+    }
 
-    void* buf = malloc(size + 1); // including EOF
+    Res = f_lseek(&file, f_size(&file));
+    if (Res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_lseek fails\n");
+        return XST_FAILURE;
+    }
+    size_t size = f_tell(&file);
+
+    Res = f_lseek(&file, 0);
+    if (Res != FR_OK) {
+        connx_error("%s %s\n", __func__, "f_lseek fails\n");
+        return XST_FAILURE;
+    }
+
+    void* buf = malloc(size + 1);
     if (buf == NULL) {
-        fprintf(stderr, "HAL ERROR: Cannot allocate memory: %" PRIdPTR " bytes", size);
-        fclose(file);
-        return NULL;
+        connx_error("%s %s\n", __func__, "HAL ERROR: Cannot allocate memory\n");
+        f_close(&file);
+        return XST_FAILURE;
     }
 
     void* p = buf;
+
     size_t remain = size;
+    UINT br;
+
     while (remain > 0) {
-        int len = fread(p, 1, remain, file);
-        if (len < 0) {
-            fprintf(stderr, "HAL ERROR: Cannot read file: '%s'", path);
-            fclose(file);
-            return NULL;
+        Res = f_read(&file, p, 1, &br);
+        if (Res != FR_OK) {
+            connx_error("%s %s\n", __func__, "f_read fails\n");
+            f_close(&file);
+            return XST_FAILURE;
         }
-
-        p += len;
-        remain -= len;
+        p += br;
+        remain -= br;
     }
-    fclose(file);
+    f_close(&file);
 
-    ((uint8_t*)buf)[size] = 0; // EOF
+    ((uint8_t*)buf)[size] = 0;
 
     return buf;
 }
 
-void connx_unload(__attribute__((unused)) void* buf) {
+void* connx_load_model() {
+    return _load("model.cnx");
+}
+
+void* connx_load_data(uint32_t graph_id, uint32_t id) {
+    char name[16];
+    snprintf(name, 16, "%u_%u.dat", graph_id, id);
+    return _load(name);
+}
+
+void* connx_load_text(uint32_t graph_id) {
+    char name[256];
+    snprintf(name, 256, "%u.txt", graph_id);
+    return _load(name);
+}
+
+static inline void _unload(void* buf) {
     free(buf);
 }
 
+void connx_unload_model(void* buf) {
+    _unload(buf);
+}
+
+void connx_unload_data(void* buf) {
+    _unload(buf);
+}
+
+void connx_unload_text(void* buf) {
+    _unload(buf);
+}
+
 // Lock
-void connx_Lock_init(connx_Lock* lock) {
-    pthread_mutex_init(lock, NULL);
+__attribute__((unused)) void connx_Lock_init(connx_Lock* lock) {
+    ;
 }
 
-void connx_Lock_destroy(connx_Lock* lock) {
-    pthread_mutex_destroy(lock);
+__attribute__((unused)) void connx_Lock_destroy(connx_Lock* lock) {
+    ;
 }
 
-void connx_Lock_lock(connx_Lock* lock) {
-    pthread_mutex_lock(lock);
+__attribute__((unused)) void connx_Lock_lock(connx_Lock* lock) {
+    ;
 }
 
-void connx_Lock_unlock(connx_Lock* lock) {
-    pthread_mutex_unlock(lock);
+__attribute__((unused)) void connx_Lock_unlock(connx_Lock* lock) {
+    ;
 }
 
-// Thread pool
-uint32_t connx_Thread_alloc(uint32_t count, connx_Thread* threads) {
-    return 0;
-}
-
-void connx_Thread_free(uint32_t count, connx_Thread* threads) {
-}
-
-void connx_Thread_join(uint32_t count, connx_Thread* threads) {
+void connx_Thread_run_all(void* (*run)(void*), int32_t count, void* contexts, int32_t context_size) {
+#define BATCH_COUNT 16
+    int32_t batch_count = BATCH_COUNT;
+    if (batch_count > count) {
+        batch_count = count;
+    }
+    for (int i = 0; i < batch_count; i++) {
+        run(contexts);
+        contexts += context_size;
+    }
 }
 
 // error
@@ -157,8 +170,8 @@ void connx_debug(const char* format, ...) {
     va_list args;
     va_start(args, format);
 
-    fprintf(stdout, "DEBUG: ");
-    vfprintf(stdout, format, args);
+    fprintf(stderr, "DEBUG: ");
+    vfprintf(stderr, format, args);
 
     va_end(args);
 }
@@ -198,17 +211,17 @@ void connx_Iterator_dump(int32_t* iterator) {
     int32_t* index = ITER_INDEX(iterator);
 
     for (int32_t i = 0; i < ndim; i++)
-        printf("%d ", index[i]);
-    printf("/ ");
+        fprintf(stderr, "%d ", index[i]);
+    fprintf(stderr, "/ ");
     for (int32_t i = 0; i < ndim; i++)
-        printf("%d ", start[i]);
-    printf("/ ");
+        fprintf(stderr, "%d ", start[i]);
+    fprintf(stderr, "/ ");
     for (int32_t i = 0; i < ndim; i++)
-        printf("%d ", stop[i]);
-    printf("/ ");
+        fprintf(stderr, "%d ", stop[i]);
+    fprintf(stderr, "/ ");
     for (int32_t i = 0; i < ndim; i++)
-        printf("%d ", step[i]);
-    printf("\n");
+        fprintf(stderr, "%d ", step[i]);
+    fprintf(stderr, "\n");
 }
 
 void connx_Tensor_dump(connx_Tensor* tensor) {
@@ -233,13 +246,8 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     if ((i + 1) % unit2 == 0)  \
         fprintf(stderr, "\n");
 
-    fprintf(stderr, "tensor < ");
-    for (int32_t i = 0; i < tensor->ndim; i++) {
-        fprintf(stderr, "%u ", tensor->shape[i]);
-    }
-
     int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
-    fprintf(stderr, "> = %u\n", total);
+    connx_Tensor_dump_header(tensor);
 
     switch (tensor->dtype) {
     case CONNX_UINT8: {
@@ -359,4 +367,14 @@ void connx_Tensor_dump(connx_Tensor* tensor) {
     default:
         fprintf(stderr, "Not implemented yet\n");
     }
+}
+
+void connx_Tensor_dump_header(connx_Tensor* tensor) {
+    fprintf(stderr, "tensor type(%d) < ", tensor->dtype);
+    for (int32_t i = 0; i < tensor->ndim; i++) {
+        fprintf(stderr, "%u ", tensor->shape[i]);
+    }
+
+    int32_t total = connx_Int32_product(tensor->ndim, tensor->shape);
+    fprintf(stderr, "> = %u\n", total);
 }

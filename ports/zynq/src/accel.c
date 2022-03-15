@@ -1,52 +1,30 @@
 /*
- * CONNX, C implementation of Open Neural Network Exchange Runtime
- * Copyright (C) 2019-2021 TSN Lab, Inc.
+ *  CONNX, C implementation of Open Neural Network Exchange Runtime
+ *  Copyright (C) 2019-2021 TSN Lab, Inc.
  *
- * *  This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <float.h>
+
 #include <string.h>
 
 #include <connx/accel.h>
 
-#define CONNX_INT8_MIN INT8_MIN
-#define CONNX_INT8_MAX INT8_MAX
-#define CONNX_INT16_MIN INT16_MIN
-#define CONNX_INT16_MAX INT16_MAX
-#define CONNX_INT32_MIN INT32_MIN
-#define CONNX_INT32_MAX INT32_MAX
-#define CONNX_INT64_MIN INT64_MIN
-#define CONNX_INT64_MAX INT64_MAX
-#define CONNX_UINT8_MIN 0
-#define CONNX_UINT8_MAX UINT8_MAX
-#define CONNX_UINT16_MIN 0
-#define CONNX_UINT16_MAX UINT16_MAX
-#define CONNX_UINT32_MIN 0
-#define CONNX_UINT32_MAX UINT32_MAX
-#define CONNX_UINT64_MIN 0
-#define CONNX_UINT64_MAX UINT64_MAX
-#define CONNX_FLOAT16_MIN -65504
-#define CONNX_FLOAT16_MAX 65504
-#define CONNX_FLOAT32_MIN -FLT_MAX
-#define CONNX_FLOAT32_MAX FLT_MAX
-#define CONNX_FLOAT64_MIN -DBL_MAX
-#define CONNX_FLOAT64_MAX DBL_MAX
+// Array utilities
+/*{% for DTYPE, TYPE in loop_types(
+UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64) %}*/
 
 // clang-format off
-// Array utilities
-/*{% for DTYPE, TYPE in loop_types(UINT8, INT8, UINT16, INT16, UINT32, INT32, UINT64, INT64, FLOAT16, FLOAT32, FLOAT64) %}*/
-
 void connx_{{ DTYPE | to_name }}_add(int32_t count, {{TYPE}}* c, {{TYPE}}* a, {{TYPE}}* b) {
     // clang-format on
     for (int32_t i = 0; i < count; i++) {
@@ -71,6 +49,18 @@ void connx_{{ DTYPE | to_name }}_mul(int32_t count, {{TYPE}}* c, {{TYPE}}* a, {{
 }
 
 // clang-format off
+{{TYPE}} connx_{{ DTYPE | to_name }}_mul_and_sum(int32_t count, {{TYPE}}* a, {{TYPE}}* b) {
+    {{TYPE}} sum = 0;
+    // clang-format on
+
+    for (int32_t i = 0; i < count; i++) {
+        sum += a[i] * b[i];
+    }
+
+    return sum;
+}
+
+// clang-format off
 void connx_{{ DTYPE | to_name }}_broadcast(int32_t y_count, {{TYPE}}* y, int32_t x_count, {{TYPE}}* x) {
     // clang-format on
     for (int32_t i = 0; i < y_count / x_count; i++) {
@@ -80,13 +70,10 @@ void connx_{{ DTYPE | to_name }}_broadcast(int32_t y_count, {{TYPE}}* y, int32_t
 
 // clang-format off
 int32_t connx_{{ DTYPE | to_name }}_argmax(int32_t count, {{TYPE}}* y, {{TYPE}}* x) {
-    // clang-format on
     int32_t argmax = -1;
+    {{TYPE}} max = CONNX_{{ DTYPE }}_MIN;
+    // clang-format on
 
-    // clang-format off
-    {{TYPE}} max = {{DTYPE}}_MIN;
-
-    // clang-format off
     for (int32_t i = 0; i < count; i++) {
         if (argmax == -1 || x[i] > max) {
             argmax = i;
@@ -103,13 +90,10 @@ int32_t connx_{{ DTYPE | to_name }}_argmax(int32_t count, {{TYPE}}* y, {{TYPE}}*
 
 // clang-format off
 int32_t connx_{{ DTYPE | to_name }}_argmin(int32_t count, {{TYPE}}* y, {{TYPE}}* x) {
-    // clang-format on
     int32_t argmin = -1;
-
-    // clang-format off
-    {{TYPE}} min = {{DTYPE}}_MAX;
-
+    {{TYPE}} min = CONNX_{{ DTYPE }}_MAX;
     // clang-format on
+
     for (int32_t i = 0; i < count; i++) {
         if (argmin == -1 || x[i] < min) {
             argmin = i;
@@ -127,8 +111,8 @@ int32_t connx_{{ DTYPE | to_name }}_argmin(int32_t count, {{TYPE}}* y, {{TYPE}}*
 // clang-format off
 {{TYPE}} connx_{{ DTYPE | to_name }}_sum(int32_t count, {{TYPE}}* array) {
     {{TYPE}} result = 0;
-
     // clang-format on
+
     for (int32_t i = 0; i < count; i++) {
         result += array[i];
     }
@@ -139,8 +123,8 @@ int32_t connx_{{ DTYPE | to_name }}_argmin(int32_t count, {{TYPE}}* y, {{TYPE}}*
 // clang-format off
 {{TYPE}} connx_{{ DTYPE | to_name }}_product(int32_t count, {{TYPE}}* array) {
     {{TYPE}} result = 1;
-
     // clang-format on
+
     for (int32_t i = 0; i < count; i++) {
         result *= array[i];
     }
