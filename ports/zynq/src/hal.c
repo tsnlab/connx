@@ -137,19 +137,19 @@ void connx_unload_text(void* buf) {
 }
 
 // Lock
-void connx_Lock_init(connx_Lock* lock) {
+__attribute__((unused)) void connx_Lock_init(connx_Lock* lock) {
     ;
 }
 
-void connx_Lock_destroy(connx_Lock* lock) {
+__attribute__((unused)) void connx_Lock_destroy(connx_Lock* lock) {
     ;
 }
 
-void connx_Lock_lock(connx_Lock* lock) {
+__attribute__((unused)) void connx_Lock_lock(connx_Lock* lock) {
     ;
 }
 
-void connx_Lock_unlock(connx_Lock* lock) {
+__attribute__((unused)) void connx_Lock_unlock(connx_Lock* lock) {
     ;
 }
 
