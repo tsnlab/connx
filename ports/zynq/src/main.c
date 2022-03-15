@@ -201,8 +201,9 @@ int main(void) {
     }
 
     ret = run_from_file(&model, input_count);
-    if (ret != CONNX_OK)
+    if (ret != CONNX_OK) {
         connx_error("%s %s\n", __func__, "run_from_file fails\n");
+    }
 
     connx_Model_destroy(&model);
 
