@@ -6,7 +6,7 @@ LIST=$(ls $1/src/opset/*.c)
 OPSET=''
 
 for NAME in $LIST; do
-	NAME="${name#$1/src/opset}
+	NAME=${NAME#$1/src/opset}
 	NAME=${NAME%".c"}
 	OPSET="$OPSET $NAME"
 done
