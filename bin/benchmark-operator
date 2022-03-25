@@ -8,28 +8,41 @@ TEST_COUNT=${TEST_COUNT:-1000}
 RESULTS_DIR=${RESULTS_DIR:-results}
 ONNX_CONNX_DIR=${ONNX_CONNX_DIR:-$(realpath "$(dirname "$0")/../../onnx-connx")}
 
-test_pattern="$1"
-
-mkdir -p "$RESULTS_DIR"
-
 onnx_path() {
     python -c 'import os; import onnx; print(os.path.dirname(onnx.__file__))'
 }
 
-# Convert tests
-find "$(onnx_path)/backend/test/data/node" -maxdepth 1 -type d -name "test_${test_pattern}*" | while read -r test_dir; do
+make_tests() {
+    local test_pattern="$1"
+
+    # Convert tests
+    find "$(onnx_path)/backend/test/data/node" -maxdepth 1 -type d -name "test_${test_pattern}*" | while read -r test_dir; do
     test_name=$(basename "$test_dir")
     echo "Converting $test_name"
     "$ONNX_CONNX_DIR/bin/convert" "$test_dir" "$TESTS_DIR/$test_name" || true
-done
-
-
-# Run tests
-find "$TESTS_DIR" -maxdepth 1 -type d | while read -r dir; do
-    echo "Running tests $dir"
-    find "$dir" -maxdepth 1 -type d -name 'test_data_set_*' | while read -r test_data_set; do
-        echo "Running tests with $test_data_set"
-        logfile="${RESULTS_DIR}/$(basename "$dir")_$(basename "$test_data_set").log"
-        $CONNX_RUNTIME "$dir" "$test_data_set"/input_*.data -p "$TEST_COUNT" > "$logfile"
     done
-done
+}
+
+
+run_tests() {
+    find "$TESTS_DIR" -maxdepth 1 -type d | while read -r dir; do
+        echo "Running tests $dir"
+        find "$dir" -maxdepth 1 -type d -name 'test_data_set_*' | while read -r test_data_set; do
+            echo "Running tests with $test_data_set"
+            logfile="${RESULTS_DIR}/$(basename "$dir")_$(basename "$test_data_set").log"
+            $CONNX_RUNTIME "$dir" "$test_data_set"/input_*.data -p "$TEST_COUNT" > "$logfile"
+        done
+    done
+}
+
+# Check argument count is 1
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <test_pattern>"
+    exit 1
+fi
+
+mkdir -p "$RESULTS_DIR"
+mkdir -p "$TESTS_DIR"
+
+make_tests "$1"
+run_tests
