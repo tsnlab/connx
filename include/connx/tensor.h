@@ -110,6 +110,18 @@ connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
 
 /**
+ * @brief Check if two tensor have same shape or one have prepended 1s
+ * Example: [4, 7, 2] and [4, 7, 2] are same shape while [1, 2, 3] and [4, 7, 2] are not
+ * [4, 7, 2] and [1, 4, 7, 2] are also same shape because [1] is prepended and same in array
+ * But [4, 7, 2] and [2, 4, 7, 2] are not same shape
+ *
+ * @param A Input tensor A
+ * @param B Input tensor B
+ * @return true if two tensor have same shape or one have prepended 1s, or false
+ */
+bool connx_Tensor_is_likely_same_shape(connx_Tensor* A, connx_Tensor* B);
+
+/**
  * Create broadcasted tensor
  *
  * @param dtype output tensor's data type
@@ -118,6 +130,19 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
  * @return newly allocated tensor. NULL if cannot be broadcasted.
  */
 connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_Tensor* A, connx_Tensor* B);
+
+/**
+ * @brief Get the broadcasted input offset object
+ * @see connx_Tensor_alloc_broadcasted
+ *
+ * @param output Output tensor that has broadcasted dimension
+ * @param input Input tensor to calculate the offset
+ * @param output_offset Offset to use on output tensor
+ * @return int32_t offset to use for input tensor
+ */
+int32_t connx_Tensor_get_broadcasted_input_offset(const connx_Tensor* output, const connx_Tensor* input,
+                                                  int32_t output_offset);
+
 connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* shape);
 
