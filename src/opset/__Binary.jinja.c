@@ -70,12 +70,20 @@ int {{ fname }}_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uin
         {{TYPE}}* B_array = B->buffer;
         {{TYPE}}* C_array = C->buffer;
 
-        for (int32_t i = 0; i < total; i++) {
-            int32_t input_offset_a = get_broadcasted_input_offset(C, A, i);
-            int32_t input_offset_b = get_broadcasted_input_offset(C, B, i);
-            // clang-format off
-            C_array[i] = A_array[input_offset_a] {{operator}} B_array[input_offset_b];
-            // clang-format on
+        if (should_broadcast(A, B)) {
+            for (int32_t i = 0; i < total; i++) {
+                int32_t input_offset_a = get_broadcasted_input_offset(C, A, i);
+                int32_t input_offset_b = get_broadcasted_input_offset(C, B, i);
+                // clang-format off
+                C_array[i] = A_array[input_offset_a] {{operator}} B_array[input_offset_b];
+                // clang-format on
+            }
+        } else {
+            for (int32_t i = 0; i < total; i++) {
+                // clang-format off
+                C_array[i] = A_array[i] {{operator}} B_array[i];
+                // clang-format on
+            }
         }
     } break;
         /*{% endfor %}*/

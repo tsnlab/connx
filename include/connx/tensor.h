@@ -110,6 +110,16 @@ connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
 
 /**
+ * @brief Check if the output tensor uses broadcasted offset
+ *
+ * @param A Input tensor A
+ * @param B Input tensor B
+ * @return true if the output tensor need to use broadcasted offset
+ * @return false if the output tensor does not need to use broadcasted offset
+ */
+bool should_broadcast(connx_Tensor* A, connx_Tensor* B);
+
+/**
  * Create broadcasted tensor
  *
  * @param dtype output tensor's data type
