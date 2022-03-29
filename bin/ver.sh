@@ -2,9 +2,9 @@
 
 # Tag name must be v(major).(minor) format
 if [[ -f ${HOME}/../TAG ]]; then
-    TAG=`cat ${HOME}/../TAG`
+    TAG=$(cat "${HOME}"/../TAG)
 else
-    TAG=`git describe --tags --long`
+    TAG=$(git describe --tags --long)
 fi
 
 if [[ -z ${TAG} ]]; then
@@ -12,10 +12,10 @@ if [[ -z ${TAG} ]]; then
 fi
 
 # Parse major, minor, micro and commit
-MAJOR=`echo ${TAG:1} | awk -F- '{print $1}' | awk -F. '{print $1}'` 
-MINOR=`echo ${TAG:1} | awk -F- '{print $1}' | awk -F. '{print $2}'` 
-MICRO=`echo ${TAG:1} | awk -F- '{print $2}'`
-COMMIT=`echo ${TAG:1} | awk -F- '{print $3}'`
+MAJOR=$(echo ${TAG:1} | awk -F- '{print $1}' | awk -F. '{print $1}') 
+MINOR=$(echo ${TAG:1} | awk -F- '{print $1}' | awk -F. '{print $2}') 
+MICRO=$(echo ${TAG:1} | awk -F- '{print $2}')
+COMMIT=$(echo ${TAG:1} | awk -F- '{print $3}')
 COMMIT=${COMMIT:1:7}
 
 cat << EOF

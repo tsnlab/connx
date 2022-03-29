@@ -51,7 +51,7 @@ while (( "$#" )); do
 done
 
 # parse opset
-OPSET=
+declare -a OPSET
 
 for NAME in ${OPERATORS}; do
     if [ "${NAME}" == "-all" ]; then
@@ -60,22 +60,22 @@ for NAME in ${OPERATORS}; do
             if [[ "${FILE}" == *.jinja.c ]]; then
                 continue
             fi
-            FILE=${FILE#${INPUT_DIR}/opset/}
+            FILE=${FILE#"${INPUT_DIR}"/opset/}
             FILE=${FILE%.c}
-            OPSET="${OPSET} ${FILE}"
+            OPSET+=("${FILE}")
         done
     else
         FILE=$(ls "${INPUT_DIR}/opset/${NAME}.c" 2> /dev/null)
-        FILE=${FILE#${INPUT_DIR}/opset/}
+        FILE=${FILE#"${INPUT_DIR}"/opset/}
         FILE=${FILE%.c}
-        OPSET="${OPSET} ${FILE}"
+        OPSET+=("${FILE}")
     fi
 done
 
 CONNX=
 
 for FILE in "${INPUT_DIR}"/*.c; do
-    FILE=${FILE#${INPUT_DIR}/}
+    FILE=${FILE#"${INPUT_DIR}"/}
     CONNX="${CONNX} ${FILE}"
 done
 
@@ -107,9 +107,9 @@ done
 if [[ ${IS_DUMP} == 1 ]]; then
     echo "opset.c"
 else
-    if [[ ! -f ${OUTPUT_DIR}/opset.c ]] || [[ "//${OPSET}" != $(head -1 "${OUTPUT_DIR}/opset.c") ]]; then
+    if [[ ! -f ${OUTPUT_DIR}/opset.c ]] || [[ "//${OPSET[*]}" != $(head -1 "${OUTPUT_DIR}/opset.c") ]]; then
         echo "Generating ${OUTPUT_DIR}/opset.c"
-        "$HOME/opset.sh" "${OPSET}" > "${OUTPUT_DIR}/opset.c"
+        "$HOME/opset.sh" "${OPSET[@]}" > "${OUTPUT_DIR}/opset.c"
     fi
 fi
 
@@ -153,7 +153,7 @@ for FILE in "${INPUT_DIR}"/opset/__*.jinja.c; do
 done
 
 # Generate opset codes
-for FILE in ${OPSET}; do
+for FILE in "${OPSET[@]}"; do
     if [[ ${IS_DUMP} == 1 ]]; then
         echo "opset/${FILE}.c"
     else
@@ -168,7 +168,7 @@ done
 
 # Generate port codes
 for FILE in "${PORT_DIR}"/*.c; do
-    FILE=${FILE#${PORT_DIR}/}
+    FILE=${FILE#"${PORT_DIR}"/}
 
     if [[ ${IS_DUMP} == 1 ]]; then
         echo "${FILE}"

@@ -1,14 +1,14 @@
 #!/bin/bash
 
+set -eo pipefail
+
 bin/check-clang-format
 
-if [[ $? != 0 ]]; then
+if bin/check-clang-format; then
     exit $?
 fi
 
-flake8
-
-if [[ $? != 0 ]]; then
+if flake8; then
     exit $?
 fi
 
