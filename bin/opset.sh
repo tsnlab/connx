@@ -12,7 +12,7 @@ cat << EOF
 EOF
 
 # Write prototypes
-for NAME in $@
+for NAME in "$@"
 do
 cat << EOF
 extern int ${NAME}(connx_Graph* graph, uint32_t output_count, uint32_t* outputs, uint32_t input_count, uint32_t* inputs, uint32_t attribute_count, void** attributes);
@@ -25,7 +25,7 @@ cat << EOF
 char* connx_opset_names[] = {
 EOF
 
-for NAME in $@
+for NAME in "$@"
 do
 cat << EOF
     "${NAME}",
@@ -44,7 +44,7 @@ cat << EOF
 CONNX_OPERATOR connx_opset_ops[] = {
 EOF
 
-for NAME in $@
+for NAME in "$@"
 do
 cat << EOF
     ${NAME},

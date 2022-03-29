@@ -2,6 +2,6 @@
 
 echo "# Formating for $1"
 tmp=$(mktemp)
-clang-format-10 $1 > $tmp
-diff $1 $tmp
+clang-format-10 "$1" > "$tmp"
+diff "$1" "$tmp"
 rm "$tmp"

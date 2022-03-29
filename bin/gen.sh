@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HOME=`dirname $0`
+HOME=$(dirname "$0")
 INPUT_DIR=../../src
 OUTPUT_DIR=build/src
 PORT_DIR=src
@@ -8,7 +8,7 @@ OPERATORS=-all
 IS_DUMP=0
 
 if [ -f 'opset.txt' ]; then
-    OPERATORS=`cat opset.txt`
+    OPERATORS=$(cat opset.txt)
 fi
 
 while (( "$#" )); do
@@ -26,8 +26,8 @@ while (( "$#" )); do
             shift 2
             ;;
         -s|--set)
-            if [ -f $2 ]; then
-                OPERATORS=`cat $2`
+            if [ -f "$2" ]; then
+                OPERATORS=$(cat "$2")
             fi
             shift 2
             ;;
@@ -51,31 +51,31 @@ while (( "$#" )); do
 done
 
 # parse opset
-OPSET=
+declare -a OPSET
 
 for NAME in ${OPERATORS}; do
-    if [ ${NAME} == "-all" ]; then
-        FILES=`ls ${INPUT_DIR}/opset/*.c`
+    if [ "${NAME}" == "-all" ]; then
+        FILES=$(ls "${INPUT_DIR}"/opset/*.c)
         for FILE in ${FILES}; do
             if [[ "${FILE}" == *.jinja.c ]]; then
                 continue
             fi
-            FILE=${FILE#${INPUT_DIR}/opset/}
+            FILE=${FILE#"${INPUT_DIR}"/opset/}
             FILE=${FILE%.c}
-            OPSET="${OPSET} ${FILE}"
+            OPSET+=("${FILE}")
         done
     else
-        FILE=`ls ${INPUT_DIR}/opset/${NAME}.c 2> /dev/null`
-        FILE=${FILE#${INPUT_DIR}/opset/}
+        FILE=$(ls "${INPUT_DIR}/opset/${NAME}.c" 2> /dev/null)
+        FILE=${FILE#"${INPUT_DIR}"/opset/}
         FILE=${FILE%.c}
-        OPSET="${OPSET} ${FILE}"
+        OPSET+=("${FILE}")
     fi
 done
 
 CONNX=
 
-for FILE in `ls ${INPUT_DIR}/*.c`; do
-    FILE=${FILE#${INPUT_DIR}/}
+for FILE in "${INPUT_DIR}"/*.c; do
+    FILE=${FILE#"${INPUT_DIR}"/}
     CONNX="${CONNX} ${FILE}"
 done
 
@@ -87,8 +87,8 @@ done
 #echo "CONNX=${CONNX}"
 
 if [[ ${IS_DUMP} == 0 ]]; then
-    mkdir -p ${OUTPUT_DIR}/opset
-    mkdir -p ${OUTPUT_DIR}/templates
+    mkdir -p "${OUTPUT_DIR}/opset"
+    mkdir -p "${OUTPUT_DIR}/templates"
 fi
 
 # Copy connx codes
@@ -98,7 +98,7 @@ for FILE in ${CONNX}; do
     else
         if [[ ! -f ${OUTPUT_DIR}/${FILE} ]] || [[ ${INPUT_DIR}/${FILE} -nt ${OUTPUT_DIR}/${FILE} ]]; then
             echo "Copying ${OUTPUT_DIR}/${FILE}"
-            cp ${INPUT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}
+            cp "${INPUT_DIR}/${FILE}" "${OUTPUT_DIR}/${FILE}"
         fi
     fi
 done
@@ -107,17 +107,17 @@ done
 if [[ ${IS_DUMP} == 1 ]]; then
     echo "opset.c"
 else
-    if [[ ! -f ${OUTPUT_DIR}/opset.c ]] || [[ "//${OPSET}" != `head -1 ${OUTPUT_DIR}/opset.c` ]]; then
+    if [[ ! -f ${OUTPUT_DIR}/opset.c ]] || [[ "//${OPSET[*]}" != $(head -1 "${OUTPUT_DIR}/opset.c") ]]; then
         echo "Generating ${OUTPUT_DIR}/opset.c"
-        $HOME/opset.sh ${OPSET} > ${OUTPUT_DIR}/opset.c
+        "$HOME/opset.sh" "${OPSET[@]}" > "${OUTPUT_DIR}/opset.c"
     fi
 fi
 
 # Generate ver.h
 if [[ -f ${HOME}/../TAG ]]; then
-    TAG=`cat ${HOME}/../TAG`
+    TAG=$(cat "${HOME}"/../TAG)
 else
-    TAG=`git describe --tags --long`
+    TAG=$(git describe --tags --long)
 fi
 
 if [[ -z ${TAG} ]]; then
@@ -127,50 +127,55 @@ fi
 if [[ ${IS_DUMP} == 1 ]]; then
     echo "ver.h"
 else
-    if [[ ! -f ${OUTPUT_DIR}/ver.h ]] || [[ "// ${TAG}" != `head -1 ${OUTPUT_DIR}/ver.h` ]]; then
+    if [[ ! -f ${OUTPUT_DIR}/ver.h ]] || [[ "// ${TAG}" != $(head -1 "${OUTPUT_DIR}/ver.h") ]]; then
         echo "Generating ${OUTPUT_DIR}/ver.h with tag ${TAG}"
-        $HOME/ver.sh > ${OUTPUT_DIR}/ver.h
+        "$HOME/ver.sh" > "${OUTPUT_DIR}"/ver.h
     fi
 fi
 
+is_template_rebuilt=0
+
 # Generate template jinja first
-for FILE in ${INPUT_DIR}/opset/__*.jinja.c; do
-    fname=$(basename ${FILE})
+for FILE in "${INPUT_DIR}"/opset/__*.jinja.c; do
+    fname=$(basename "${FILE}")
     if [[ ${IS_DUMP} == 1 ]]; then
         # Do not echo. This is for generating template jinja
         continue
     else
+        [[ ${HOME}/preprocessor.py -nt ${FILE} ]] && echo "Preprocessor >= ${FILE}"
         if [[ ${FILE} -nt ${OUTPUT_DIR}/templates/${fname} ]] || \
-            [[ ${HOME}/preprocessor.py -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
+            [[ ${HOME}/preprocessor.py -nt ${FILE} ]]; then
             echo "Generating ${OUTPUT_DIR}/templates/${fname}"
-            TEMPLATE=1 ${HOME}/preprocessor.py ${FILE} ${OUTPUT_DIR}/templates/${fname}
+            TEMPLATE=1 "${HOME}/preprocessor.py" "${FILE}" "${OUTPUT_DIR}/templates/${fname}"
+            is_template_rebuilt=1
         fi
     fi
 done
 
 # Generate opset codes
-for FILE in ${OPSET}; do
+for FILE in "${OPSET[@]}"; do
     if [[ ${IS_DUMP} == 1 ]]; then
         echo "opset/${FILE}.c"
     else
-        if [[ ${INPUT_DIR}/opset/${FILE}.c -nt ${OUTPUT_DIR}/opset/${FILE}.c ]] || \
+        if [[ "$is_template_rebuilt" == "1" ]] || \
+            [[ ${INPUT_DIR}/opset/${FILE}.c -nt ${OUTPUT_DIR}/opset/${FILE}.c ]] || \
             [[ ${HOME}/preprocessor.py -nt ${OUTPUT_DIR}/opset/${FILE}.c ]]; then
-            echo "Preprocessing ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c"
-            ${HOME}/preprocessor.py ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c
+                    echo "Preprocessing ${INPUT_DIR}/opset/${FILE}.c ${OUTPUT_DIR}/opset/${FILE}.c"
+                    "${HOME}/preprocessor.py" "${INPUT_DIR}/opset/${FILE}.c" "${OUTPUT_DIR}/opset/${FILE}.c"
         fi
     fi
 done
 
 # Generate port codes
-for FILE in `ls ${PORT_DIR}/*.c`; do
-    FILE=${FILE#${PORT_DIR}/}
+for FILE in "${PORT_DIR}"/*.c; do
+    FILE=${FILE#"${PORT_DIR}"/}
 
     if [[ ${IS_DUMP} == 1 ]]; then
         echo "${FILE}"
     else
         if [[ ${PORT_DIR}/${FILE} -nt ${OUTPUT_DIR}/${FILE} ]]; then
             echo "Preprocessing ${PORT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}"
-            ${HOME}/preprocessor.py ${PORT_DIR}/${FILE} ${OUTPUT_DIR}/${FILE}
+            "${HOME}/preprocessor.py" "${PORT_DIR}/${FILE}" "${OUTPUT_DIR}/${FILE}"
         fi
     fi
 done
