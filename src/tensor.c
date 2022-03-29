@@ -15,6 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <assert.h>
 #include <inttypes.h>
 #include <math.h>   // sin, cos, ...
 #include <stdlib.h> // strtol
@@ -208,7 +209,7 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
     return tensor;
 }
 
-bool should_broadcast(connx_Tensor* A, connx_Tensor* B) {
+bool connx_Tensor_should_broadcast(connx_Tensor* A, connx_Tensor* B) {
     int32_t pad_a;
     int32_t pad_b;
     int32_t ndim_big = A->ndim > B->ndim ? A->ndim : B->ndim;
@@ -268,6 +269,40 @@ connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_T
     }
 
     return connx_Tensor_alloc(dtype, ndim, shape);
+}
+
+int32_t connx_Tensor_get_broadcasted_input_offset(const connx_Tensor* output, const connx_Tensor* input,
+                                                  int32_t output_offset) {
+    int32_t* output_shape = output->shape;
+    int32_t* input_shape = input->shape;
+    int32_t output_idxs[output->ndim];
+    int32_t input_offset = 0;
+
+    int32_t skip_size = output->ndim - input->ndim;
+
+    // Skip first dimensions if input has smaller dimensions
+    output_shape += skip_size;
+    int32_t ndim = output->ndim - skip_size;
+
+    // Calculate output indices
+    for (int32_t i = ndim - 1; i >= 0; i--) {
+        output_idxs[i] = output_offset % output_shape[i];
+        output_offset /= output_shape[i];
+    }
+
+    // Calculate input indices
+    for (int32_t i = 0; i < input->ndim; i++) {
+        input_offset *= input_shape[i];
+        assert(output_shape[i] >= input_shape[i]);
+
+        if (input_shape[i] == 1) {
+            input_offset += 0;
+        } else {
+            input_offset += output_idxs[i];
+        }
+    }
+
+    return input_offset;
 }
 
 #define next_token(token)                        \

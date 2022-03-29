@@ -23,9 +23,6 @@
 
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 
-static int32_t get_broadcasted_input_offset(const connx_Tensor* output, const connx_Tensor* input,
-                                            int32_t output_offset);
-
 // clang-format off
 int {{ fname }}_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
                  // clang-format on
@@ -70,10 +67,10 @@ int {{ fname }}_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uin
         {{TYPE}}* B_array = B->buffer;
         {{TYPE}}* C_array = C->buffer;
 
-        if (should_broadcast(A, B)) {
+        if (connx_Tensor_should_broadcast(A, B)) {
             for (int32_t i = 0; i < total; i++) {
-                int32_t input_offset_a = get_broadcasted_input_offset(C, A, i);
-                int32_t input_offset_b = get_broadcasted_input_offset(C, B, i);
+                int32_t input_offset_a = connx_Tensor_get_broadcasted_input_offset(C, A, i);
+                int32_t input_offset_b = connx_Tensor_get_broadcasted_input_offset(C, B, i);
                 // clang-format off
                 C_array[i] = A_array[input_offset_a] {{operator}} B_array[input_offset_b];
                 // clang-format on
@@ -93,39 +90,4 @@ int {{ fname }}_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uin
     }
 
     return CONNX_OK;
-}
-
-static int32_t get_broadcasted_input_offset(const connx_Tensor* output, const connx_Tensor* input,
-                                            int32_t output_offset) {
-
-    int32_t* output_shape = output->shape;
-    int32_t* input_shape = input->shape;
-    int32_t output_idxs[output->ndim];
-    int32_t input_offset = 0;
-
-    int32_t skip_size = output->ndim - input->ndim;
-
-    // Skip first dimensions if input has smaller dimensions
-    output_shape += skip_size;
-    int32_t ndim = output->ndim - skip_size;
-
-    // Calculate output indices
-    for (int32_t i = ndim - 1; i >= 0; i--) {
-        output_idxs[i] = output_offset % output_shape[i];
-        output_offset /= output_shape[i];
-    }
-
-    // Calculate input indices
-    for (int32_t i = 0; i < input->ndim; i++) {
-        input_offset *= input_shape[i];
-        assert(output_shape[i] >= input_shape[i]);
-
-        if (input_shape[i] == 1) {
-            input_offset += 0;
-        } else {
-            input_offset += output_idxs[i];
-        }
-    }
-
-    return input_offset;
 }

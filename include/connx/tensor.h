@@ -117,7 +117,7 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
  * @return true if the output tensor need to use broadcasted offset
  * @return false if the output tensor does not need to use broadcasted offset
  */
-bool should_broadcast(connx_Tensor* A, connx_Tensor* B);
+bool connx_Tensor_should_broadcast(connx_Tensor* A, connx_Tensor* B);
 
 /**
  * Create broadcasted tensor
@@ -128,6 +128,19 @@ bool should_broadcast(connx_Tensor* A, connx_Tensor* B);
  * @return newly allocated tensor. NULL if cannot be broadcasted.
  */
 connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_Tensor* A, connx_Tensor* B);
+
+/**
+ * @brief Get the broadcasted input offset object
+ * @see connx_Tensor_alloc_broadcasted
+ *
+ * @param output Output tensor that has broadcasted dimension
+ * @param input Input tensor to calculate the offset
+ * @param output_offset Offset to use on output tensor
+ * @return int32_t offset to use for input tensor
+ */
+int32_t connx_Tensor_get_broadcasted_input_offset(const connx_Tensor* output, const connx_Tensor* input,
+                                                  int32_t output_offset);
+
 connx_Tensor* connx_Tensor_copy(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_reshape(connx_Tensor* tensor, int32_t ndim, int32_t* shape);
 
