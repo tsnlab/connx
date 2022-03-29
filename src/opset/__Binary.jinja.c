@@ -67,18 +67,18 @@ int {{ fname }}_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uin
         {{TYPE}}* B_array = B->buffer;
         {{TYPE}}* C_array = C->buffer;
 
-        if (connx_Tensor_should_broadcast(A, B)) {
+        if (connx_Tensor_is_likely_same_shape(A, B)) {
+            for (int32_t i = 0; i < total; i++) {
+                // clang-format off
+                C_array[i] = A_array[i] {{operator}} B_array[i];
+                // clang-format on
+            }
+        } else {
             for (int32_t i = 0; i < total; i++) {
                 int32_t input_offset_a = connx_Tensor_get_broadcasted_input_offset(C, A, i);
                 int32_t input_offset_b = connx_Tensor_get_broadcasted_input_offset(C, B, i);
                 // clang-format off
                 C_array[i] = A_array[input_offset_a] {{operator}} B_array[input_offset_b];
-                // clang-format on
-            }
-        } else {
-            for (int32_t i = 0; i < total; i++) {
-                // clang-format off
-                C_array[i] = A_array[i] {{operator}} B_array[i];
                 // clang-format on
             }
         }

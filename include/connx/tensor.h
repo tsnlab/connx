@@ -110,14 +110,16 @@ connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
 
 /**
- * @brief Check if the output tensor uses broadcasted offset
+ * @brief Check if two tensor have same shape or one have prepended 1s
+ * Example: [4, 7, 2] and [4, 7, 2] are same shape while [1, 2, 3] and [4, 7, 2] are not
+ * [4, 7, 2] and [1, 4, 7, 2] are also same shape because [1] is prepended and same in array
+ * But [4, 7, 2] and [2, 4, 7, 2] are not same shape
  *
  * @param A Input tensor A
  * @param B Input tensor B
- * @return true if the output tensor need to use broadcasted offset
- * @return false if the output tensor does not need to use broadcasted offset
+ * @return true if two tensor have same shape or one have prepended 1s, or false
  */
-bool connx_Tensor_should_broadcast(connx_Tensor* A, connx_Tensor* B);
+bool connx_Tensor_is_likely_same_shape(connx_Tensor* A, connx_Tensor* B);
 
 /**
  * Create broadcasted tensor
