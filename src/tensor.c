@@ -210,28 +210,26 @@ connx_Tensor* connx_Tensor_alloc_buffer(void* buf) {
 }
 
 bool connx_Tensor_should_broadcast(connx_Tensor* A, connx_Tensor* B) {
-    int32_t pad_a;
-    int32_t pad_b;
     int32_t ndim_big = A->ndim > B->ndim ? A->ndim : B->ndim;
     int32_t ndim_small = A->ndim < B->ndim ? A->ndim : B->ndim;
 
-    pad_a = ndim_big - A->ndim;
-    pad_b = ndim_big - B->ndim;
+    int32_t pad_a = ndim_big - A->ndim;
+    int32_t pad_b = ndim_big - B->ndim;
 
     // Prepended dimensions must be 1, 1, 1
-    for (int i = 0; i < pad_a; i += 1) {
+    for (int32_t i = 0; i < pad_a; i += 1) {
         if (A->shape[i] != 1) {
             return true;
         }
     }
-    for (int i = 0; i < pad_b; i += 1) {
+    for (int32_t i = 0; i < pad_b; i += 1) {
         if (B->shape[i] != 1) {
             return true;
         }
     }
 
     // All the rest dimensions must be equal
-    for (int i = 0; i < ndim_small; i += 1) {
+    for (int32_t i = 0; i < ndim_small; i += 1) {
         if (A->shape[i + pad_a] != B->shape[i + pad_b]) {
             return true;
         }
