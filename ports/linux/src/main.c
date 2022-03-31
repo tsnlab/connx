@@ -170,7 +170,7 @@ static int write_tensor(FILE* fp, connx_Tensor* tensor) {
     return CONNX_OK;
 }
 
-static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
+static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout, int loop) {
     int ret;
 
     FILE* fp_in = open_tensorin(tensorin);
@@ -225,12 +225,67 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
         uint32_t output_count = 16;
         connx_Tensor* outputs[output_count];
 
-        ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
-        if (ret != CONNX_OK) {
-            int32_t ret2 = -ret;
-            file_write(fp_out, &ret2, sizeof(int32_t));
+        if (loop > 0) { // performance test
+            setlocale(LC_NUMERIC, "");
 
-            return ret;
+            for (uint32_t i = 0; i < input_count; i++) {
+                connx_Tensor_ref_child(inputs[i]);
+            }
+
+            ret = CONNX_OK;
+
+            uint64_t total = 0;
+            uint64_t minimum = UINT64_MAX;
+            uint64_t maximum = 0;
+            struct timespec start = {0, 0};
+            struct timespec end = {0, 0};
+
+            for (int i = 0; i < loop && ret == CONNX_OK; i++) {
+                clock_gettime(CLOCK_MONOTONIC, &start);
+                ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
+                clock_gettime(CLOCK_MONOTONIC, &end);
+
+                uint64_t st = start.tv_sec * 1000000000ull + start.tv_nsec;
+                uint64_t et = end.tv_sec * 1000000000ull + end.tv_nsec;
+                uint64_t dt = et - st;
+
+                total += dt;
+
+                if (dt < minimum)
+                    minimum = dt;
+
+                if (dt > maximum)
+                    maximum = dt;
+
+                fprintf(stderr, "%u: %'lu ns\n", i, dt);
+
+                if (i + 1 < loop) {
+                    for (uint32_t j = 0; j < output_count; j++) {
+                        connx_Tensor_unref(outputs[j]);
+                    }
+                }
+            }
+
+            fprintf(stderr, "\n");
+            fprintf(stderr, "minimum: %'12lu ns\n", minimum);
+            fprintf(stderr, "mean:    %'12lu ns\n", (total / loop));
+            fprintf(stderr, "maximum: %'12lu ns\n", maximum);
+            fprintf(stderr, "total:   %'12lu ns\n", total);
+
+            for (uint32_t i = 0; i < input_count; i++) {
+                connx_Tensor_unref_child(inputs[i]);
+            }
+
+            fprintf(stderr, "\n");
+            connx_watch_dump();
+        } else {
+            ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
+            if (ret != CONNX_OK) {
+                int32_t ret2 = -ret;
+                file_write(fp_out, &ret2, sizeof(int32_t));
+
+                return ret;
+            }
         }
 
         // Write outputs
@@ -254,13 +309,6 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout) {
                 return ret;
             }
         }
-
-        /*
-        for (uint32_t i = 0; i < output_count; i++) {
-            printf("***** output[%u]\n", i);
-            connx_Tensor_dump(outputs[i]);
-        }
-        */
 
         for (uint32_t i = 0; i < output_count; i++) {
             connx_Tensor_unref(outputs[i]);
@@ -507,7 +555,7 @@ int main(int argc, char** argv) {
 
     switch (input_type) {
     case 0: // fifo
-        ret = run_from_fifo(&model, input_paths[0], output_path);
+        ret = run_from_fifo(&model, input_paths[0], output_path, loop);
         break;
     case 1: // file
         ret = run_from_file(&model, input_count, input_paths, loop);
