@@ -126,6 +126,73 @@ static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
 
     return y_idx;
 }
+
+// clang-format off
+static int32_t max_pool_3d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten,
+                                     {{TYPE}}* X_flatten, int32_t* X_shape, int32_t* pads, int32_t* kernel_shape,
+                                     int32_t* dilations, int32_t* strides) {
+    // clang-format on
+
+    int32_t y_idx = 0;
+    int32_t Y_shape0 = Y_shape[0];
+    int32_t Y_shape1 = Y_shape[1];
+    int32_t Y_shape2 = Y_shape[2];
+    int32_t X_shape0 = X_shape[0];
+    int32_t X_shape1 = X_shape[1];
+    int32_t X_shape2 = X_shape[2];
+    int32_t kernel_shape0 = kernel_shape[0];
+    int32_t kernel_shape1 = kernel_shape[1];
+    int32_t kernel_shape2 = kernel_shape[2];
+    int32_t strides0 = strides[0];
+    int32_t strides1 = strides[1];
+    int32_t strides2 = strides[2];
+    int32_t dilations0 = dilations[0];
+    int32_t dilations1 = dilations[1];
+    int32_t dilations2 = dilations[2];
+
+    // X iteration
+    for (int32_t x_idx0 = -pads[0]; x_idx0 < -pads[0] + Y_shape0 * strides0; x_idx0 += strides0) {
+        for (int32_t x_idx1 = -pads[1]; x_idx1 < -pads[1] + Y_shape1 * strides1; x_idx1 += strides1) {
+            for (int32_t x_idx2 = -pads[2]; x_idx2 < -pads[2] + Y_shape2 * strides2; x_idx2 += strides2) {
+                // kernel iteration, p means patch
+                // clang-format off
+                {{TYPE}} y = 0;
+                // clang-format on
+                int32_t argmax_offset = -1;
+
+                for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
+                     p_idx0 += dilations0) {
+
+                    for (int32_t p_idx1 = MAX(x_idx1, 0); p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1);
+                         p_idx1 += dilations1) {
+
+                        for (int32_t p_idx2 = MAX(x_idx2, 0);
+                             p_idx2 < MIN(x_idx2 + kernel_shape2 * dilations2, X_shape2); p_idx2 += dilations2) {
+
+                            int32_t x_offset = p_idx0 * X_shape1 * X_shape2 + p_idx1 * X_shape2 + p_idx2;
+                            // clang-format off
+                            {{TYPE}} p = X_flatten[x_offset];
+                            // clang-format on
+
+                            if (argmax_offset < 0 || p > y) { // p > y is max pool
+                                y = p;
+                                argmax_offset = x_offset;
+                            }
+                        }
+                    }
+                }
+
+                if (Indices_flatten != NULL) {
+                    Indices_flatten[y_idx] = argmax_offset;
+                }
+
+                Y_flatten[y_idx++] = y;
+            }
+        }
+    }
+
+    return y_idx;
+}
 /*{% endfor %}*/
 
 // clang-format off
@@ -263,6 +330,12 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                 case 2:
                     // clang-format off
                     Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
+                                                       feature_shape, pads, kernel_shape, dilations, strides);
+                    // clang-format on
+                    break;
+                case 3:
+                    // clang-format off
+                    Y_flatten += max_pool_3d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
                                                        feature_shape, pads, kernel_shape, dilations, strides);
                     // clang-format on
                     break;
