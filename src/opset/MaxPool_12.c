@@ -25,11 +25,12 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#include <stdio.h>
-
 /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
-static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten, {{TYPE}}* X_flatten, int32_t* X_shape,
-                                     int32_t* pads, int32_t* kernel_shape, int32_t* dilations, int32_t* strides) {
+// clang-format off
+static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten,
+                                     {{TYPE}}* X_flatten, int32_t* X_shape, int32_t* pads, int32_t* kernel_shape,
+                                     int32_t* dilations, int32_t* strides) {
+    // clang-format on
 
     int32_t y_idx = 0;
     int32_t Y_shape0 = Y_shape[0];
@@ -39,17 +40,20 @@ static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
     int32_t dilations0 = dilations[0];
 
     // X iteration
-    //fprintf(stderr, "x: %d ~ %d\n", -pads[0], X_shape0 + pads[1] - (kernel_shape0 - 1));
-    //for (int32_t x_idx0 = -pads[0]; x_idx0 < X_shape0 + pads[1] - (kernel_shape0 - 1); x_idx0 += strides0) {
     for (int32_t x_idx0 = -pads[0]; x_idx0 < -pads[0] + Y_shape0 * strides0; x_idx0 += strides0) {
         // kernel iteration, p means patch
+        // clang-format off
         {{TYPE}} y = 0;
+        // clang-format on
         int32_t argmax_offset = -1;
 
-        //fprintf(stderr, "p: %d ~ %d (%d)\n", MAX(x_idx0, 0), MIN(x_idx0 + kernel_shape0, X_shape0), MIN(x_idx0 + kernel_shape0, X_shape0) - MAX(x_idx0, 0));
-        for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0); p_idx0 += dilations0) {
+        for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
+             p_idx0 += dilations0) {
+
             int32_t x_offset = p_idx0;
+            // clang-format off
             {{TYPE}} p = X_flatten[x_offset];
+            // clang-format on
 
             if (argmax_offset < 0 || p > y) { // p > y is max pool
                 y = p;
@@ -63,13 +67,15 @@ static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
 
         Y_flatten[y_idx++] = y;
     }
-    //fprintf(stderr, "y_idx: %d\n", y_idx);
 
     return y_idx;
 }
 
-static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten, {{TYPE}}* X_flatten, int32_t* X_shape,
-                                     int32_t* pads, int32_t* kernel_shape, int32_t* dilations, int32_t* strides) {
+// clang-format off
+static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten,
+                                     {{TYPE}}* X_flatten, int32_t* X_shape, int32_t* pads, int32_t* kernel_shape,
+                                     int32_t* dilations, int32_t* strides) {
+    // clang-format on
 
     int32_t y_idx = 0;
     int32_t Y_shape0 = Y_shape[0];
@@ -84,20 +90,24 @@ static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
     int32_t dilations1 = dilations[1];
 
     // X iteration
-    //fprintf(stderr, "x_idx0: %d ~ %d\n", -pads[0], X_shape0 + pads[2] - (kernel_shape0 - 1));
     for (int32_t x_idx0 = -pads[0]; x_idx0 < -pads[0] + Y_shape0 * strides0; x_idx0 += strides0) {
-        //fprintf(stderr, "x_idx1: %d ~ %d\n", -pads[1], X_shape1 + pads[3] - (kernel_shape1 - 1));
         for (int32_t x_idx1 = -pads[1]; x_idx1 < -pads[1] + Y_shape1 * strides1; x_idx1 += strides1) {
             // kernel iteration, p means patch
+            // clang-format off
             {{TYPE}} y = 0;
+            // clang-format on
             int32_t argmax_offset = -1;
 
-            //fprintf(stderr, "p_idx0: %d ~ %d (%d)\n", MAX(x_idx0, 0), MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0), MIN(x_idx0 + kernel_shape0, X_shape0) - MAX(x_idx0, 0));
-            for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0); p_idx0 += dilations0) {
-                //fprintf(stderr, "p_idx1: %d ~ %d (%d)\n", MAX(x_idx1, 0), MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1), MIN(x_idx1 + kernel_shape1, X_shape1) - MAX(x_idx1, 0));
-                for (int32_t p_idx1 = MAX(x_idx1, 0); p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1); p_idx1 += dilations1) {
+            for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
+                 p_idx0 += dilations0) {
+
+                for (int32_t p_idx1 = MAX(x_idx1, 0); p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1);
+                     p_idx1 += dilations1) {
+
                     int32_t x_offset = p_idx0 * X_shape1 + p_idx1;
+                    // clang-format off
                     {{TYPE}} p = X_flatten[x_offset];
+                    // clang-format on
 
                     if (argmax_offset < 0 || p > y) { // p > y is max pool
                         y = p;
@@ -106,8 +116,6 @@ static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
                 }
             }
 
-            //fprintf(stderr, "y_idx: %d ", y_idx);
-            //fflush(stderr);
             if (Indices_flatten != NULL) {
                 Indices_flatten[y_idx] = argmax_offset;
             }
@@ -115,7 +123,6 @@ static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
             Y_flatten[y_idx++] = y;
         }
     }
-    //fprintf(stderr, "y_idx: %d\n", y_idx);
 
     return y_idx;
 }
@@ -248,21 +255,24 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
             for (int32_t channel = 0; channel < channel_count; channel++) {
                 switch (feature_dim) {
                 case 1:
-                    Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten, feature_shape, pads, kernel_shape, dilations, strides);
-
-                    X_offset += X_unit;
-                    X_flatten += X_unit;
-                    continue;
+                    // clang-format off
+                    Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
+                                                       feature_shape, pads, kernel_shape, dilations, strides);
+                    // clang-format on
+                    break;
                 case 2:
-                    Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten, feature_shape, pads, kernel_shape, dilations, strides);
-
-                    X_offset += X_unit;
-                    X_flatten += X_unit;
-                    continue;
+                    // clang-format off
+                    Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
+                                                       feature_shape, pads, kernel_shape, dilations, strides);
+                    // clang-format on
+                    break;
                 default:
                     connx_error("MaxPool: Feature dimension %d is not supported yet.\n", feature_dim);
                     return CONNX_NOT_SUPPORTED_DATATYPE;
                 }
+
+                X_offset += X_unit;
+                X_flatten += X_unit;
             }
         }
         break;
