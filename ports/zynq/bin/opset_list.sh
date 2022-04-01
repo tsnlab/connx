@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-LIST=$(ls $1/src/opset/*.c)
+LIST=$(ls "$1"/src/opset/*.c)
 OPSET=''
 
 for NAME in $LIST; do
@@ -11,4 +11,4 @@ for NAME in $LIST; do
 	OPSET="$OPSET $NAME"
 done
 
-echo $OPSET
+echo "$OPSET"

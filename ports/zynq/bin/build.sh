@@ -3,17 +3,18 @@
 set -eo pipefail
 
 VITIS_HOME="${XILINX_VITIS:-/opt/Xilinx/Vitis/2021.2}"
-source "${VITIS_HOME}/settings64.sh"
+# shellcheck source=/dev/null
+source "${VITIS_HOME}"/settings64.sh
 
-path=$(dirname "$(readlink -e "$0")")
-cd "$path" || true
+PATH=$(dirname "$(readlink -e "$0")")
+cd "$PATH" || true
 cd ..
-BASEDIR=`pwd`
+BASEDIR=$(pwd)
 
 cd ../../
-INCLUDEDIR=`pwd`
+INCLUDEDIR=$(pwd)
 
-cd $BASEDIR
+cd "$BASEDIR"
 
 # create platform
 xsct << EOF
@@ -36,8 +37,8 @@ sed -i 's/0x2000/0x1E8480/g' test/src/lscript.ld
 
 xsct << EOF
 setws
-app config -name test include-path $BASEDIR/include
-app config -name test include-path $INCLUDEDIR/include
+app config -name test include-path "$BASEDIR"/include
+app config -name test include-path "$INCLUDEDIR"/include
 app config -name test libraries m
 app build -name test
 EOF
