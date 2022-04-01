@@ -28,7 +28,7 @@
 #include <stdio.h>
 
 /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
-static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape,
+static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten, {{TYPE}}* X_flatten, int32_t* X_shape,
                                      int32_t* pads, int32_t* kernel_shape, int32_t* dilations, int32_t* strides) {
 
     int32_t y_idx = 0;
@@ -57,6 +57,10 @@ static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TY
             }
         }
 
+        if (Indices_flatten != NULL) {
+            Indices_flatten[y_idx] = argmax_offset;
+        }
+
         Y_flatten[y_idx++] = y;
     }
     //fprintf(stderr, "y_idx: %d\n", y_idx);
@@ -64,7 +68,7 @@ static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TY
     return y_idx;
 }
 
-static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape,
+static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int64_t* Indices_flatten, {{TYPE}}* X_flatten, int32_t* X_shape,
                                      int32_t* pads, int32_t* kernel_shape, int32_t* dilations, int32_t* strides) {
 
     int32_t y_idx = 0;
@@ -104,6 +108,10 @@ static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TY
 
             //fprintf(stderr, "y_idx: %d ", y_idx);
             //fflush(stderr);
+            if (Indices_flatten != NULL) {
+                Indices_flatten[y_idx] = argmax_offset;
+            }
+
             Y_flatten[y_idx++] = y;
         }
     }
@@ -268,13 +276,13 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
             for (int32_t channel = 0; channel < channel_count; channel++) {
                 switch (feature_dim) {
                 case 1:
-                    Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, X_flatten, feature_shape, pads, kernel_shape, dilations, strides);
+                    Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten, feature_shape, pads, kernel_shape, dilations, strides);
 
                     X_offset += X_unit;
                     X_flatten += X_unit;
                     continue;
                 case 2:
-                    Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, X_flatten, feature_shape, pads, kernel_shape, dilations, strides);
+                    Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten, feature_shape, pads, kernel_shape, dilations, strides);
 
                     X_offset += X_unit;
                     X_flatten += X_unit;
@@ -409,6 +417,29 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
     default:
         connx_error("MaxPool: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
+    }
+
+    if (storage_order == 1 && feature_dim >= 2) {
+        int32_t height = output_shape[feature_dim - 2];
+        int32_t width = output_shape[feature_dim - 1];
+        int32_t unit = height * width;
+
+        int64_t matrix[height][width];
+        int64_t* array = Indices_array;
+        for (int32_t batch = 0; batch < batch_count; batch++) {
+            for (int32_t channel = 0; channel < channel_count; channel++) {
+                memcpy(matrix, array, height * width * sizeof(int64_t));
+
+                int32_t i = 0;
+                for (int32_t w = 0; w < width; w++) {
+                    for (int32_t h = 0; h < height; h++) {
+                        array[i++] = matrix[h][w];
+                    }
+                }
+
+                array += unit;
+            }
+        }
     }
 
     connx_Graph_set(graph, outputs[0], Y);
