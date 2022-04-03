@@ -3,6 +3,7 @@
 set -eo pipefail
 
 VITIS_HOME="${XILINX_VITIS:-/opt/Xilinx/Vitis/2021.2}"
+# shellcheck source=/dev/null
 source "${VITIS_HOME}/settings64.sh"
 
 xsct << EOF
