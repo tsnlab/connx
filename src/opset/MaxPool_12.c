@@ -312,46 +312,61 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
     int32_t X_unit = connx_Int32_product(feature_dim, X->shape + 2);
 
     switch (X->dtype) {
-        /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
-    case {{ DTYPE }}: {
+    /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
+    // clang-format off
+    case {{DTYPE}}: {
         {{TYPE}}* Y_flatten = Y->buffer;
         {{TYPE}}* X_flatten = X->buffer;
+        // clang-format on
         int32_t X_offset = 0;
 
-        // TODO: Change for/for/switch to switch/for/for
-        for (int32_t batch = 0; batch < batch_count; batch++) {
-            for (int32_t channel = 0; channel < channel_count; channel++) {
-                switch (feature_dim) {
-                case 1:
+        switch (feature_dim) {
+        case 1:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t channel = 0; channel < channel_count; channel++) {
                     // clang-format off
                     Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
                                                        feature_shape, pads, kernel_shape, dilations, strides);
                     // clang-format on
-                    break;
-                case 2:
+
+                    X_offset += X_unit;
+                    X_flatten += X_unit;
+                }
+            }
+            break;
+        case 2:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t channel = 0; channel < channel_count; channel++) {
                     // clang-format off
                     Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
                                                        feature_shape, pads, kernel_shape, dilations, strides);
                     // clang-format on
-                    break;
-                case 3:
+
+                    X_offset += X_unit;
+                    X_flatten += X_unit;
+                }
+            }
+            break;
+        case 3:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t channel = 0; channel < channel_count; channel++) {
                     // clang-format off
                     Y_flatten += max_pool_3d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
                                                        feature_shape, pads, kernel_shape, dilations, strides);
                     // clang-format on
-                    break;
-                default:
-                    connx_error("MaxPool: Feature dimension %d is not supported yet.\n", feature_dim);
-                    return CONNX_NOT_SUPPORTED_DATATYPE;
-                }
 
-                X_offset += X_unit;
-                X_flatten += X_unit;
+                    X_offset += X_unit;
+                    X_flatten += X_unit;
+                }
             }
+            break;
+        default:
+            connx_error("MaxPool: Feature dimension %d is not supported yet.\n", feature_dim);
+            return CONNX_NOT_SUPPORTED_DATATYPE;
         }
-        break;
     }
-        /*{% endfor %}*/
+        break;
+    /*{% endfor %}*/
     default:
         connx_error("MaxPool: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
