@@ -318,6 +318,7 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
         {{TYPE}}* X_flatten = X->buffer;
         int32_t X_offset = 0;
 
+        // TODO: Change for/for/switch to switch/for/for
         for (int32_t batch = 0; batch < batch_count; batch++) {
             for (int32_t channel = 0; channel < channel_count; channel++) {
                 switch (feature_dim) {

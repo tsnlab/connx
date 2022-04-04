@@ -22,133 +22,44 @@
 #include <connx/connx.h>
 
 /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#include <stdio.h>
 // clang-format off
-static void _conv_{{ DTYPE | to_name }}({{TYPE}}* Y_flatten, {{TYPE}}* X_flatten, int32_t feature_dim,
-                                int32_t* feature_shape, connx_Iterator* x_iter, {{TYPE}}* W_flatten,
-                                int32_t* kernel_shape, int32_t* dilations) {
+static void conv_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape, {{TYPE}}* W_flatten, int32_t* W_shape, int32_t* pads, int32_t* dilations, int32_t* strides) {
     // clang-format on
 
-    while (connx_Iterator_next(x_iter, 1)) {
-        // clang-format off
+    int32_t Y_shape0 = Y_shape[0];
+    int32_t X_shape0 = X_shape[0];
+    int32_t W_shape0 = W_shape[0];
+    int32_t strides0 = strides[0];
+    int32_t dilations0 = dilations[0];
+
+    // X iteration
+    int32_t y_idx = 0;
+    for (int32_t x_idx0 = -pads[0]; x_idx0 < -pads[0] + Y_shape0 * strides0; x_idx0 += strides0) {
+        
         {{TYPE}} y = 0;
-        // clang-format on
 
-        // Calculate x_patch_slices and w_slices
-        connx_Slice x_patch_slices[feature_dim];
-        connx_Slice w_slices[feature_dim];
+        // kernel iteration, p means patch
+        for (int32_t p_idx0 = MAX(x_idx0, 0), w_idx0 = p_idx0 - x_idx0;
+             p_idx0 < MIN(x_idx0 + W_shape0 * dilations0, X_shape0);
+             p_idx0 += dilations0, w_idx0++) {
 
-        int32_t x_idxs[feature_dim];
-        connx_Iterator_indices(x_iter, x_idxs);
-
-        for (int32_t i = 0; i < feature_dim; i++) {
-            int32_t x_patch_start = x_idxs[i];
-            int32_t x_patch_end = x_idxs[i] + kernel_shape[i] * dilations[i];
-            int32_t x_patch_step = dilations[i];
-
-            int32_t w_start = 0;
-            int32_t w_end = kernel_shape[i];
-            int32_t w_step = 1;
-
-            if (x_patch_start < 0) {
-                x_patch_start = (x_idxs[i] + -x_idxs[i] * dilations[i]) % dilations[i];
-                w_start += (x_patch_start - x_idxs[i]) / dilations[i];
-            }
-
-            if (x_patch_end > feature_shape[i]) {
-                int32_t end = x_patch_end;
-                x_patch_end = feature_shape[i];
-                w_end -= (end - x_patch_end) / dilations[i];
-            }
-
-            connx_Slice_set(&x_patch_slices[i], x_patch_start, x_patch_end, x_patch_step);
-            connx_Slice_set(&w_slices[i], w_start, w_end, w_step);
-        }
-
-        // Convolution by iteration
-        connx_Iterator x_patch_iter;
-        connx_Iterator_init(&x_patch_iter, feature_dim, x_patch_slices);
-
-        connx_Iterator w_iter;
-        connx_Iterator_init(&w_iter, feature_dim, w_slices);
-
-        int32_t x_patch_batch = connx_Iterator_get_batch_size(&x_patch_iter, feature_shape);
-        int32_t w_batch = connx_Iterator_get_batch_size(&w_iter, kernel_shape);
-        int32_t mini_batch = x_patch_batch < w_batch ? x_patch_batch : w_batch;
-
-        connx_Iterator_rewind(&x_patch_iter, mini_batch);
-        connx_Iterator_rewind(&w_iter, mini_batch);
-
-        while (connx_Iterator_next(&x_patch_iter, mini_batch) && connx_Iterator_next(&w_iter, mini_batch)) {
-            int32_t x_patch_offset = connx_Iterator_offset(&x_patch_iter, feature_shape);
-            int32_t w_offset = connx_Iterator_offset(&w_iter, kernel_shape);
+            int32_t x_offset = p_idx0;
+            int32_t w_offset = w_idx0;
 
             // clang-format off
-            y += connx_{{ DTYPE | to_name }}_mul_and_sum(mini_batch, ({{TYPE}}*)X_flatten + x_patch_offset,
-                                                 ({{TYPE}}*)W_flatten + w_offset);
+            {{TYPE}} p = X_flatten[x_offset];
+            {{TYPE}} w = W_flatten[w_offset];
             // clang-format on
+
+            y += p * w;
         }
 
-        *Y_flatten++ += y;
+        Y_flatten[y_idx++] += y;
     }
-}
-
-// clang-format off
-struct Parameter_{{ DTYPE | to_name }} {
-    {{TYPE}}* Y_flatten;
-    {{TYPE}}* X_flatten;
-    {{TYPE}}* B_flatten;
-    {{TYPE}}* W_flatten;
-    // clang-format on
-    int32_t feature_dim;
-    int32_t* feature_shape;
-    int32_t* kernel_shape;
-    int32_t* dilations;
-    connx_Iterator x_iter;
-    int32_t X_unit;
-    int32_t W_unit;
-    int32_t Y_unit;
-    int32_t channel_count;
-};
-
-// clang-format off
-static void* run_{{ DTYPE | to_name }}(void* context) {
-    struct Parameter_{{ DTYPE | to_name }}* params = context;
-
-    {{TYPE}}* Y_flatten = params->Y_flatten;
-    {{TYPE}}* X_flatten = params->X_flatten;
-    {{TYPE}}* B_flatten = params->B_flatten;
-    {{TYPE}}* W_flatten = params->W_flatten;
-    // clang-format on
-    int32_t feature_dim = params->feature_dim;
-    int32_t* feature_shape = params->feature_shape;
-    int32_t* kernel_shape = params->kernel_shape;
-    int32_t* dilations = params->dilations;
-    connx_Iterator* x_iter = &params->x_iter;
-    int32_t X_unit = params->X_unit;
-    int32_t W_unit = params->W_unit;
-    int32_t Y_unit = params->Y_unit;
-    int32_t channel_count = params->channel_count;
-
-    for (int32_t channel = 0; channel < channel_count; channel++) {
-        // clang-format off
-        _conv_{{DTYPE | to_name}}(Y_flatten, X_flatten, feature_dim, feature_shape, x_iter, W_flatten, kernel_shape,
-                                  dilations);
-        // clang-format on
-
-        X_flatten += X_unit;
-        W_flatten += W_unit;
-    }
-
-    if (B_flatten != NULL) {
-        // clang-format off
-        {{TYPE}} B_array[Y_unit];
-        connx_{{ DTYPE | to_name }}_broadcast(Y_unit, B_array, 1, B_flatten);
-        connx_{{ DTYPE | to_name }}_add(Y_unit, Y_flatten, Y_flatten, B_array);
-        // clang-format on
-        B_flatten++;
-    }
-
-    return NULL;
 }
 
 /*{% endfor %}*/
@@ -259,82 +170,78 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
     switch (X->dtype) {
         /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
-    case {{ DTYPE }}: {
+    case {{DTYPE}}: {
+        int32_t batch_count = X->shape[0];
+        int32_t feature_count = W->shape[0];
+        int32_t channel_count = W->shape[1];
+        int32_t feature_group = feature_count / group;
+
+        // clang-format off
         {{TYPE}}* X_flatten = ({{TYPE}}*)X->buffer;
         {{TYPE}}* Y_flatten = ({{TYPE}}*)Y->buffer;
-        {{TYPE}}* B_flatten = NULL;
-
-        int32_t batch_count = X->shape[0];
-        int32_t channel_count = W->shape[1];
-        int32_t feature_group = W->shape[0] / group;
-
-        int32_t X_unit = connx_Int32_product(feature_dim, feature_shape);
-        int32_t W_unit = connx_Int32_product(W->ndim - 2, W->shape + 2);
-        int32_t W_feature_unit = W->shape[1] * W_unit;
-        int32_t Y_unit = connx_Int32_product(feature_dim, output_shape);
-
-        int32_t work_count = batch_count * group * feature_group;
-        // clang-format off
-        struct Parameter_{{ DTYPE | to_name }} works[work_count];
+        {{TYPE}}* W_flatten = ({{TYPE}}*)W->buffer;
+        {{TYPE}}* B_flatten = ({{TYPE}}*)B->buffer;
         // clang-format on
 
-        for (int32_t batch = 0, work_id = 0; batch < batch_count; batch++) {
-            if (B != NULL) {
-                // clang-format off
-                B_flatten = ({{TYPE}}*)B->buffer;
-                // clang-format on
-            }
+        int32_t Y_unit = connx_Int32_product(Y->ndim - 2, Y->shape + 2);
+        int32_t X_unit = connx_Int32_product(X->ndim - 2, X->shape + 2);
+        int32_t W_unit = connx_Int32_product(W->ndim - 2, W->shape + 2);
 
-            // clang-format off
-            {{TYPE}}* W_flatten = ({{TYPE}}*)W->buffer;
-            // clang-format on
+        switch (feature_dim) {
+        case 1:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t feature = 0; feature < feature_count; feature++) {
+                    int32_t g = feature / feature_group;
 
-            for (int32_t g = 0, feature_map = 0; g < group; g++) {
-                for (int32_t f = 0; f < feature_group; f++, feature_map++) {
-                    works[work_id].Y_flatten = Y_flatten;
-                    works[work_id].X_flatten = X_flatten;
-                    works[work_id].B_flatten = B_flatten;
-                    works[work_id].W_flatten = W_flatten;
-                    works[work_id].feature_dim = feature_dim;
-                    works[work_id].feature_shape = feature_shape;
-                    works[work_id].kernel_shape = kernel_shape;
-                    works[work_id].dilations = dilations;
-                    works[work_id].x_iter = x_iter;
-                    works[work_id].X_unit = X_unit;
-                    works[work_id].W_unit = W_unit;
-                    works[work_id].Y_unit = Y_unit;
-                    works[work_id].channel_count = channel_count;
-                    work_id++;
-
-                    /*
                     for (int32_t channel = 0; channel < channel_count; channel++) {
-                        _conv_{{ DTYPE | to_name }}(Y_flatten, X_flatten + channel * X_unit, feature_dim, feature_shape,
-                                            &x_iter, W_flatten + channel * W_unit, kernel_shape, dilations);
+
+                        //fprintf(stderr, "batch: %d, feature: %d, group: %d, channel: %d\n", batch, feature, g, channel);
+                        {{TYPE}}* X_array = X_flatten + X_unit * (channel_count * g + channel);
+                        {{TYPE}}* W_array = W_flatten + W_unit * (channel_count * feature + channel);
+
+                        /*
+                        fprintf(stderr, "\tX: ");
+                        for (int32_t i = 0; i < 3; i++) {
+                            fprintf(stderr, "%f ", X_array[i]);
+                        }
+                        fprintf(stderr, "\n");
+                        */
+                        /*
+                        fprintf(stderr, "\tW: ");
+                        for (int32_t i = 0; i < 3; i++) {
+                            fprintf(stderr, "%f ", W_array[i]);
+                        }
+                        fprintf(stderr, "\n");
+                        */
+
+                        conv_1d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads, dilations, strides);
                     }
 
                     if (B_flatten != NULL) {
-                        {{TYPE}} B_array[Y_unit];
-                        connx_{{ DTYPE | to_name }}_broadcast(Y_unit, B_array, 1, B_flatten);
-                        connx_{{ DTYPE | to_name }}_add(Y_unit, Y_flatten, Y_flatten, B_array);
-                        B_flatten++;
+                        {{TYPE}} bias = B_flatten[feature];
+                        //fprintf(stderr, "bias: %f\n", (float)bias);
+
+                        for (int32_t i = 0; i < Y_unit; i++) {
+                            Y_flatten[i] += bias;
+                        }
                     }
+                    /*
+                    for (int32_t i = 0; i < Y_unit; i++) {
+                        fprintf(stderr, "%f ", Y_flatten[i]);
+                    }
+                    fprintf(stderr, "\n");
                     */
-                    if (B_flatten != NULL) {
-                        B_flatten++;
-                    }
 
                     Y_flatten += Y_unit;
-                    W_flatten += W_feature_unit;
                 }
-
-                X_flatten += channel_count * X_unit;
+                X_flatten += X_unit * channel_count * group;
             }
-        }
 
-        // clang-format off
-        connx_Thread_run_all(run_{{DTYPE | to_name}}, work_count, works,
-                             sizeof(struct Parameter_{{DTYPE | to_name}}));
-        // clang-format on
+            break;
+        default:
+            connx_error("Conv: dimension is not supported yet: %d\n", feature_dim);
+            return CONNX_NOT_SUPPORTED_DATATYPE;
+        }
 
         break;
     }
