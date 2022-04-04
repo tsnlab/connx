@@ -21,11 +21,10 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-/*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#include <stdio.h>
+/*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
 // clang-format off
 static void conv_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape, {{TYPE}}* W_flatten, int32_t* W_shape, int32_t* pads, int32_t* dilations, int32_t* strides) {
     // clang-format on
@@ -39,13 +38,13 @@ static void conv_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X
     // X iteration
     int32_t y_idx = 0;
     for (int32_t x_idx0 = -pads[0]; x_idx0 < -pads[0] + Y_shape0 * strides0; x_idx0 += strides0) {
-        
+        // clang-format off
         {{TYPE}} y = 0;
+        // clang-format on
 
         // kernel iteration, p means patch
         for (int32_t p_idx0 = MAX(x_idx0, 0), w_idx0 = p_idx0 - x_idx0;
-             p_idx0 < MIN(x_idx0 + W_shape0 * dilations0, X_shape0);
-             p_idx0 += dilations0, w_idx0++) {
+             p_idx0 < MIN(x_idx0 + W_shape0 * dilations0, X_shape0); p_idx0 += dilations0, w_idx0++) {
 
             int32_t x_offset = p_idx0;
             int32_t w_offset = w_idx0;
@@ -170,7 +169,9 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
     switch (X->dtype) {
         /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
+    // clang-format off
     case {{DTYPE}}: {
+        // clang-format on
         int32_t batch_count = X->shape[0];
         int32_t feature_count = W->shape[0];
         int32_t channel_count = W->shape[1];
@@ -195,42 +196,25 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
                     for (int32_t channel = 0; channel < channel_count; channel++) {
 
-                        //fprintf(stderr, "batch: %d, feature: %d, group: %d, channel: %d\n", batch, feature, g, channel);
+                        // clang-format off
                         {{TYPE}}* X_array = X_flatten + X_unit * (channel_count * g + channel);
                         {{TYPE}}* W_array = W_flatten + W_unit * (channel_count * feature + channel);
+                        // clang-format on
 
-                        /*
-                        fprintf(stderr, "\tX: ");
-                        for (int32_t i = 0; i < 3; i++) {
-                            fprintf(stderr, "%f ", X_array[i]);
-                        }
-                        fprintf(stderr, "\n");
-                        */
-                        /*
-                        fprintf(stderr, "\tW: ");
-                        for (int32_t i = 0; i < 3; i++) {
-                            fprintf(stderr, "%f ", W_array[i]);
-                        }
-                        fprintf(stderr, "\n");
-                        */
-
+                        // clang-format off
                         conv_1d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads, dilations, strides);
+                        // clang-format on
                     }
 
                     if (B_flatten != NULL) {
+                        // clang-format off
                         {{TYPE}} bias = B_flatten[feature];
-                        //fprintf(stderr, "bias: %f\n", (float)bias);
+                        // clang-format on
 
                         for (int32_t i = 0; i < Y_unit; i++) {
                             Y_flatten[i] += bias;
                         }
                     }
-                    /*
-                    for (int32_t i = 0; i < Y_unit; i++) {
-                        fprintf(stderr, "%f ", Y_flatten[i]);
-                    }
-                    fprintf(stderr, "\n");
-                    */
 
                     Y_flatten += Y_unit;
                 }
