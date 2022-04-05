@@ -21,23 +21,28 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+#define MAX_DILATION 10
+#define LBOUND(a, d) ((a) < 0 ? ((a) + MAX_DILATION * (d)) % (d) : (a))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
 // clang-format off
-static void conv_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape, {{TYPE}}* W_flatten, int32_t* W_shape, int32_t* pads, int32_t* dilations, int32_t* strides) {
+static void conv_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape,
+                              {{TYPE}}* W_flatten, int32_t* W_shape, int32_t* pads, int32_t* dilations,
+                              int32_t* strides) {
     // clang-format on
 
     int32_t Y_shape0 = Y_shape[0];
     int32_t X_shape0 = X_shape[0];
     int32_t W_shape0 = W_shape[0];
+    int32_t pads0 = pads[0];
     int32_t strides0 = strides[0];
     int32_t dilations0 = dilations[0];
 
     // X iteration
     int32_t y_idx = 0;
-    for (int32_t x_idx0 = -pads[0]; x_idx0 < -pads[0] + Y_shape0 * strides0; x_idx0 += strides0) {
+    for (int32_t x_idx0 = -pads0; x_idx0 < -pads0 + Y_shape0 * strides0; x_idx0 += strides0) {
         // clang-format off
         {{TYPE}} y = 0;
         // clang-format on
@@ -58,6 +63,120 @@ static void conv_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X
         }
 
         Y_flatten[y_idx++] += y;
+    }
+}
+
+// clang-format off
+static void conv_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape,
+                              {{TYPE}}* W_flatten, int32_t* W_shape, int32_t* pads, int32_t* dilations,
+                              int32_t* strides) {
+    // clang-format on
+
+    int32_t Y_shape0 = Y_shape[0];
+    int32_t Y_shape1 = Y_shape[1];
+    int32_t X_shape0 = X_shape[0];
+    int32_t X_shape1 = X_shape[1];
+    int32_t W_shape0 = W_shape[0];
+    int32_t W_shape1 = W_shape[1];
+    int32_t pads0 = pads[0];
+    int32_t pads1 = pads[1];
+    int32_t strides0 = strides[0];
+    int32_t strides1 = strides[1];
+    int32_t dilations0 = dilations[0];
+    int32_t dilations1 = dilations[1];
+
+    // X iteration
+    int32_t y_idx = 0;
+    for (int32_t x_idx0 = -pads0; x_idx0 < -pads0 + Y_shape0 * strides0; x_idx0 += strides0) {
+        for (int32_t x_idx1 = -pads1; x_idx1 < -pads1 + Y_shape1 * strides1; x_idx1 += strides1) {
+            // clang-format off
+            {{TYPE}} y = 0;
+            // clang-format on
+
+            // kernel iteration, p means patch
+            for (int32_t p_idx0 = LBOUND(x_idx0, dilations0), w_idx0 = (p_idx0 - x_idx0) / dilations0;
+                 p_idx0 < MIN(x_idx0 + W_shape0 * dilations0, X_shape0); p_idx0 += dilations0, w_idx0++) {
+
+                for (int32_t p_idx1 = LBOUND(x_idx1, dilations1), w_idx1 = (p_idx1 - x_idx1) / dilations1;
+                     p_idx1 < MIN(x_idx1 + W_shape1 * dilations1, X_shape1); p_idx1 += dilations1, w_idx1++) {
+
+                    int32_t x_offset = p_idx0 * X_shape1 + p_idx1;
+                    int32_t w_offset = w_idx0 * W_shape1 + w_idx1;
+
+                    // clang-format off
+                    {{TYPE}} p = X_flatten[x_offset];
+                    {{TYPE}} w = W_flatten[w_offset];
+                    // clang-format on
+
+                    y += p * w;
+                }
+            }
+
+            Y_flatten[y_idx++] += y;
+        }
+    }
+}
+
+// clang-format off
+static void conv_3d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, {{TYPE}}* X_flatten, int32_t* X_shape,
+                              {{TYPE}}* W_flatten, int32_t* W_shape, int32_t* pads, int32_t* dilations,
+                              int32_t* strides) {
+    // clang-format on
+
+    int32_t Y_shape0 = Y_shape[0];
+    int32_t Y_shape1 = Y_shape[1];
+    int32_t Y_shape2 = Y_shape[2];
+    int32_t X_shape0 = X_shape[0];
+    int32_t X_shape1 = X_shape[1];
+    int32_t X_shape2 = X_shape[2];
+    int32_t W_shape0 = W_shape[0];
+    int32_t W_shape1 = W_shape[1];
+    int32_t W_shape2 = W_shape[2];
+    int32_t pads0 = pads[0];
+    int32_t pads1 = pads[1];
+    int32_t pads2 = pads[2];
+    int32_t strides0 = strides[0];
+    int32_t strides1 = strides[1];
+    int32_t strides2 = strides[2];
+    int32_t dilations0 = dilations[0];
+    int32_t dilations1 = dilations[1];
+    int32_t dilations2 = dilations[2];
+
+    // X iteration
+    int32_t y_idx = 0;
+    for (int32_t x_idx0 = -pads0; x_idx0 < -pads0 + Y_shape0 * strides0; x_idx0 += strides0) {
+        for (int32_t x_idx1 = -pads1; x_idx1 < -pads1 + Y_shape1 * strides1; x_idx1 += strides1) {
+            for (int32_t x_idx2 = -pads2; x_idx2 < -pads2 + Y_shape2 * strides2; x_idx2 += strides2) {
+                // clang-format off
+                {{TYPE}} y = 0;
+                // clang-format on
+
+                // kernel iteration, p means patch
+                for (int32_t p_idx0 = LBOUND(x_idx0, dilations0), w_idx0 = (p_idx0 - x_idx0) / dilations0;
+                     p_idx0 < MIN(x_idx0 + W_shape0 * dilations0, X_shape0); p_idx0 += dilations0, w_idx0++) {
+
+                    for (int32_t p_idx1 = LBOUND(x_idx1, dilations1), w_idx1 = (p_idx1 - x_idx1) / dilations1;
+                         p_idx1 < MIN(x_idx1 + W_shape1 * dilations1, X_shape1); p_idx1 += dilations1, w_idx1++) {
+
+                        for (int32_t p_idx2 = LBOUND(x_idx2, dilations2), w_idx2 = (p_idx2 - x_idx2) / dilations2;
+                             p_idx2 < MIN(x_idx2 + W_shape2 * dilations2, X_shape2); p_idx2 += dilations2, w_idx2++) {
+
+                            int32_t x_offset = p_idx0 * X_shape1 * X_shape2 + p_idx1 * X_shape2 + p_idx2;
+                            int32_t w_offset = w_idx0 * W_shape1 * W_shape2 + w_idx1 * W_shape2 + w_idx2;
+
+                            // clang-format off
+                            {{TYPE}} p = X_flatten[x_offset];
+                            {{TYPE}} w = W_flatten[w_offset];
+                            // clang-format on
+
+                            y += p * w;
+                        }
+                    }
+                }
+
+                Y_flatten[y_idx++] += y;
+            }
+        }
     }
 }
 
@@ -181,7 +300,7 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         {{TYPE}}* X_flatten = ({{TYPE}}*)X->buffer;
         {{TYPE}}* Y_flatten = ({{TYPE}}*)Y->buffer;
         {{TYPE}}* W_flatten = ({{TYPE}}*)W->buffer;
-        {{TYPE}}* B_flatten = ({{TYPE}}*)B->buffer;
+        {{TYPE}}* B_flatten = B != NULL ? ({{TYPE}}*)B->buffer : NULL;
         // clang-format on
 
         int32_t Y_unit = connx_Int32_product(Y->ndim - 2, Y->shape + 2);
@@ -202,7 +321,8 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                         // clang-format on
 
                         // clang-format off
-                        conv_1d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads, dilations, strides);
+                        conv_1d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
+                                          dilations, strides);
                         // clang-format on
                     }
 
@@ -218,10 +338,81 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
                     Y_flatten += Y_unit;
                 }
+
                 X_flatten += X_unit * channel_count * group;
             }
-
             break;
+
+        case 2:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t feature = 0; feature < feature_count; feature++) {
+                    int32_t g = feature / feature_group;
+
+                    for (int32_t channel = 0; channel < channel_count; channel++) {
+
+                        // clang-format off
+                        {{TYPE}}* X_array = X_flatten + X_unit * (channel_count * g + channel);
+                        {{TYPE}}* W_array = W_flatten + W_unit * (channel_count * feature + channel);
+                        // clang-format on
+
+                        // clang-format off
+                        conv_2d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
+                                          dilations, strides);
+                        // clang-format on
+                    }
+
+                    if (B_flatten != NULL) {
+                        // clang-format off
+                        {{TYPE}} bias = B_flatten[feature];
+                        // clang-format on
+
+                        for (int32_t i = 0; i < Y_unit; i++) {
+                            Y_flatten[i] += bias;
+                        }
+                    }
+
+                    Y_flatten += Y_unit;
+                }
+
+                X_flatten += X_unit * channel_count * group;
+            }
+            break;
+
+        case 3:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t feature = 0; feature < feature_count; feature++) {
+                    int32_t g = feature / feature_group;
+
+                    for (int32_t channel = 0; channel < channel_count; channel++) {
+
+                        // clang-format off
+                        {{TYPE}}* X_array = X_flatten + X_unit * (channel_count * g + channel);
+                        {{TYPE}}* W_array = W_flatten + W_unit * (channel_count * feature + channel);
+                        // clang-format on
+
+                        // clang-format off
+                        conv_3d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
+                                          dilations, strides);
+                        // clang-format on
+                    }
+
+                    if (B_flatten != NULL) {
+                        // clang-format off
+                        {{TYPE}} bias = B_flatten[feature];
+                        // clang-format on
+
+                        for (int32_t i = 0; i < Y_unit; i++) {
+                            Y_flatten[i] += bias;
+                        }
+                    }
+
+                    Y_flatten += Y_unit;
+                }
+
+                X_flatten += X_unit * channel_count * group;
+            }
+            break;
+
         default:
             connx_error("Conv: dimension is not supported yet: %d\n", feature_dim);
             return CONNX_NOT_SUPPORTED_DATATYPE;
