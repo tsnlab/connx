@@ -22,6 +22,8 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+#define MAX_DILATION 10
+#define LBOUND(a, d) ((a) < 0 ? ((a) + MAX_DILATION * (d)) % (d) : (a))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -47,7 +49,7 @@ static int32_t max_pool_1d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
         // clang-format on
         int32_t argmax_offset = -1;
 
-        for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
+        for (int32_t p_idx0 = LBOUND(x_idx0, dilations0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
              p_idx0 += dilations0) {
 
             int32_t x_offset = p_idx0;
@@ -98,11 +100,11 @@ static int32_t max_pool_2d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
             // clang-format on
             int32_t argmax_offset = -1;
 
-            for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
-                 p_idx0 += dilations0) {
+            for (int32_t p_idx0 = LBOUND(x_idx0, dilations0);
+                 p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0); p_idx0 += dilations0) {
 
-                for (int32_t p_idx1 = MAX(x_idx1, 0); p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1);
-                     p_idx1 += dilations1) {
+                for (int32_t p_idx1 = LBOUND(x_idx1, dilations1);
+                     p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1); p_idx1 += dilations1) {
 
                     int32_t x_offset = p_idx0 * X_shape1 + p_idx1;
                     // clang-format off
@@ -160,13 +162,13 @@ static int32_t max_pool_3d_{{DTYPE}}({{TYPE}}* Y_flatten, int32_t* Y_shape, int6
                 // clang-format on
                 int32_t argmax_offset = -1;
 
-                for (int32_t p_idx0 = MAX(x_idx0, 0); p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0);
-                     p_idx0 += dilations0) {
+                for (int32_t p_idx0 = LBOUND(x_idx0, dilations0);
+                     p_idx0 < MIN(x_idx0 + kernel_shape0 * dilations0, X_shape0); p_idx0 += dilations0) {
 
-                    for (int32_t p_idx1 = MAX(x_idx1, 0); p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1);
-                         p_idx1 += dilations1) {
+                    for (int32_t p_idx1 = LBOUND(x_idx1, dilations1);
+                         p_idx1 < MIN(x_idx1 + kernel_shape1 * dilations1, X_shape1); p_idx1 += dilations1) {
 
-                        for (int32_t p_idx2 = MAX(x_idx2, 0);
+                        for (int32_t p_idx2 = LBOUND(x_idx2, dilations2);
                              p_idx2 < MIN(x_idx2 + kernel_shape2 * dilations2, X_shape2); p_idx2 += dilations2) {
 
                             int32_t x_offset = p_idx0 * X_shape1 * X_shape2 + p_idx1 * X_shape2 + p_idx2;
@@ -312,45 +314,37 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
     int32_t X_unit = connx_Int32_product(feature_dim, X->shape + 2);
 
     switch (X->dtype) {
-        /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
-    case {{ DTYPE }}: {
+    /*{% for DTYPE, TYPE in loop_types(UINT8, UINT16, FLOAT32, FLOAT64) %}*/
+    // clang-format off
+    case {{DTYPE}}: {
         {{TYPE}}* Y_flatten = Y->buffer;
         {{TYPE}}* X_flatten = X->buffer;
+        // clang-format on
         int32_t X_offset = 0;
 
-        for (int32_t batch = 0; batch < batch_count; batch++) {
-            for (int32_t channel = 0; channel < channel_count; channel++) {
-                switch (feature_dim) {
-                case 1:
+        switch (feature_dim) {
+            /*{% for i in (1, 2, 3) %}*/
+        case {{ i }}:
+            for (int32_t batch = 0; batch < batch_count; batch++) {
+                for (int32_t channel = 0; channel < channel_count; channel++) {
                     // clang-format off
-                    Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
+                    Y_flatten += max_pool_{{i}}d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
                                                        feature_shape, pads, kernel_shape, dilations, strides);
                     // clang-format on
-                    break;
-                case 2:
-                    // clang-format off
-                    Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
-                                                       feature_shape, pads, kernel_shape, dilations, strides);
-                    // clang-format on
-                    break;
-                case 3:
-                    // clang-format off
-                    Y_flatten += max_pool_3d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
-                                                       feature_shape, pads, kernel_shape, dilations, strides);
-                    // clang-format on
-                    break;
-                default:
-                    connx_error("MaxPool: Feature dimension %d is not supported yet.\n", feature_dim);
-                    return CONNX_NOT_SUPPORTED_DATATYPE;
-                }
 
-                X_offset += X_unit;
-                X_flatten += X_unit;
+                    X_offset += X_unit;
+                    X_flatten += X_unit;
+                }
             }
+            break;
+            /*{% endfor %}*/
+        default:
+            connx_error("MaxPool: Feature dimension %d is not supported yet.\n", feature_dim);
+            return CONNX_NOT_SUPPORTED_DATATYPE;
         }
         break;
     }
-        /*{% endfor %}*/
+    /*{% endfor %}*/
     default:
         connx_error("MaxPool: Datatype %d is not supported yet.\n", X->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;

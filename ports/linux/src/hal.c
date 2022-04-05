@@ -49,7 +49,7 @@ static char _model_path[128];
 static uint64_t _connx_watch_start[CONNX_WATCH_COUNT];
 static uint64_t _connx_watch[CONNX_WATCH_COUNT];
 
-#define MAX_THREAD_COUNT 16
+#define MAX_THREAD_COUNT 1
 
 struct thread {
     int32_t id;
