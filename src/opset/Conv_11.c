@@ -308,7 +308,8 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         int32_t W_unit = connx_Int32_product(W->ndim - 2, W->shape + 2);
 
         switch (feature_dim) {
-        case 1:
+            /*{% for i in (1, 2, 3) %}*/
+        case {{ i }}:
             for (int32_t batch = 0; batch < batch_count; batch++) {
                 for (int32_t feature = 0; feature < feature_count; feature++) {
                     int32_t g = feature / feature_group;
@@ -321,7 +322,7 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                         // clang-format on
 
                         // clang-format off
-                        conv_1d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
+                        conv_{{i}}d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
                                           dilations, strides);
                         // clang-format on
                     }
@@ -342,77 +343,7 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                 X_flatten += X_unit * channel_count * group;
             }
             break;
-
-        case 2:
-            for (int32_t batch = 0; batch < batch_count; batch++) {
-                for (int32_t feature = 0; feature < feature_count; feature++) {
-                    int32_t g = feature / feature_group;
-
-                    for (int32_t channel = 0; channel < channel_count; channel++) {
-
-                        // clang-format off
-                        {{TYPE}}* X_array = X_flatten + X_unit * (channel_count * g + channel);
-                        {{TYPE}}* W_array = W_flatten + W_unit * (channel_count * feature + channel);
-                        // clang-format on
-
-                        // clang-format off
-                        conv_2d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
-                                          dilations, strides);
-                        // clang-format on
-                    }
-
-                    if (B_flatten != NULL) {
-                        // clang-format off
-                        {{TYPE}} bias = B_flatten[feature];
-                        // clang-format on
-
-                        for (int32_t i = 0; i < Y_unit; i++) {
-                            Y_flatten[i] += bias;
-                        }
-                    }
-
-                    Y_flatten += Y_unit;
-                }
-
-                X_flatten += X_unit * channel_count * group;
-            }
-            break;
-
-        case 3:
-            for (int32_t batch = 0; batch < batch_count; batch++) {
-                for (int32_t feature = 0; feature < feature_count; feature++) {
-                    int32_t g = feature / feature_group;
-
-                    for (int32_t channel = 0; channel < channel_count; channel++) {
-
-                        // clang-format off
-                        {{TYPE}}* X_array = X_flatten + X_unit * (channel_count * g + channel);
-                        {{TYPE}}* W_array = W_flatten + W_unit * (channel_count * feature + channel);
-                        // clang-format on
-
-                        // clang-format off
-                        conv_3d_{{DTYPE}}(Y_flatten, Y_shape + 2, X_array, feature_shape, W_array, kernel_shape, pads,
-                                          dilations, strides);
-                        // clang-format on
-                    }
-
-                    if (B_flatten != NULL) {
-                        // clang-format off
-                        {{TYPE}} bias = B_flatten[feature];
-                        // clang-format on
-
-                        for (int32_t i = 0; i < Y_unit; i++) {
-                            Y_flatten[i] += bias;
-                        }
-                    }
-
-                    Y_flatten += Y_unit;
-                }
-
-                X_flatten += X_unit * channel_count * group;
-            }
-            break;
-
+            /*{% endfor %}*/
         default:
             connx_error("Conv: dimension is not supported yet: %d\n", feature_dim);
             return CONNX_NOT_SUPPORTED_DATATYPE;

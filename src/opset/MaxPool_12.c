@@ -323,11 +323,12 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
         int32_t X_offset = 0;
 
         switch (feature_dim) {
-        case 1:
+            /*{% for i in (1, 2, 3) %}*/
+        case {{ i }}:
             for (int32_t batch = 0; batch < batch_count; batch++) {
                 for (int32_t channel = 0; channel < channel_count; channel++) {
                     // clang-format off
-                    Y_flatten += max_pool_1d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
+                    Y_flatten += max_pool_{{i}}d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
                                                        feature_shape, pads, kernel_shape, dilations, strides);
                     // clang-format on
 
@@ -336,32 +337,7 @@ int MaxPool_{{op_version}}(connx_Graph* graph, uint32_t output_count, uint32_t* 
                 }
             }
             break;
-        case 2:
-            for (int32_t batch = 0; batch < batch_count; batch++) {
-                for (int32_t channel = 0; channel < channel_count; channel++) {
-                    // clang-format off
-                    Y_flatten += max_pool_2d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
-                                                       feature_shape, pads, kernel_shape, dilations, strides);
-                    // clang-format on
-
-                    X_offset += X_unit;
-                    X_flatten += X_unit;
-                }
-            }
-            break;
-        case 3:
-            for (int32_t batch = 0; batch < batch_count; batch++) {
-                for (int32_t channel = 0; channel < channel_count; channel++) {
-                    // clang-format off
-                    Y_flatten += max_pool_3d_{{DTYPE}}(Y_flatten, output_shape, Indices_array, X_flatten,
-                                                       feature_shape, pads, kernel_shape, dilations, strides);
-                    // clang-format on
-
-                    X_offset += X_unit;
-                    X_flatten += X_unit;
-                }
-            }
-            break;
+            /*{% endfor %}*/
         default:
             connx_error("MaxPool: Feature dimension %d is not supported yet.\n", feature_dim);
             return CONNX_NOT_SUPPORTED_DATATYPE;
