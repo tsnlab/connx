@@ -7,18 +7,18 @@ on:
   pull_request:
 
 jobs:
-  strategy:
-    matrix:
-      onnx_version:
-        - 1.5.0
-        - 1.6.0
-        - 1.7.0
-        - 1.8.1
-        - 1.9.0
-        - 1.10.1
-        - 1.10.0
-        - latest
   build_and_test:
+    strategy:
+      matrix:
+        onnx_version:
+          - 1.5.0
+          - 1.6.0
+          - 1.7.0
+          - 1.8.1
+          - 1.9.0
+          - 1.10.1
+          - 1.10.0
+          - latest
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
