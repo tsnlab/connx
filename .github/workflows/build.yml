@@ -30,7 +30,7 @@ jobs:
         python-version: 3.8
     - name: Install ubuntu packages to build
       run: |
-          sudo apt install cmake ninja-build
+          sudo apt install cmake ninja-build protobuf-compiler
           pip3 install numpy jinja2
     - name: Create build directory
       run: mkdir build
