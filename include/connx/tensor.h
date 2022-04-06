@@ -21,77 +21,6 @@
 #include <connx/hal.h>
 #include <connx/types.h>
 
-// Iterator
-typedef struct _connx_Slice {
-    int32_t start; // Start index (>=)
-    int32_t end;   // Stop index (<)
-    int32_t step;  // Step size
-} connx_Slice;
-
-/**
- * Set slice
- *
- * @param start
- * @param end
- * @param step
- */
-void connx_Slice_set(connx_Slice* slice, int32_t start, int32_t end, int32_t step);
-
-#define CONNX_ITERATOR_MAX_NDIM 8
-
-typedef struct _connx_Iterator {
-    int32_t ndim; // number of slices
-    int32_t idx;
-    int32_t size;
-    int32_t subshape[CONNX_ITERATOR_MAX_NDIM];
-    connx_Slice* slices;
-} connx_Iterator;
-
-/**
- * Initialize iterator
- *
- * @param iterator iterator for a tensor
- */
-void connx_Iterator_init(connx_Iterator* iterator, int32_t ndim, connx_Slice* slices);
-/**
- * Rewind cursor to -batch
- *
- * @param iterator iterator for a tensor
- * @param batch batch size
- */
-void connx_Iterator_rewind(connx_Iterator* iterator, int32_t batch);
-/**
- * Move iterator cursor to next element.
- *
- * @param iterator iterator for a tensor
- * @param batch batch size
- * @return true if there is a next element, or false
- */
-bool connx_Iterator_next(connx_Iterator* iterator, int32_t batch);
-/**
- * Get offset of data from linear array.
- *
- * @param iterator iterator for a tensor
- * @param shape shape of a tensor
- * @return offset of data which iterator is pointing
- */
-int32_t connx_Iterator_offset(connx_Iterator* iterator, int32_t* shape);
-/**
- * Get index of data from linear array.
- *
- * @param iterator iterator for a tensor
- * @param indices indices of a tensor, sizeof(index) >= iterator->ndim) (output)
- */
-void connx_Iterator_indices(connx_Iterator* iterator, int32_t* indices);
-/**
- * Get maximum batch size.
- *
- * @param iterator iterator for a tensor
- * @param shape shape of a tensor
- * @return offset of data which iterator is pointing
- */
-int32_t connx_Iterator_get_batch_size(connx_Iterator* iterator, int32_t* shape);
-
 // tensor structure follow Numpy's ndarray
 typedef struct _connx_Tensor {
     connx_DataType dtype;         // data type
@@ -150,28 +79,5 @@ void connx_Tensor_ref(connx_Tensor* tensor);
 int32_t connx_Tensor_unref(connx_Tensor* tensor);
 void connx_Tensor_ref_child(connx_Tensor* tensor);
 int32_t connx_Tensor_unref_child(connx_Tensor* tensor);
-
-/**
- * Get an element(data) which iterator is pointing.
- *
- * @param tensor getting a data from a tensor
- * @param iterator getting a data which iterator is pointing
- * @param data a pointer to copy an element from tensor
- * @return connx_ErrorCode
- */
-int connx_Tensor_get(connx_Tensor* tensor, connx_Iterator* iterator, void* data);
-
-/**
- * Set an element(data) which iterator is pointing.
- *
- * @param tensor setting a data from a tensor
- * @param iterator setting a data which iterator is pointing
- * @param data a pointer to copy an element to tensor
- * @return connx_ErrorCode
- */
-int connx_Tensor_set(connx_Tensor* tensor, connx_Iterator* iterator, void* data);
-
-connx_Tensor* connx_Tensor_get_by_slice(connx_Tensor* tensor, connx_Slice* slices);
-int connx_Tensor_set_by_slice(connx_Tensor* tensor, connx_Slice* slices, connx_Tensor* rhs, connx_Slice* rhs_slices);
 
 #endif /* __CONNX_TENSOR_H__ */

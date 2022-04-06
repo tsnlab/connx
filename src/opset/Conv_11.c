@@ -277,15 +277,6 @@ int Conv_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
     connx_Tensor* Y = connx_Tensor_alloc(X->dtype, 2 + feature_dim, Y_shape);
 
-    // init x_iter
-    connx_Slice x_slices[feature_dim];
-    for (int32_t i = 0; i < feature_dim; i++) {
-        connx_Slice_set(&x_slices[i], -pads[i], -pads[i] + output_shape[i] * strides[i], strides[i]);
-    }
-
-    connx_Iterator x_iter;
-    connx_Iterator_init(&x_iter, feature_dim, x_slices);
-
     switch (X->dtype) {
         /*{% for DTYPE, TYPE in loop_types(FLOAT32, FLOAT64) %}*/
     // clang-format off
