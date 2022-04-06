@@ -24,10 +24,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: Setup python
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.8
     - name: Install ubuntu packages to build
       run: |
           sudo apt install cmake ninja-build
-          pip3 install numpy
+          pip3 install numpy jinja2
     - name: Create build directory
       run: mkdir build
     - name: build
