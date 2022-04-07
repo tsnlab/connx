@@ -1,37 +1,37 @@
 name: Build
 
 on:
-    - push
-    - pull_request
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Run shellcheck
-      uses: ludeeus/action-shellcheck@master
-    - name: Install ubuntu packages to lint
-      run: sudo apt install clang-format-10
-    - name: Check C lint
-      run: bin/check-clang-format
-    - name: Setup python
-      uses: actions/setup-python@v2
-      with:
-        python-version: "3.8"
-    - name: Check python lint
-      uses: py-actions/flake8@v2
-
   build_and_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        onnx_version:
+          - 1.5.0
+          - 1.6.0
+          - 1.7.0
+          - 1.8.1
+          - 1.9.0
+          - 1.10.1
+          - 1.11.0
+          - latest
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: Setup python
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.8
     - name: Install ubuntu packages to build
       run: |
-          sudo apt install cmake ninja-build
-          pip3 install numpy
+          sudo apt install cmake ninja-build protobuf-compiler
+          pip3 install numpy jinja2
     - name: Create build directory
       run: mkdir build
     - name: build
@@ -49,8 +49,11 @@ jobs:
         repository: tsnlab/onnx-connx
         path: onnx-connx
     - name: ONNX Test Cases
+      env:
+          ONNX_VERSION: ${{ matrix.onnx_version }}
       run: |
         cd onnx-connx
         cp ../build/connx ./onnx_connx/connx
-        pip3 install -U onnx protobuf tabulate pytest
+        [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="==$ONNX_VERSION"
+        pip3 install -U "onnx${ONNX_VERSION}" protobuf tabulate pytest
         pytest -v
