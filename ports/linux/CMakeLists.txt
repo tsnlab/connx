@@ -61,6 +61,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CONNX_HOME}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -std=c99)
 
+install(
+    DIRECTORY ${CONNX_HOME}/include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+
 # To avoid name conflict, Use different name and set OUTPUT_NAME property
 set(BIN_NAME ${PROJECT_NAME}_${CMAKE_BUILD_TYPE})
 add_executable(${BIN_NAME} ${SRC})
