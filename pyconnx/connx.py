@@ -7,13 +7,40 @@ import numpy
 
 from . import bindings
 
+__all__ = (
+    'ConnxModel',
+    'Tensor',
+    'load_model',
+    'load_data',
+)
+
 libconnx = ctypes.CDLL(os.path.join(os.path.dirname(__file__), 'libconnx.so'))
 
 
-class Tensor(object):
+class Wrapper(object):
+
+    def __init__(self):
+        self._wrapped_object = self._wrapped_class_()
+        self._as_parameter_ = self._wrapped_object
+
+    def __getattr__(self, attr):
+        return getattr(self._wrapped_object, attr)
+
+    def __setattr__(self, attr, value):
+        if attr == '_wrapped_object':
+            super().__setattr__(attr, value)
+        elif hasattr(self, attr):
+            super().__setattr__(attr, value)
+        else:
+            setattr(self._wrapped_object, attr, value)
+
+
+class Tensor(Wrapper):
+
+    _wrapped_class_ = bindings.ConnxTensor
 
     def __init__(self, dtype, shape, data=None):
-        self._struct = bindings.Tensor()
+        super().__init__()
 
         self.dtype = dtype
         self.shape = shape
@@ -28,34 +55,21 @@ class Tensor(object):
 
     @property
     def shape(self) -> List[int]:
-        return self._struct.shape[:self._struct.ndim]
+        return self._wrapped_object.shape[:self._wrapped_object.ndim]
 
     @shape.setter
     def shape(self, value):
-        self._struct.shape = (ctypes.c_int * len(value))(*value)
-        self._struct.ndim = len(value)
-
-    def __getattr__(self, attr):
-        if attr == 'shape':
-            return self._struct.shape[:self._struct.ndim]
-        else:
-            return getattr(self._struct, attr)
-
-    def __setattr__(self, attr, value):
-        if attr == '_struct':
-            return super().__setattr__(attr, value)
-
-        if hasattr(self._struct, attr) and attr not in ('shape'):
-            setattr(self._struct, attr, value)
-        else:
-            super().__setattr__(attr, value)
+        self._wrapped_object.shape = (ctypes.c_int * len(value))(*value)
+        self._wrapped_object.ndim = len(value)
 
 
-class ConnxModel():
+class ConnxModel(Wrapper):
+
+    _wrapped_class_ = bindings.ConnxModel
 
     def __init__(self, model_path: str):
+        super().__init__()
         # TODO: load model
-        pass
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         # TODO: inference and return output
