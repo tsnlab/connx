@@ -35,6 +35,9 @@ class Wrapper(object):
     def __dir__(self):
         return super().__dir__() + dir(self._wrapped_object)
 
+    def __del__(self):
+        del self._wrapped_object
+
 
 class Tensor(Wrapper):
 
