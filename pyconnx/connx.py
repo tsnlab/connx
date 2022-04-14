@@ -2,6 +2,7 @@ import ctypes
 import math
 import struct
 
+from threading import Lock
 from typing import List
 
 import numpy
@@ -15,6 +16,8 @@ __all__ = (
     'load_model',
     'load_data',
 )
+
+s_model_lock = Lock()  # To avoid conflict, Only one thread can load model at once
 
 
 class Wrapper(object):
@@ -117,8 +120,9 @@ class ConnxModel(Wrapper):
 
     def __init__(self, model_path: str):
         super().__init__()
-        bindings.hal_set_model(model_path.encode())
-        bindings.model_init(self._wrapped_object)
+        with s_model_lock:
+            bindings.hal_set_model(model_path.encode())
+            bindings.model_init(self._wrapped_object)
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         # TODO: inference and return output
