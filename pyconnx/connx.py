@@ -14,8 +14,6 @@ __all__ = (
     'load_data',
 )
 
-libconnx = ctypes.CDLL(os.path.join(os.path.dirname(__file__), 'libconnx.so'))
-
 
 class Wrapper(object):
 
@@ -34,6 +32,9 @@ class Wrapper(object):
         else:
             setattr(self._wrapped_object, attr, value)
 
+    def __dir__(self):
+        return super().__dir__() + dir(self._wrapped_object)
+
 
 class Tensor(Wrapper):
 
@@ -51,7 +52,7 @@ class Tensor(Wrapper):
 
     @staticmethod
     def from_nparray(nparray: numpy.ndarray) -> 'Tensor':
-        return Tensor(nparray.dtype, nparray.shape)
+        return Tensor(nparray.dtype, nparray.shape)  # TODO: convert data
 
     @property
     def shape(self) -> List[int]:
@@ -69,7 +70,8 @@ class ConnxModel(Wrapper):
 
     def __init__(self, model_path: str):
         super().__init__()
-        # TODO: load model
+        bindings.hal_set_model(model_path.encode())
+        bindings.model_init(self._wrapped_object)
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         # TODO: inference and return output

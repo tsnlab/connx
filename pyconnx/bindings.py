@@ -1,6 +1,9 @@
+import os
 from ctypes import (
-    c_char_p, c_int32, c_long, c_uint32, c_void_p, POINTER, Structure)
+    c_char_p, c_int32, c_long, c_uint32, c_void_p, CDLL, POINTER, Structure)
 
+
+libconnx = CDLL(os.path.join(os.path.dirname(__file__), 'libconnx.so'))
 
 class ConnxTensor(Structure):
     """
@@ -119,3 +122,17 @@ class ConnxModel(Structure):
         ('graph_count', c_uint32),
         ('graphs', POINTER(POINTER(ConnxGraph)))
     ]
+
+    def __del__(self):
+        model_destroy(self)
+
+model_init = libconnx.connx_Model_init
+model_init.argtypes = [POINTER(ConnxModel)]
+
+model_destroy = libconnx.connx_Model_destroy
+model_destroy.argtypes = [POINTER(ConnxModel)]
+
+hal_set_model = libconnx.hal_set_model
+hal_set_model.argtypes = [c_char_p]
+
+libconnx.connx_init()
