@@ -97,6 +97,12 @@ class Tensor(Wrapper):
     def __getitem__(self, item):
         return self.data[item]
 
+    def __repr__(self):
+        name = self.__class__.__name__
+        dtype = types.ConnxType(self.dtype).name
+        shape = self.shape
+        return f'<{name} {dtype=} {shape=}>'
+
     @property
     def data(self):
         return ctypes.cast(
@@ -120,6 +126,7 @@ class ConnxModel(Wrapper):
 
     def __init__(self, model_path: str):
         super().__init__()
+        self.model_path = model_path
         with s_model_lock:
             bindings.hal_set_model(model_path.encode())
             bindings.model_init(self._wrapped_object)
@@ -127,6 +134,12 @@ class ConnxModel(Wrapper):
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         # TODO: inference and return output
         pass
+
+    def __repr__(self):
+        name = self.__class__.__name__
+        version = self.version
+        path = self.model_path
+        return f'<{name} {version=} {path=}>'
 
 
 def load_model(model_path: str) -> ConnxModel:
