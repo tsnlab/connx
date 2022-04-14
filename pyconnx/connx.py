@@ -38,7 +38,7 @@ class Wrapper(object):
             setattr(self._wrapped_object, attr, value)
 
     def __dir__(self):
-        return super().__dir__() + dir(self._wrapped_object)
+        return dir(super()) + dir(self._wrapped_object)
 
     def __del__(self):
         del self._wrapped_object
