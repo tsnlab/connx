@@ -1,11 +1,13 @@
 import ctypes
-import os
+import math
+import struct
 
 from typing import List
 
 import numpy
 
 from . import bindings
+from . import types
 
 __all__ = (
     'ConnxModel',
@@ -43,19 +45,61 @@ class Tensor(Wrapper):
 
     _wrapped_class_ = bindings.ConnxTensor
 
-    def __init__(self, dtype, shape, data=None):
+    def __init__(self):
         super().__init__()
 
-        self.dtype = dtype
-        self.shape = shape
-        self.data = data  # TODO: some convert
-
     def to_nparray(self) -> numpy.ndarray:
-        return numpy.fromstring(self.data, dtype=self.type_).reshape(self.shape)
+        return numpy.frombuffer(
+            ctypes.string_at(self.buffer, self.size),
+            dtype=types.ConnxType(self.dtype).to_numpy()
+        ).reshape(self.shape)
 
     @staticmethod
     def from_nparray(nparray: numpy.ndarray) -> 'Tensor':
-        return Tensor(nparray.dtype, nparray.shape)  # TODO: convert data
+        tensor = Tensor()
+        tensor._wrapped_object = bindings.alloc_tensor(
+            types.ConnxType.from_numpy(nparray.dtype),
+            nparray.shape
+        )
+        data = nparray.tostring()
+        assert(len(data) == tensor.size)
+
+        ctypes.memmove(tensor.buffer, data, len(data))
+
+        return tensor
+
+    @staticmethod
+    def from_bytes(data: bytes) -> 'Tensor':
+        tensor = Tensor()
+        format_ = '=II'
+        size = struct.calcsize(format_)
+        dtype, ndim = struct.unpack(format_, data[:size])
+        data = data[size:]
+        shape = []
+        for _ in range(ndim):
+            format_ = '=I'
+            size = struct.calcsize(format_)
+            shape.append(struct.unpack(format_, data[:size])[0])
+            data = data[size:]
+
+        tensor._wrapped_object = bindings.alloc_tensor(dtype, shape)
+        assert(len(data) == tensor.size)
+        ctypes.memmove(tensor._wrapped_object.buffer, data, len(data))
+
+        return tensor
+
+    def __len__(self):
+        return math.prod(self.shape)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    @property
+    def data(self):
+        return ctypes.cast(
+            self._wrapped_object.buffer,
+            ctypes.POINTER(types.ConnxType(self.dtype).to_ctypes())
+        )
 
     @property
     def shape(self) -> List[int]:
@@ -86,5 +130,6 @@ def load_model(model_path: str) -> ConnxModel:
 
 
 def load_data(path_: str) -> Tensor:
-    # TODO: load data from file
-    pass
+    with open(path_, 'rb') as f:
+        data = f.read()
+    return Tensor.from_bytes(data)

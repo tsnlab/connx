@@ -1,9 +1,16 @@
 import os
 from ctypes import (
-    c_char_p, c_int32, c_long, c_uint32, c_void_p, CDLL, POINTER, Structure)
+    addressof,
+    c_char_p,
+    c_int32,
+    c_long,
+    c_uint32,
+    c_void_p,
+    CDLL, POINTER, Structure)
 
 
 libconnx = CDLL(os.path.join(os.path.dirname(__file__), 'libconnx.so'))
+
 
 class ConnxTensor(Structure):
     """
@@ -126,6 +133,7 @@ class ConnxModel(Structure):
     def __del__(self):
         model_destroy(self)
 
+
 model_init = libconnx.connx_Model_init
 model_init.argtypes = [POINTER(ConnxModel)]
 
@@ -134,5 +142,19 @@ model_destroy.argtypes = [POINTER(ConnxModel)]
 
 hal_set_model = libconnx.hal_set_model
 hal_set_model.argtypes = [c_char_p]
+
+libconnx.connx_Tensor_alloc.argtypes = [c_uint32, c_int32, POINTER(c_int32)]
+libconnx.connx_Tensor_alloc.restype = POINTER(ConnxTensor)
+
+
+def alloc_tensor(dtype, shape):
+    """
+    Allocate a tensor.
+    """
+    ndim = len(shape)
+    shape_array = (c_int32 * ndim)(*shape)
+    tensor_pointer = libconnx.connx_Tensor_alloc(dtype, ndim, shape_array)
+    return ConnxTensor.from_address(addressof(tensor_pointer.contents))
+
 
 libconnx.connx_init()
