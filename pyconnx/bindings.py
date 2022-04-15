@@ -94,6 +94,7 @@ class ConnxGraph(Structure):
 };
     """
     _fields_ = [
+        ('model', c_void_p),
         ('id', c_uint32),
         ('initializer_count', c_uint32),
         ('initializers', POINTER(POINTER(ConnxTensor))),

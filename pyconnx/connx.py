@@ -139,7 +139,7 @@ class ConnxModel(Wrapper):
             *[ctypes.pointer(t._wrapped_object) for t in input_data])
         input_count = len(inputs)
         outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
-        output_count = ctypes.c_uint32(len(outputs))
+        output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
 
         bindings.model_run(
             self._wrapped_object,
