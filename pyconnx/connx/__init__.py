@@ -5,7 +5,11 @@ import struct
 from threading import Lock
 from typing import List, Optional
 
-import numpy
+try:
+    import numpy
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
 
 from . import bindings
 from . import types
@@ -54,14 +58,20 @@ class Tensor(Wrapper):
             self._wrapped_object = tensor
         super().__init__()
 
-    def to_nparray(self) -> numpy.ndarray:
+    def to_nparray(self) -> 'numpy.ndarray':
+        if not NUMPY_AVAILABLE:
+            raise RuntimeError('numpy is not available')
+
         return numpy.frombuffer(
             ctypes.string_at(self.buffer, self.size),
             dtype=types.ConnxType(self.dtype).to_numpy()
         ).reshape(self.shape)
 
     @staticmethod
-    def from_nparray(nparray: numpy.ndarray) -> 'Tensor':
+    def from_nparray(nparray: 'numpy.ndarray') -> 'Tensor':
+        if not NUMPY_AVAILABLE:
+            raise RuntimeError('numpy is not available')
+
         tensor = Tensor()
         tensor._wrapped_object = bindings.alloc_tensor(
             types.ConnxType.from_numpy(nparray.dtype),

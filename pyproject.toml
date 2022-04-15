@@ -20,8 +20,8 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = "^1.22.3"
 
+numpy = {version = "^1.22.3", extras = ["numpy"]}
 [tool.poetry.dev-dependencies]
 Jinja2 = "^3.1.1"
 flake8 = "^4.0.1"

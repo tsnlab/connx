@@ -1,7 +1,11 @@
 import ctypes
 import enum
 
-import numpy
+try:
+    import numpy
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
 
 
 class ConnxType(enum.IntEnum):
@@ -26,6 +30,8 @@ class ConnxType(enum.IntEnum):
         return self._TO_CTYPES.get(self)
 
     def to_numpy(self):
+        if not NUMPY_AVAILABLE:
+            raise RuntimeError("numpy is not available")
         return self._TO_NUMPY.get(self)
 
     @classmethod
@@ -34,6 +40,8 @@ class ConnxType(enum.IntEnum):
 
     @classmethod
     def from_numpy(cls, value):
+        if not NUMPY_AVAILABLE:
+            raise RuntimeError("numpy is not available")
         return cls._FROM_NUMPY.get(value)
 
 
@@ -61,26 +69,28 @@ ConnxType._FROM_CTYPES = {
     for k, v in ConnxType._TO_CTYPES.items()
 }
 
-ConnxType._TO_NUMPY = {
-    ConnxType.UNDEFINED: None,
-    ConnxType.UINT8: numpy.uint8,
-    ConnxType.INT8: numpy.int8,
-    ConnxType.UINT16: numpy.uint16,
-    ConnxType.INT16: numpy.int16,
-    ConnxType.UINT32: numpy.uint32,
-    ConnxType.INT32: numpy.int32,
-    ConnxType.UINT64: numpy.uint64,
-    ConnxType.INT64: numpy.int64,
-    ConnxType.FLOAT16: numpy.float16,
-    ConnxType.FLOAT32: numpy.float32,
-    ConnxType.FLOAT64: numpy.float64,
-    ConnxType.STRING: None,
-    ConnxType.BOOL: numpy.bool,
-    ConnxType.COMPLEX64: numpy.complex64,
-    ConnxType.COMPLEX128: numpy.complex128,
-}
+if NUMPY_AVAILABLE:
 
-ConnxType._FROM_NUMPY = {
-    numpy.dtype(v): k
-    for k, v in ConnxType._TO_NUMPY.items()
-}
+    ConnxType._TO_NUMPY = {
+        ConnxType.UNDEFINED: None,
+        ConnxType.UINT8: numpy.uint8,
+        ConnxType.INT8: numpy.int8,
+        ConnxType.UINT16: numpy.uint16,
+        ConnxType.INT16: numpy.int16,
+        ConnxType.UINT32: numpy.uint32,
+        ConnxType.INT32: numpy.int32,
+        ConnxType.UINT64: numpy.uint64,
+        ConnxType.INT64: numpy.int64,
+        ConnxType.FLOAT16: numpy.float16,
+        ConnxType.FLOAT32: numpy.float32,
+        ConnxType.FLOAT64: numpy.float64,
+        ConnxType.STRING: None,
+        ConnxType.BOOL: numpy.bool,
+        ConnxType.COMPLEX64: numpy.complex64,
+        ConnxType.COMPLEX128: numpy.complex128,
+    }
+
+    ConnxType._FROM_NUMPY = {
+        numpy.dtype(v): k
+        for k, v in ConnxType._TO_NUMPY.items()
+    }
