@@ -139,9 +139,14 @@ model_init.argtypes = [POINTER(ConnxModel)]
 
 model_destroy = libconnx.connx_Model_destroy
 model_destroy.argtypes = [POINTER(ConnxModel)]
+model_destroy.restype = c_int32
 
 hal_set_model = libconnx.hal_set_model
 hal_set_model.argtypes = [c_char_p]
+
+tensor_unref = libconnx.connx_Tensor_unref
+tensor_unref.argtypes = [POINTER(ConnxTensor)]
+tensor_unref.restype = c_int32
 
 libconnx.connx_Tensor_alloc.argtypes = [c_uint32, c_int32, POINTER(c_int32)]
 libconnx.connx_Tensor_alloc.restype = POINTER(ConnxTensor)
@@ -155,6 +160,17 @@ def alloc_tensor(dtype, shape):
     shape_array = (c_int32 * ndim)(*shape)
     tensor_pointer = libconnx.connx_Tensor_alloc(dtype, ndim, shape_array)
     return ConnxTensor.from_address(addressof(tensor_pointer.contents))
+
+
+model_run = libconnx.connx_Model_run
+model_run.argtypes = [
+    POINTER(ConnxModel),  # model
+    c_uint32,  # input_count
+    POINTER(POINTER(ConnxTensor)),  # inputs
+    POINTER(c_uint32),  # output_count
+    POINTER(POINTER(ConnxTensor)),  # outputs
+]
+model_run.restype = c_int32
 
 
 libconnx.connx_init()

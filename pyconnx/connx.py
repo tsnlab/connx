@@ -3,7 +3,7 @@ import math
 import struct
 
 from threading import Lock
-from typing import List
+from typing import List, Optional
 
 import numpy
 
@@ -23,7 +23,8 @@ s_model_lock = Lock()  # To avoid conflict, Only one thread can load model at on
 class Wrapper(object):
 
     def __init__(self):
-        self._wrapped_object = self._wrapped_class_()
+        if '_wrapped_object' not in self.__dict__:
+            self._wrapped_object = self._wrapped_class_()
         self._as_parameter_ = self._wrapped_object
 
     def __getattr__(self, attr):
@@ -48,7 +49,9 @@ class Tensor(Wrapper):
 
     _wrapped_class_ = bindings.ConnxTensor
 
-    def __init__(self):
+    def __init__(self, tensor: Optional[bindings.ConnxTensor] = None):
+        if tensor:
+            self._wrapped_object = tensor
         super().__init__()
 
     def to_nparray(self) -> numpy.ndarray:
@@ -132,8 +135,22 @@ class ConnxModel(Wrapper):
             bindings.model_init(self._wrapped_object)
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
-        # TODO: inference and return output
-        pass
+        inputs = (ctypes.POINTER(Tensor._wrapped_class_) * len(input_data))(
+            *[ctypes.pointer(t._wrapped_object) for t in input_data])
+        input_count = len(inputs)
+        outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
+        output_count = ctypes.c_uint32(len(outputs))
+
+        bindings.model_run(
+            self._wrapped_object,
+            input_count,
+            inputs,
+            ctypes.byref(output_count),
+            outputs)
+
+        # TODO: unref?
+
+        return [Tensor(outputs[i].contents) for i in range(output_count.value)]
 
     def __repr__(self):
         name = self.__class__.__name__
