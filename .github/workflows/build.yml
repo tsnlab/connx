@@ -43,6 +43,8 @@ jobs:
           ninja
     - name: Build python package
       run: poetry build
+    - name: Test pyconnx
+      run: python pyconnx/test.py
     - name: MNIST
       working-directory: build
       run: |
