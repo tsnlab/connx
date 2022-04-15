@@ -12,16 +12,20 @@ packages = [
 include = [
     'include/',
     'src/',
+    'bin/',
     'ports/linux/src/',
     'ports/linux/include/',
-    'ports/linux/include/CMakeLists.txt',
+    'ports/linux/CMakeLists.txt',
     'pyconnx/connx/libconnx.so',
 ]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+numpy = { version = "^1.22.3", optional = true }
 
-numpy = {version = "^1.22.3", extras = ["numpy"]}
+[tool.poetry.extras]
+numpy = ["numpy"]
+
 [tool.poetry.dev-dependencies]
 Jinja2 = "^3.1.1"
 flake8 = "^4.0.1"
@@ -29,7 +33,10 @@ flake8-import-order = "^0.18.1"
 flake8-builtins = "^1.5.3"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = [
+    "poetry-core>=1.0.0",
+    "Jinja2>=3.1.1",
+]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.build]

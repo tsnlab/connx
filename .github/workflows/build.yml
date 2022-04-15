@@ -21,7 +21,7 @@ jobs:
             sudo apt install cmake ninja-build
             pip3 install poetry
             poetry config virtualenvs.create false
-            poetry install --no-interaction --no-ansi
+            poetry install --no-interaction --no-ansi -E numpy
       - name: Build python package
         run: poetry build
       - name: Test pyconnx
@@ -53,7 +53,7 @@ jobs:
             sudo apt install cmake ninja-build protobuf-compiler
             pip3 install poetry
             poetry config virtualenvs.create false
-            poetry install --no-interaction --no-ansi
+            poetry install --no-interaction --no-ansi -E numpy
       - name: Create build directory
         run: mkdir build
       - name: build C files
