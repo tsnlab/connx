@@ -7,6 +7,26 @@ on:
   pull_request:
 
 jobs:
+  build_python_package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8
+      - name: Install ubuntu packages to build
+        run: |
+            sudo apt install cmake ninja-build
+            pip3 install poetry
+            poetry config virtualenvs.create false
+            poetry install --no-interaction --no-ansi
+      - name: Build python package
+        run: poetry build
+      - name: Test pyconnx
+        run: python pyconnx/test.py
+
   build_and_test:
     strategy:
       fail-fast: false
@@ -22,44 +42,40 @@ jobs:
           - latest
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Setup python
-      uses: actions/setup-python@v3
-      with:
-        python-version: 3.8
-    - name: Install ubuntu packages to build
-      run: |
-          sudo apt install cmake ninja-build protobuf-compiler
-          pip3 install poetry
-          poetry config virtualenvs.create false
-          poetry install --no-interaction --no-ansi
-    - name: Create build directory
-      run: mkdir build
-    - name: build C files
-      working-directory: build
-      run: |
-          cmake -G Ninja ../ports/linux/ -DCMAKE_BUILD_TYPE=Debug
-          ninja
-    - name: Build python package
-      run: poetry build
-    - name: Test pyconnx
-      run: python pyconnx/test.py
-    - name: MNIST
-      working-directory: build
-      run: |
-          ninja mnist
-    - name: Clone onnx-connx
-      uses: actions/checkout@master
-      with:
-        repository: tsnlab/onnx-connx
-        path: onnx-connx
-    - name: ONNX Test Cases
-      env:
-          ONNX_VERSION: ${{ matrix.onnx_version }}
-      run: |
-        cd onnx-connx
-        cp ../build/connx ./onnx_connx/connx
-        [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="==$ONNX_VERSION"
-        pip3 install -U "onnx${ONNX_VERSION}" protobuf tabulate pytest
-        pytest -v
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8
+      - name: Install ubuntu packages to build
+        run: |
+            sudo apt install cmake ninja-build protobuf-compiler
+            pip3 install poetry
+            poetry config virtualenvs.create false
+            poetry install --no-interaction --no-ansi
+      - name: Create build directory
+        run: mkdir build
+      - name: build C files
+        working-directory: build
+        run: |
+            cmake -G Ninja ../ports/linux/ -DCMAKE_BUILD_TYPE=Debug
+            ninja
+      - name: MNIST
+        working-directory: build
+        run: |
+            ninja mnist
+      - name: Clone onnx-connx
+        uses: actions/checkout@master
+        with:
+          repository: tsnlab/onnx-connx
+          path: onnx-connx
+      - name: ONNX Test Cases
+        env:
+            ONNX_VERSION: ${{ matrix.onnx_version }}
+        run: |
+          cd onnx-connx
+          cp ../build/connx ./onnx_connx/connx
+          [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="==$ONNX_VERSION"
+          pip3 install -U "onnx${ONNX_VERSION}" protobuf tabulate pytest
+          pytest -v
