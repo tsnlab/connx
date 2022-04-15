@@ -11,7 +11,7 @@ from . import bindings
 from . import types
 
 __all__ = (
-    'ConnxModel',
+    'Model',
     'Tensor',
     'load_model',
     'load_data',
@@ -123,7 +123,7 @@ class Tensor(Wrapper):
         self._wrapped_object.ndim = len(value)
 
 
-class ConnxModel(Wrapper):
+class Model(Wrapper):
 
     _wrapped_class_ = bindings.ConnxModel
 
@@ -159,8 +159,8 @@ class ConnxModel(Wrapper):
         return f'<{name} {version=} {path=}>'
 
 
-def load_model(model_path: str) -> ConnxModel:
-    return ConnxModel(model_path)
+def load_model(model_path: str) -> Model:
+    return Model(model_path)
 
 
 def load_data(path_: str) -> Tensor:

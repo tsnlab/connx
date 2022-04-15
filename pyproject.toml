@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "connx"
+version = "0.1.0"
+description = "Connx runtime"
+authors = ["TSN Lab, Inc. <cto@tsnlab.com>"]
+license = "GPLv3"
+
+packages = [
+    { include = 'connx', from = 'pyconnx' }
+]
+
+include = [
+    'include/',
+    'src/',
+    'ports/linux/src/',
+    'ports/linux/include/',
+    'ports/linux/include/CMakeLists.txt',
+    'pyconnx/connx/libconnx.so',
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "^1.22.3"
+
+[tool.poetry.dev-dependencies]
+Jinja2 = "^3.1.1"
+flake8 = "^4.0.1"
+flake8-import-order = "^0.18.1"
+flake8-builtins = "^1.5.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.build]
+generate-setup-file = false
+script = 'pyconnx/build_package.py'
