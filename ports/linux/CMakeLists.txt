@@ -53,12 +53,32 @@ if(ENABLE_AVX)
     message(STATUS "Enabling AVX")
 endif()
 
-add_executable(${PROJECT_NAME} ${SRC})
+set(LIB_SRC ${SRC})
+list(FILTER LIB_SRC EXCLUDE REGEX "/main.c$")
 
+add_library(${PROJECT_NAME} SHARED ${LIB_SRC})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CONNX_HOME}/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -std=c99)
-target_link_libraries(${PROJECT_NAME} m pthread)
+
+install(
+    DIRECTORY ${CONNX_HOME}/include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h")
+
+# To avoid name conflict, Use different name and set OUTPUT_NAME property
+set(BIN_NAME ${PROJECT_NAME}_${CMAKE_BUILD_TYPE})
+add_executable(${BIN_NAME} ${SRC})
+set_target_properties(${BIN_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+
+target_include_directories(${BIN_NAME} PUBLIC ${CONNX_HOME}/include)
+target_include_directories(${BIN_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(${BIN_NAME} PRIVATE -Wall -Wextra -Werror -std=c99)
+target_link_libraries(${BIN_NAME} m pthread)
 
 # Test
 add_custom_target(mnist

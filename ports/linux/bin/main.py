@@ -88,9 +88,9 @@ class App(threading.Thread):
                 output = outputs[0][0]
                 idx = np.argmax(output)
                 tmp = output - np.min(output)
-                sum = np.sum(tmp)
+                sum_ = np.sum(tmp)
                 value = tmp[idx]
-                self.text.insert(1.0, f'{idx}, {value / sum * 100:0.2f}%\n')
+                self.text.insert(1.0, f'{idx}, {value / sum_ * 100:0.2f}%\n')
 
     def loop(self):
         self.update()
@@ -118,10 +118,10 @@ class App(threading.Thread):
 
                 frame = 255 - frame
                 frame = frame[:, :, 0] + frame[:, :, 1] + frame[:, :, 2]
-                min = np.min(frame)
-                max = np.max(frame)
-                if min != max:
-                    frame = (frame - min) / (max - min) * 255
+                min_ = np.min(frame)
+                max_ = np.max(frame)
+                if min_ != max_:
+                    frame = (frame - min_) / (max_ - min_) * 255
                 frame = frame.astype(np.float32)
                 self.frame = frame
 

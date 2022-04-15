@@ -193,8 +193,8 @@ with open(output_source, 'w') as output:
         getattr(jinja_env, attr)
         for attr in ('block_end_string', 'variable_end_string', 'comment_end_string',)]
 
-    with open(input_source, 'r') as input:
-        for idx, line in enumerate(input.readlines()):
+    with open(input_source, 'r') as input_:
+        for idx, line in enumerate(input_.readlines()):
             line_no = idx + 1
 
             if any(token in line for token in jinja_end_tokens):

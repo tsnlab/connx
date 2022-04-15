@@ -73,7 +73,7 @@ typedef enum _connx_DataType {
     CONNX_COMPLEX128 = 15,
 } connx_DataType;
 
-uint32_t connx_DataType_size(connx_DataType dtype);
+uint32_t connx_DataType_size(uint32_t dtype /** @see connx_DataType */);
 
 #define UINT8 CONNX_UINT8
 #define INT8 CONNX_INT8

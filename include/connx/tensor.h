@@ -23,7 +23,7 @@
 
 // tensor structure follow Numpy's ndarray
 typedef struct _connx_Tensor {
-    connx_DataType dtype;         // data type
+    uint32_t dtype;               // data type (enum connx_DataType)
     int32_t ndim;                 // Number of dimensions
     int32_t* shape;               // Shape array
     void* buffer;                 // Data buffer
@@ -34,7 +34,7 @@ typedef struct _connx_Tensor {
     connx_Lock lock;              // Reference and child count lock
 } connx_Tensor;
 
-connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape);
+connx_Tensor* connx_Tensor_alloc(uint32_t dtype /** @see connx_DataType */, int32_t ndim, int32_t* shape);
 connx_Tensor* connx_Tensor_alloc_like(connx_Tensor* tensor);
 connx_Tensor* connx_Tensor_alloc_buffer(void* buf);
 
@@ -53,12 +53,12 @@ bool connx_Tensor_is_likely_same_shape(connx_Tensor* A, connx_Tensor* B);
 /**
  * Create broadcasted tensor
  *
- * @param dtype output tensor's data type
+ * @param dtype output tensor's data type @see connx_DataType
  * @param A a tensor
  * @param B another tensor
  * @return newly allocated tensor. NULL if cannot be broadcasted.
  */
-connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_Tensor* A, connx_Tensor* B);
+connx_Tensor* connx_Tensor_alloc_broadcasted(const uint32_t dtype, connx_Tensor* A, connx_Tensor* B);
 
 /**
  * @brief Get the broadcasted input offset object

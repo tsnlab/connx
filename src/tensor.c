@@ -25,7 +25,7 @@
 #include <connx/hal_common.h>
 #include <connx/tensor.h>
 
-uint32_t connx_DataType_size(connx_DataType dtype) {
+uint32_t connx_DataType_size(uint32_t dtype) {
     switch (dtype) {
     case CONNX_UINT8:
     case CONNX_INT8:
@@ -58,7 +58,7 @@ uint32_t connx_DataType_size(connx_DataType dtype) {
  * Tensor payload: [connx_Tensor] [shape] [buffer]
  * All the elements are aligned by CONNX_ALIGNMENT
  */
-connx_Tensor* connx_Tensor_alloc(connx_DataType dtype, int32_t ndim, int32_t* shape) {
+connx_Tensor* connx_Tensor_alloc(uint32_t dtype, int32_t ndim, int32_t* shape) {
     uint32_t header_size = CONNX_ALIGN(sizeof(connx_Tensor));
     uint32_t dim_size = CONNX_ALIGN(sizeof(int32_t) * ndim);
     int32_t total = connx_Int32_product(ndim, shape);
@@ -146,7 +146,7 @@ bool connx_Tensor_is_likely_same_shape(connx_Tensor* A, connx_Tensor* B) {
     return true;
 }
 
-connx_Tensor* connx_Tensor_alloc_broadcasted(const connx_DataType dtype, connx_Tensor* A, connx_Tensor* B) {
+connx_Tensor* connx_Tensor_alloc_broadcasted(const uint32_t dtype, connx_Tensor* A, connx_Tensor* B) {
     int32_t ndim = (A->ndim > B->ndim) ? A->ndim : B->ndim;
     int32_t shape[ndim];
 
