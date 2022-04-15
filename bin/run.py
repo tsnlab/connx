@@ -125,26 +125,26 @@ class Daemon(threading.Thread):
         # Write number of inputs
         self.stdin.write(struct.pack('=I', len(inputs)))
 
-        for input in inputs:
+        for input_ in inputs:
             # Write data
-            if type(input) == str:
-                with open(input, 'rb') as file:
+            if type(input_) == str:
+                with open(input_, 'rb') as file:
                     data = file.read()
                     self.stdin.write(data)
                     self.stdin.flush()
-            elif type(input) == np.ndarray:
-                dtype = get_dtype(input.dtype)
+            elif type(input_) == np.ndarray:
+                dtype = get_dtype(input_.dtype)
                 self.stdin.write(struct.pack('=I', dtype))
-                self.stdin.write(struct.pack('=I', len(input.shape)))
+                self.stdin.write(struct.pack('=I', len(input_.shape)))
 
-                for dim in input.shape:
+                for dim in input_.shape:
                     self.stdin.write(struct.pack('=I', dim))
 
-                data = input.tobytes()
+                data = input_.tobytes()
                 self.stdin.write(data)
                 self.stdin.flush()
             else:
-                raise Exception(f'Unknown input type: {type(input)}')
+                raise Exception(f'Unknown input type: {type(input_)}')
 
         # save bytes for debugging purpose
         buf = bytearray()
@@ -214,24 +214,24 @@ def run(connx_path, model_path, inputs):
         proc.stdin.write(struct.pack('=I', len(inputs)))
 
         try:
-            for input in inputs:
+            for input_ in inputs:
                 # Write data
-                if type(input) == str:
-                    with open(input, 'rb') as file:
+                if type(input_) == str:
+                    with open(input_, 'rb') as file:
                         data = file.read()
                         proc.stdin.write(data)
-                elif type(input) == np.ndarray:
-                    dtype = get_dtype(input.dtype)
+                elif type(input_) == np.ndarray:
+                    dtype = get_dtype(input_.dtype)
                     proc.stdin.write(struct.pack('=I', dtype))
-                    proc.stdin.write(struct.pack('=I', len(input.shape)))
+                    proc.stdin.write(struct.pack('=I', len(input_.shape)))
 
-                    for dim in input.shape:
+                    for dim in input_.shape:
                         proc.stdin.write(struct.pack('=I', dim))
 
-                    data = input.tobytes()
+                    data = input_.tobytes()
                     proc.stdin.write(data)
                 else:
-                    raise Exception(f'Unknown input type: {type(input)}')
+                    raise Exception(f'Unknown input type: {type(input_)}')
         except BrokenPipeError:
             print(proc.stderr.read().decode('utf-8'))
         else:

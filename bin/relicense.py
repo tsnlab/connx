@@ -14,30 +14,30 @@ license_file = sys.argv[2]
 def get_copyright(lines):
     start = -1
     end = -1
-    copyright = False
+    copyright_ = False
     for i in range(min(20, len(lines))):
         line = lines[i].strip()
 
-        if not copyright:
+        if not copyright_:
             if line.startswith('/*'):
                 start = i
             elif 'Copyright' in line or 'copyright' in line:
-                copyright = True
+                copyright_ = True
         else:
             if line.endswith('*/'):
                 end = i
                 break
 
-    if start != -1 and end != -1 and copyright:
+    if start != -1 and end != -1 and copyright_:
         return (start, end)
     else:
         return None
 
 
 # read license
-license = []
+licence_ = []
 with open(str(license_file), 'r') as f:
-    license = f.readlines()
+    licence_ = f.readlines()
 
 # retrieve files
 for path in Path(base_dir).rglob('*'):
@@ -60,5 +60,5 @@ for path in Path(base_dir).rglob('*'):
 
         with open(str(path), 'w') as f:
             f.writelines(lines[:pos[0]])
-            f.writelines(license)
+            f.writelines(licence_)
             f.writelines(lines[pos[1] + 1:])
