@@ -647,7 +647,7 @@ void connx_watch_dump() {
 
     if (has_dump) {
         for (int32_t i = 0; i < CONNX_WATCH_COUNT; i++) {
-            fprintf(stderr, "Watch[%d] = %lu\n", i, _connx_watch[i]);
+            fprintf(stderr, "Watch[%d] = %" PRIu64 "\n", i, _connx_watch[i]);
         }
     } else {
         fprintf(stderr, "Watch: nothing to dump\n");

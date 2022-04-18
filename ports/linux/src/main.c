@@ -16,7 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #define _POSIX_C_SOURCE 199309L // clock_gettime
-#include <locale.h>             // setlocale
+#include <inttypes.h>
+#include <locale.h> // setlocale
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -257,7 +258,7 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout, in
                 if (dt > maximum)
                     maximum = dt;
 
-                fprintf(stderr, "%u: %'lu ns\n", i, dt);
+                fprintf(stderr, "%u: %'" PRIu64 " ns\n", i, dt);
 
                 if (i + 1 < loop) {
                     for (uint32_t j = 0; j < output_count; j++) {
@@ -267,10 +268,10 @@ static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout, in
             }
 
             fprintf(stderr, "\n");
-            fprintf(stderr, "minimum: %'12lu ns\n", minimum);
-            fprintf(stderr, "mean:    %'12lu ns\n", (total / loop));
-            fprintf(stderr, "maximum: %'12lu ns\n", maximum);
-            fprintf(stderr, "total:   %'12lu ns\n", total);
+            fprintf(stderr, "minimum: %'12" PRIu64 " ns\n", minimum);
+            fprintf(stderr, "mean:    %'12" PRIu64 " ns\n", (total / loop));
+            fprintf(stderr, "maximum: %'12" PRIu64 " ns\n", maximum);
+            fprintf(stderr, "total:   %'12" PRIu64 " ns\n", total);
 
             for (uint32_t i = 0; i < input_count; i++) {
                 connx_Tensor_unref_child(inputs[i]);
@@ -384,7 +385,7 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
             if (dt > maximum)
                 maximum = dt;
 
-            printf("%u: %'lu ns\n", i, dt);
+            printf("%u: %'" PRIu64 " ns\n", i, dt);
 
             for (uint32_t j = 0; j < output_count; j++) {
                 connx_Tensor_unref(outputs[j]);
@@ -392,10 +393,10 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
         }
 
         printf("\n");
-        printf("minimum: %'12lu ns\n", minimum);
-        printf("mean:    %'12lu ns\n", (total / loop));
-        printf("maximum: %'12lu ns\n", maximum);
-        printf("total:   %'12lu ns\n", total);
+        printf("minimum: %'12" PRIu64 " ns\n", minimum);
+        printf("mean:    %'12" PRIu64 " ns\n", (total / loop));
+        printf("maximum: %'12" PRIu64 " ns\n", maximum);
+        printf("total:   %'12" PRIu64 " ns\n", total);
 
         for (int i = 0; i < input_count; i++) {
             connx_Tensor_unref_child(inputs[i]);
