@@ -79,3 +79,25 @@ jobs:
           [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="==$ONNX_VERSION"
           pip3 install -U "onnx${ONNX_VERSION}" protobuf tabulate pytest
           pytest -v
+
+  build_on_rpi:
+    strategy:
+      fail-fast: false
+      matrix:
+        host:
+          - rpi3
+          - rpi4
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Clone to ${{ matrix.host }}
+        run: rsync -avz --no-owner --no-group --delete ./ ${{ matrix.host }}:ci/connx/
+      - name: Build
+        run: |
+            ssh ${{ matrix.host }} << EOF
+            set -eo pipefail
+            cd ci/connx
+            cmake -B build -G Ninja -D CMAKE_BUILD_TYPE=Release ports/linux
+            cmake --build build
+            EOF
