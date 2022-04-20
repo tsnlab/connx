@@ -151,7 +151,7 @@ class Model(Wrapper):
         outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
         output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
 
-        bindings.model_run(
+        ret = bindings.model_run(
             self._wrapped_object,
             input_count,
             inputs,
@@ -159,6 +159,9 @@ class Model(Wrapper):
             outputs)
 
         # TODO: unref?
+
+        if ret != 0:
+            raise RuntimeError(f'Model run failed: {ret}')
 
         return [Tensor(outputs[i].contents) for i in range(output_count.value)]
 
