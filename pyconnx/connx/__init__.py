@@ -104,6 +104,9 @@ class Tensor(Wrapper):
 
         return tensor
 
+    def clone(self):
+        return Tensor.from_nparray(self.to_nparray())
+
     def __len__(self):
         return math.prod(self.shape)
 
@@ -146,7 +149,7 @@ class Model(Wrapper):
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         inputs = (ctypes.POINTER(Tensor._wrapped_class_) * len(input_data))(
-            *[ctypes.pointer(t._wrapped_object) for t in input_data])
+            *[ctypes.pointer(t.clone()._wrapped_object) for t in input_data])
         input_count = len(inputs)
         outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
         output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
