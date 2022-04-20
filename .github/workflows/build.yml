@@ -38,10 +38,10 @@ jobs:
           python-version: 3.8
       - name: Install ubuntu packages to build
         run: |
-            sudo apt install cmake ninja-build protobuf-compiler
-            pip3 install poetry
-            poetry config virtualenvs.create false
-            poetry install --no-interaction --no-ansi -E numpy
+          sudo apt install cmake ninja-build protobuf-compiler
+          pip3 install poetry
+          poetry config virtualenvs.create false
+          poetry install --no-interaction --no-ansi -E numpy
       - name: Create build directory
         run: mkdir build
       - name: build C files
@@ -81,7 +81,10 @@ jobs:
         run: |
           cd onnx-connx
           [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="==$ONNX_VERSION"
-          poetry add ../ && poetry install
+          pip3 install poetry
+          poetry config virtualenvs.create false
+          poetry install --no-interaction --no-ansi
+          poetry add ../ -E numpy && poetry install
           poetry run pytest -v
 
   build_on_rpi:
