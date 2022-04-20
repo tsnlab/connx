@@ -1,11 +1,10 @@
 import struct
-import subprocess
 import sys
-import threading
 import time
-import traceback
 
 import numpy as np
+
+from connx import load_data, load_model
 
 
 WARN = '\033[93m'
@@ -90,208 +89,12 @@ def product(shape):
     return p
 
 
-class Daemon(threading.Thread):
-    def __init__(self, connx_path, model_path):
-        threading.Thread.__init__(self)
-        self.connx_path = connx_path
-        self.model_path = model_path
-        self.stderr = None
-        self.stdin = None
-        self.stdout = None
+def run(model_path, input_paths):
+    model = load_model(model_path)
+    input_data = [load_data(p) for p in input_paths]
+    results = model.run(input_data)
 
-    def run(self):
-        with subprocess.Popen([self.connx_path, self.model_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE) as proc:
-
-            self.stdin = proc.stdin
-            self.stdout = proc.stdout
-            self.stderr = proc.stderr
-
-            for line in iter(proc.stderr.readline, b''):
-                print(f'{WARN}stderr> ', line, END, flush=True)
-
-    def inference(self, inputs):
-        while self.stderr is None:
-            time.sleep(0)
-
-        if inputs is None:
-            # Terminate the connx at next loop
-            self.stdin.write(struct.pack('=i', -1))
-            self.stdin.flush()
-            self.stdin.close()
-            self.stderr.close()
-            return None
-
-        # Write number of inputs
-        self.stdin.write(struct.pack('=I', len(inputs)))
-
-        for input_ in inputs:
-            # Write data
-            if type(input_) == str:
-                with open(input_, 'rb') as file:
-                    data = file.read()
-                    self.stdin.write(data)
-                    self.stdin.flush()
-            elif type(input_) == np.ndarray:
-                dtype = get_dtype(input_.dtype)
-                self.stdin.write(struct.pack('=I', dtype))
-                self.stdin.write(struct.pack('=I', len(input_.shape)))
-
-                for dim in input_.shape:
-                    self.stdin.write(struct.pack('=I', dim))
-
-                data = input_.tobytes()
-                self.stdin.write(data)
-                self.stdin.flush()
-            else:
-                raise Exception(f'Unknown input type: {type(input_)}')
-
-        # save bytes for debugging purpose
-        buf = bytearray()
-
-        # Parse number of outputs
-        try:
-            b = self.stdout.read(4)
-            buf += b
-            count = struct.unpack('=i', b)[0]
-
-            if count < 0:
-                print('Error code:', count)
-                return []
-
-            outputs = []
-
-            for i in range(count):
-                # Parse data type
-                b = self.stdout.read(8)
-                buf += b
-                dtype, ndim = struct.unpack('=II', b)
-
-                shape = []
-                for i in range(ndim):
-                    b = self.stdout.read(4)
-                    buf += b
-                    shape.append(struct.unpack('=I', b)[0])
-
-                # Parse data
-                dtype = get_nptype(dtype)
-                itemsize = np.dtype(dtype).itemsize
-                total = product(shape)
-                b = self.stdout.read(itemsize * total)
-                buf += b
-                output = np.frombuffer(b, dtype=dtype, count=product(shape)).reshape(shape)
-                outputs.append(output)
-
-            return outputs
-        except Exception as e:
-            print(f'Exception occurred: {e}')
-            traceback.print_exc()
-            print(f'Illegal input: {len(buf)} bytes')
-            print(f'as string: "{buf}"')
-            print(f'as hexa: "{buf.hex()}"')
-            return []
-
-    def stop(self):
-        self.stdout.close()
-
-
-class Stderr(threading.Thread):
-    def __init__(self, stderr):
-        threading.Thread.__init__(self)
-
-        self.stderr = stderr
-
-    def run(self):
-        for line in iter(self.stderr.readline, b''):
-            print(f'{WARN}stderr> ', line.decode('utf-8'), END, flush=True)
-
-
-def run(connx_path, model_path, inputs):
-    with subprocess.Popen([connx_path, model_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE) as proc:
-
-        # Write number of inputs
-        proc.stdin.write(struct.pack('=I', len(inputs)))
-
-        try:
-            for input_ in inputs:
-                # Write data
-                if type(input_) == str:
-                    with open(input_, 'rb') as file:
-                        data = file.read()
-                        proc.stdin.write(data)
-                elif type(input_) == np.ndarray:
-                    dtype = get_dtype(input_.dtype)
-                    proc.stdin.write(struct.pack('=I', dtype))
-                    proc.stdin.write(struct.pack('=I', len(input_.shape)))
-
-                    for dim in input_.shape:
-                        proc.stdin.write(struct.pack('=I', dim))
-
-                    data = input_.tobytes()
-                    proc.stdin.write(data)
-                else:
-                    raise Exception(f'Unknown input type: {type(input_)}')
-        except BrokenPipeError:
-            print(proc.stderr.read().decode('utf-8'))
-        else:
-            # Terminate the connx at next loop
-            proc.stdin.write(struct.pack('=i', -1))
-            proc.stdin.close()
-
-            # Print stderr first
-            stderr = Stderr(proc.stderr)
-            stderr.start()
-
-            # save bytes for debugging purpose
-            buf = bytearray()
-
-            # Parse number of outputs
-            try:
-                b = proc.stdout.read(4)
-                buf += b
-                count = struct.unpack('=i', b)[0]
-
-                if count < 0:
-                    print('Error code:', count)
-                    stderr.join()
-                    return []
-
-                outputs = []
-
-                for i in range(count):
-                    # Parse data type
-                    b = proc.stdout.read(8)
-                    buf += b
-                    dtype, ndim = struct.unpack('=II', b)
-
-                    shape = []
-                    for i in range(ndim):
-                        b = proc.stdout.read(4)
-                        buf += b
-                        shape.append(struct.unpack('=I', b)[0])
-
-                    # Parse data
-                    dtype = get_nptype(dtype)
-                    itemsize = np.dtype(dtype).itemsize
-                    total = product(shape)
-                    b = proc.stdout.read(itemsize * total)
-                    buf += b
-                    output = np.frombuffer(b, dtype=dtype, count=product(shape)).reshape(shape)
-                    outputs.append(output)
-
-                proc.stdout.close()
-            except Exception as e:
-                print(f'Exception occurred: {e}')
-                traceback.print_exc()
-                print(f'Illegal input: {len(buf)} bytes')
-                print(f'as string: "{buf}"')
-                print(f'as hexa: "{buf.hex()}"')
-                return []
-
-            stderr.join()
-
-            return outputs
+    return [data.to_nparray() for data in results]
 
 
 def read_tensor(io):
@@ -311,7 +114,7 @@ def read_tensor(io):
 
 if __name__ == '__main__':
     start_timestamp = time.time()
-    outputs = run(sys.argv[1], sys.argv[2], sys.argv[3:])
+    outputs = run(sys.argv[1], sys.argv[2:])
     end_timestamp = time.time()
 
     if outputs is not None:
