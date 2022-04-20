@@ -15,6 +15,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +62,7 @@ int Cast_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                 /*{%   if DTYPE_input in (FLOAT32, FLOAT64) %}*/
                 sprintf(output_array[i], "%g", input_array[i]); // FIXME: float to string
                 /*{%   elif DTYPE_input in (INT64, UINT64) %}*/
-                sprintf(output_array[i], "%ld", input_array[i]);
+                sprintf(output_array[i], "%" PRId64, input_array[i]);
                 /*{%   else %}*/
                 sprintf(output_array[i], "%d", input_array[i]);
                 /*{%   endif %}*/
