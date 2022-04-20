@@ -29,26 +29,10 @@
 #include <connx/hal.h>
 
 static FILE* open_tensorin(const char* path) {
-    if (strncmp("-", path, 2) == 0) {
-        return stdin;
-    } else {
-        return fopen(path, "r");
-    }
-}
-
-static FILE* open_tensorout(const char* path) {
-    if (strncmp("-", path, 2) == 0) {
-        return stdout;
-    } else {
-        return fopen(path, "w");
-    }
+    return fopen(path, "r");
 }
 
 static int close_tensor(FILE* fp) {
-    if (fp == stdin || fp == stdout) {
-        return 0;
-    }
-
     return fclose(fp);
 }
 
@@ -66,25 +50,6 @@ static int32_t file_read(FILE* fp, void* buf, int32_t size) {
         p += len;
         remain -= len;
     }
-
-    return size;
-}
-
-static int32_t file_write(FILE* fp, void* buf, int32_t size) {
-    void* p = buf;
-    size_t remain = size;
-    while (remain > 0) {
-        int len = fwrite(p, 1, remain, fp);
-        if (len < 0) {
-            fprintf(stderr, "HAL ERROR: Cannot read input data");
-            return -1;
-        }
-
-        p += len;
-        remain -= len;
-    }
-
-    fflush(fp);
 
     return size;
 }
@@ -124,200 +89,6 @@ static int read_tensor(FILE* fp, connx_Tensor** tensor) {
 
         return CONNX_IO_ERROR;
     }
-
-    return CONNX_OK;
-}
-
-static int write_tensor(FILE* fp, connx_Tensor* tensor) {
-    int ret;
-
-    int32_t dtype = tensor->dtype;
-    if (file_write(fp, &dtype, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
-        connx_error("Cannot write tensor data type to Tensor I/O module.\n");
-
-        ret = -CONNX_IO_ERROR;
-        file_write(fp, &ret, sizeof(int32_t));
-
-        return CONNX_IO_ERROR;
-    }
-
-    if (file_write(fp, &tensor->ndim, sizeof(int32_t)) != (int32_t)sizeof(int32_t)) {
-        connx_error("Cannot write tensor ndim to Tensor I/O module.\n");
-
-        ret = -CONNX_IO_ERROR;
-        file_write(fp, &ret, sizeof(int32_t));
-
-        return CONNX_IO_ERROR;
-    }
-
-    if (file_write(fp, tensor->shape, sizeof(int32_t) * tensor->ndim) != (int32_t)(sizeof(int32_t) * tensor->ndim)) {
-        connx_error("Cannot write tensor shape to Tensor I/O module.\n");
-
-        ret = -CONNX_IO_ERROR;
-        file_write(fp, &ret, sizeof(int32_t));
-
-        return CONNX_IO_ERROR;
-    }
-
-    if (file_write(fp, tensor->buffer, tensor->size) != (int32_t)tensor->size) {
-        connx_error("Cannot write tensor data to Tensor I/O module.\n");
-
-        ret = -CONNX_IO_ERROR;
-        file_write(fp, &ret, sizeof(int32_t));
-
-        return CONNX_IO_ERROR;
-    }
-
-    return CONNX_OK;
-}
-
-static int run_from_fifo(connx_Model* model, char* tensorin, char* tensorout, int loop) {
-    int ret;
-
-    FILE* fp_in = open_tensorin(tensorin);
-    if (fp_in == NULL) {
-        return CONNX_RESOURCE_NOT_FOUND;
-    }
-
-    FILE* fp_out = open_tensorout(tensorout);
-    if (fp_out == NULL) {
-        return CONNX_RESOURCE_NOT_FOUND;
-
-        if (fp_in != NULL && fp_in != stdin) {
-            close_tensor(fp_in);
-        }
-    }
-
-    // loop: input -> inference -> output
-    // If input_count is -1 then exit the loop
-    while (true) {
-        // Read input count from HAL
-        uint32_t input_count;
-        if (file_read(fp_in, &input_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
-            connx_error("Cannot read input count from Tensor I/O module.\n");
-
-            ret = -CONNX_IO_ERROR;
-            file_write(fp_out, &ret, sizeof(int32_t));
-
-            return CONNX_IO_ERROR;
-        }
-
-        if (input_count == (uint32_t)-1) {
-            break;
-        }
-
-        // Read input data from HAL
-        connx_Tensor* inputs[input_count];
-        for (uint32_t i = 0; i < input_count; i++) {
-            connx_Tensor* tensor;
-            ret = read_tensor(fp_in, &tensor);
-
-            if (ret != CONNX_OK) {
-                int code = -ret;
-                file_write(fp_out, &code, sizeof(int32_t));
-
-                return ret;
-            }
-
-            inputs[i] = tensor;
-        }
-
-        // Run model
-        uint32_t output_count = 16;
-        connx_Tensor* outputs[output_count];
-
-        if (loop > 0) { // performance test
-            setlocale(LC_NUMERIC, "");
-
-            for (uint32_t i = 0; i < input_count; i++) {
-                connx_Tensor_ref_child(inputs[i]);
-            }
-
-            ret = CONNX_OK;
-
-            uint64_t total = 0;
-            uint64_t minimum = UINT64_MAX;
-            uint64_t maximum = 0;
-            struct timespec start = {0, 0};
-            struct timespec end = {0, 0};
-
-            for (int i = 0; i < loop && ret == CONNX_OK; i++) {
-                clock_gettime(CLOCK_MONOTONIC, &start);
-                ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
-                clock_gettime(CLOCK_MONOTONIC, &end);
-
-                uint64_t st = start.tv_sec * 1000000000ull + start.tv_nsec;
-                uint64_t et = end.tv_sec * 1000000000ull + end.tv_nsec;
-                uint64_t dt = et - st;
-
-                total += dt;
-
-                if (dt < minimum)
-                    minimum = dt;
-
-                if (dt > maximum)
-                    maximum = dt;
-
-                fprintf(stderr, "%u: %'" PRIu64 " ns\n", i, dt);
-
-                if (i + 1 < loop) {
-                    for (uint32_t j = 0; j < output_count; j++) {
-                        connx_Tensor_unref(outputs[j]);
-                    }
-                }
-            }
-
-            fprintf(stderr, "\n");
-            fprintf(stderr, "minimum: %'12" PRIu64 " ns\n", minimum);
-            fprintf(stderr, "mean:    %'12" PRIu64 " ns\n", (total / loop));
-            fprintf(stderr, "maximum: %'12" PRIu64 " ns\n", maximum);
-            fprintf(stderr, "total:   %'12" PRIu64 " ns\n", total);
-
-            for (uint32_t i = 0; i < input_count; i++) {
-                connx_Tensor_unref_child(inputs[i]);
-            }
-
-            fprintf(stderr, "\n");
-            connx_watch_dump();
-        } else {
-            ret = connx_Model_run(model, input_count, inputs, &output_count, outputs);
-            if (ret != CONNX_OK) {
-                int32_t ret2 = -ret;
-                file_write(fp_out, &ret2, sizeof(int32_t));
-
-                return ret;
-            }
-        }
-
-        // Write outputs
-        // Write output count
-        if (file_write(fp_out, &output_count, sizeof(uint32_t)) != (int32_t)sizeof(uint32_t)) {
-            connx_error("Cannot write output data to Tensor I/O moudle.\n");
-
-            ret = -CONNX_IO_ERROR;
-            file_write(fp_out, &ret, sizeof(int32_t));
-
-            return CONNX_IO_ERROR;
-        }
-
-        for (uint32_t i = 0; i < output_count; i++) {
-            ret = write_tensor(fp_out, outputs[i]);
-
-            if (ret != CONNX_OK) {
-                int code = -ret;
-                file_write(fp_out, &code, sizeof(int32_t));
-
-                return ret;
-            }
-        }
-
-        for (uint32_t i = 0; i < output_count; i++) {
-            connx_Tensor_unref(outputs[i]);
-        }
-    }
-
-    close_tensor(fp_in);
-    close_tensor(fp_out);
 
     return CONNX_OK;
 }
@@ -421,9 +192,6 @@ static int run_from_file(connx_Model* model, int input_count, char** input_files
 }
 
 static int get_file_type(char* path) {
-    if (strncmp("-", path, 2) == 0)
-        return 0; // FIFO
-
     int ret;
     struct stat st;
     if ((ret = stat(path, &st)) != 0) {
@@ -433,7 +201,8 @@ static int get_file_type(char* path) {
     if (S_ISREG(st.st_mode)) { // regular file
         return 1;
     } else if (S_ISFIFO(st.st_mode)) { // fifo
-        return 0;
+        connx_error("Cannot read from FIFO: %s\n", path);
+        return -2;
     } else { // Unknown
         return -1;
     }
@@ -446,10 +215,7 @@ int main(int argc, char** argv) {
 
     if (argc < 2) {
         connx_info("Usage: connx [connx model path] [input]* [output]? [-p number]?\n");
-        connx_info("       input  - tensor file, fifo or '-' for stdin(without ' mark)\n");
-        connx_info("                input can be omitted only when output is omitted\n");
-        connx_info("       output - tensor file, fifo or '-' for stdout(without ' mark)\n");
-        connx_info("                if output is omitted, tensor will be dump to text\n");
+        connx_info("       input  - tensor file\n");
         connx_info("       -p - performance test number of times\n");
         goto done;
     }
@@ -465,9 +231,7 @@ int main(int argc, char** argv) {
 
     int loop = 0;
     int input_count = 1;
-    int input_type = 0; // 0: fifo, 1: file
     char** input_paths = tmp;
-    char* output_path = tmp[0];
 
     // 0: both omitted
     // 1: first input
@@ -488,7 +252,7 @@ int main(int argc, char** argv) {
             state = 1;
             i--;
             break;
-        case 1:
+        case 1: // first input
             switch (get_file_type(argv[i])) {
             case -2: // I/O error
                 connx_error("Cannot get file state: '%s'\n", argv[i]);
@@ -496,14 +260,7 @@ int main(int argc, char** argv) {
             case -1: // Unsupported file type
                 connx_error("Unknown file type: '%s'\n", argv[i]);
                 return CONNX_IO_ERROR;
-            case 0: // FIFO
-                input_type = 0;
-                input_count = 1;
-                input_paths = argv + i;
-                state = 3;
-                break;
             case 1: // regular file
-                input_type = 1;
                 input_count = 1;
                 input_paths = argv + i;
                 state = 2;
@@ -512,29 +269,13 @@ int main(int argc, char** argv) {
                 // Do nothing
             }
             break;
-        case 2:
+        case 2: // file inputs
             switch (get_file_type(argv[i])) {
             case 1: // regular file
                 input_count++;
                 break;
             default:
                 i--;
-                state = 3;
-            }
-            break;
-        case 3:
-            switch (get_file_type(argv[i])) {
-            case -2: // I/O error
-                connx_error("Cannot get file state: '%s'\n", argv[i]);
-                return CONNX_IO_ERROR;
-            case -1: // Unsupported file type
-                connx_error("Unknown file type: '%s'\n", argv[i]);
-                return CONNX_IO_ERROR;
-            case 0: // FIFO
-                output_path = argv[i];
-                state = 9;
-                break;
-            default:
                 state = 9;
             }
             break;
@@ -554,15 +295,7 @@ int main(int argc, char** argv) {
     connx_debug("Model: %s\n", argv[1]);
 #endif /* DEBUG */
 
-    switch (input_type) {
-    case 0: // fifo
-        ret = run_from_fifo(&model, input_paths[0], output_path, loop);
-        break;
-    case 1: // file
-        ret = run_from_file(&model, input_count, input_paths, loop);
-        break;
-    default:;
-    }
+    ret = run_from_file(&model, input_count, input_paths, loop);
 
     connx_Model_destroy(&model);
 
