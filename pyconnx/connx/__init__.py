@@ -1,9 +1,10 @@
 import ctypes
 import math
 import struct
+import timeit
 
 from threading import Lock
-from typing import List, Optional
+from typing import List, Optional, Union
 
 try:
     import numpy
@@ -167,6 +168,16 @@ class Model(Wrapper):
             raise RuntimeError(f'Model run failed: {ret}')
 
         return [Tensor(outputs[i].contents) for i in range(output_count.value)]
+
+    def benchmark(self, input_data: List[Tensor], repeat: int = 10, *, aggregate=True) -> Union[List[float], float]:
+
+        def func():
+            self.run(input_data)
+
+        if aggregate:
+            return timeit.timeit(func, number=repeat) / repeat
+        else:
+            return timeit.repeat(func, number=repeat)
 
     def __repr__(self):
         name = self.__class__.__name__
