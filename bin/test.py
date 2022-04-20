@@ -13,7 +13,6 @@ from run import read_tensor, run
 parser = argparse.ArgumentParser(description='Test connx model')
 parser.add_argument('--atol', type=float, default=1e-7, help='absolute tolerance')
 parser.add_argument('--rtol', type=float, default=0.001, help='relative tolerance')
-parser.add_argument('connx', type=str, default='./connx', help='connx executable file')
 parser.add_argument('model', type=str, help='model directory')
 parser.add_argument(
     'tests', type=str, metavar='test case', nargs="*",
@@ -30,7 +29,6 @@ END = '\033[0m'
 
 args = parser.parse_args()
 
-CONNX = args.connx
 HOME = args.model
 
 total = 0  # total time consumption
@@ -55,7 +53,7 @@ for path in Path(HOME).rglob('*.connx'):
         model_path = os.path.join(path.parent)
 
         start_time = time.time()
-        outputs = run(CONNX, model_path, input_paths)
+        outputs = run(model_path, input_paths)
         end_time = time.time()
 
         is_failed = False

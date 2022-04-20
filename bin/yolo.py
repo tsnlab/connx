@@ -231,7 +231,7 @@ def load_image(img_path: str) -> np.ndarray:
 if __name__ == '__main__':
     import sys
 
-    connx_path, model_path, image_path = sys.argv[1:4]
+    model_path, image_path = sys.argv[1:3]
 
     input_size = 416
 
@@ -239,7 +239,7 @@ if __name__ == '__main__':
 
     print(f'{img_orig.size=}, {img.shape=}')
 
-    detections = run(connx_path, model_path, [img])
+    detections = run(model_path, [img])
     # detections = [
     #     np.load(f'output_{i}.npy') for i in range(3)
     # ]
