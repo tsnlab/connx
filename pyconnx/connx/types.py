@@ -42,7 +42,7 @@ class ConnxType(enum.IntEnum):
     def from_numpy(cls, value):
         if not NUMPY_AVAILABLE:
             raise RuntimeError("numpy is not available")
-        return cls._FROM_NUMPY.get(value)
+        return cls._FROM_NUMPY.get(numpy.dtype(value))
 
 
 ConnxType._TO_CTYPES = {
@@ -85,12 +85,12 @@ if NUMPY_AVAILABLE:
         ConnxType.FLOAT32: numpy.float32,
         ConnxType.FLOAT64: numpy.float64,
         ConnxType.STRING: None,
-        ConnxType.BOOL: numpy.bool,
+        ConnxType.BOOL: bool,
         ConnxType.COMPLEX64: numpy.complex64,
         ConnxType.COMPLEX128: numpy.complex128,
     }
 
     ConnxType._FROM_NUMPY = {
-        numpy.dtype(v): k
+        numpy.dtype(v) if v else None: k
         for k, v in ConnxType._TO_NUMPY.items()
     }

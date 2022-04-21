@@ -1,9 +1,10 @@
 import ctypes
 import math
 import struct
+import timeit
 
 from threading import Lock
-from typing import List, Optional
+from typing import List, Optional, Union
 
 try:
     import numpy
@@ -104,6 +105,9 @@ class Tensor(Wrapper):
 
         return tensor
 
+    def clone(self):
+        return Tensor.from_nparray(self.to_nparray())
+
     def __len__(self):
         return math.prod(self.shape)
 
@@ -146,12 +150,12 @@ class Model(Wrapper):
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         inputs = (ctypes.POINTER(Tensor._wrapped_class_) * len(input_data))(
-            *[ctypes.pointer(t._wrapped_object) for t in input_data])
+            *[ctypes.pointer(t.clone()._wrapped_object) for t in input_data])
         input_count = len(inputs)
         outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
         output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
 
-        bindings.model_run(
+        ret = bindings.model_run(
             self._wrapped_object,
             input_count,
             inputs,
@@ -160,7 +164,20 @@ class Model(Wrapper):
 
         # TODO: unref?
 
+        if ret != 0:
+            raise RuntimeError(f'Model run failed: {ret}')
+
         return [Tensor(outputs[i].contents) for i in range(output_count.value)]
+
+    def benchmark(self, input_data: List[Tensor], repeat: int = 10, *, aggregate=True) -> Union[List[float], float]:
+
+        def func():
+            self.run(input_data)
+
+        if aggregate:
+            return timeit.timeit(func, number=repeat) / repeat
+        else:
+            return timeit.repeat(func, number=repeat)
 
     def __repr__(self):
         name = self.__class__.__name__
