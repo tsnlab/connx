@@ -91,6 +91,7 @@ if NUMPY_AVAILABLE:
     }
 
     ConnxType._FROM_NUMPY = {
-        numpy.dtype(v) if v else None: k
+        numpy.dtype(v): k
         for k, v in ConnxType._TO_NUMPY.items()
+        if v is not None
     }

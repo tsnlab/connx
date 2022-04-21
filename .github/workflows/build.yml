@@ -2,8 +2,6 @@ name: Build
 
 on:
   push:
-    branches:
-      - master
   pull_request:
 
 jobs:
@@ -70,22 +68,35 @@ jobs:
           - latest
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@master
       - name: Clone onnx-connx
         uses: actions/checkout@master
         with:
           repository: tsnlab/onnx-connx
           path: onnx-connx
-      - name: ONNX Test Cases
+      - name: Install ubuntu packages to build
+        run: |
+          sudo apt install cmake ninja-build protobuf-compiler
+      - name: Setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8
+      - name: Install onnx-connx
         env:
             ONNX_VERSION: ${{ matrix.onnx_version }}
+        working-directory: onnx-connx
         run: |
-          cd onnx-connx
-          [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="==$ONNX_VERSION"
+          [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="~=$ONNX_VERSION"
           pip3 install poetry
-          poetry config virtualenvs.create false
+          poetry remove connx onnx
+          poetry add "onnx$ONNX_VERSION" "../[numpy]"
           poetry install --no-interaction --no-ansi
-          poetry add ../ -E numpy && poetry install
-          poetry run pytest -v
+      - name: Run pytest for onnx test cases
+        env:
+            ONNX_VERSION: ${{ matrix.onnx_version }}
+        working-directory: onnx-connx
+        run: poetry run pytest -v
 
   build_on_rpi:
     strategy:
