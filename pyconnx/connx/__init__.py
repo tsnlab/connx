@@ -191,13 +191,15 @@ class Model(Wrapper):
             bindings.tensor_ref_child(t._wrapped_object)
 
         def func():
-
             bindings.model_run(
                 self._wrapped_object,
                 input_count,
                 inputs,
                 ctypes.byref(output_count),
                 outputs)
+
+            for i in range(output_count.value):
+                bindings.tensor_unref(outputs[i].contents)
 
         if aggregate:
             result = timeit.timeit(func, number=repeat) / repeat
