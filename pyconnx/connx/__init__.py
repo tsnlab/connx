@@ -106,7 +106,9 @@ class Tensor(Wrapper):
         return tensor
 
     def clone(self):
-        return Tensor.from_nparray(self.to_nparray())
+        tensor = bindings.alloc_tensor(self.dtype, self.shape)
+        ctypes.memmove(tensor.buffer, self.buffer, self.size)
+        return Tensor(tensor)
 
     def __len__(self):
         return math.prod(self.shape)
@@ -149,11 +151,16 @@ class Model(Wrapper):
             bindings.model_init(self._wrapped_object)
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
+        input_count = len(input_data)
         inputs = (ctypes.POINTER(Tensor._wrapped_class_) * len(input_data))(
-            *[ctypes.pointer(t.clone()._wrapped_object) for t in input_data])
-        input_count = len(inputs)
-        outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
+            *[ctypes.pointer(t._wrapped_object) for t in input_data])
         output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
+        outputs = (ctypes.POINTER(Tensor._wrapped_class_) * output_count.value)()
+
+        for t in input_data:
+            # XXX: Don't know why, but it's unreferenced twice
+            bindings.tensor_ref(t._wrapped_object)
+            bindings.tensor_ref(t._wrapped_object)
 
         ret = bindings.model_run(
             self._wrapped_object,
@@ -161,8 +168,6 @@ class Model(Wrapper):
             inputs,
             ctypes.byref(output_count),
             outputs)
-
-        # TODO: unref?
 
         if ret != 0:
             raise RuntimeError(f'Model run failed: {ret}')

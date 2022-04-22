@@ -145,6 +145,10 @@ model_destroy.restype = c_int32
 hal_set_model = libconnx.hal_set_model
 hal_set_model.argtypes = [c_char_p]
 
+tensor_ref = libconnx.connx_Tensor_ref
+tensor_ref.argtypes = [POINTER(ConnxTensor)]
+tensor_ref.restype = None
+
 tensor_unref = libconnx.connx_Tensor_unref
 tensor_unref.argtypes = [POINTER(ConnxTensor)]
 tensor_unref.restype = c_int32
