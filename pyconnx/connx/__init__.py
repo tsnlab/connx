@@ -1,7 +1,9 @@
 import ctypes
+import gc
 import math
+import statistics
 import struct
-import timeit
+import time
 
 from threading import Lock
 from typing import List, Optional, Union
@@ -58,6 +60,7 @@ class Tensor(Wrapper):
         if tensor:
             self._wrapped_object = tensor
         super().__init__()
+        self._wrapped_object.allocated = True
 
     def to_nparray(self) -> 'numpy.ndarray':
         if not NUMPY_AVAILABLE:
@@ -73,11 +76,10 @@ class Tensor(Wrapper):
         if not NUMPY_AVAILABLE:
             raise RuntimeError('numpy is not available')
 
-        tensor = Tensor()
-        tensor._wrapped_object = bindings.alloc_tensor(
+        tensor = Tensor(bindings.alloc_tensor(
             types.ConnxType.from_numpy(nparray.dtype),
             nparray.shape
-        )
+        ))
         data = nparray.tostring()
         assert(len(data) == tensor.size)
 
@@ -87,7 +89,6 @@ class Tensor(Wrapper):
 
     @staticmethod
     def from_bytes(data: bytes) -> 'Tensor':
-        tensor = Tensor()
         format_ = '=II'
         size = struct.calcsize(format_)
         dtype, ndim = struct.unpack(format_, data[:size])
@@ -99,14 +100,16 @@ class Tensor(Wrapper):
             shape.append(struct.unpack(format_, data[:size])[0])
             data = data[size:]
 
-        tensor._wrapped_object = bindings.alloc_tensor(dtype, shape)
+        tensor = Tensor(bindings.alloc_tensor(dtype, shape))
         assert(len(data) == tensor.size)
         ctypes.memmove(tensor._wrapped_object.buffer, data, len(data))
 
         return tensor
 
     def clone(self):
-        return Tensor.from_nparray(self.to_nparray())
+        tensor = bindings.alloc_tensor(self.dtype, self.shape)
+        ctypes.memmove(tensor.buffer, self.buffer, self.size)
+        return Tensor(tensor)
 
     def __len__(self):
         return math.prod(self.shape)
@@ -149,11 +152,14 @@ class Model(Wrapper):
             bindings.model_init(self._wrapped_object)
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
+        input_count = len(input_data)
         inputs = (ctypes.POINTER(Tensor._wrapped_class_) * len(input_data))(
-            *[ctypes.pointer(t.clone()._wrapped_object) for t in input_data])
-        input_count = len(inputs)
-        outputs = (ctypes.POINTER(Tensor._wrapped_class_) * 16)()
+            *[ctypes.pointer(t._wrapped_object) for t in input_data])
         output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
+        outputs = (ctypes.POINTER(Tensor._wrapped_class_) * output_count.value)()
+
+        for t in input_data:
+            bindings.tensor_ref_child(t._wrapped_object)
 
         ret = bindings.model_run(
             self._wrapped_object,
@@ -162,22 +168,62 @@ class Model(Wrapper):
             ctypes.byref(output_count),
             outputs)
 
-        # TODO: unref?
-
         if ret != 0:
             raise RuntimeError(f'Model run failed: {ret}')
+
+        for t in input_data:
+            # XXX: Don't know why, but it's unreferenced twice
+            # To avoid unwanted free, fix ref_count
+            if t._wrapped_object.ref_count <= 0:
+                t._wrapped_object.ref_count = 1
+            bindings.tensor_unref_child(t._wrapped_object)
 
         return [Tensor(outputs[i].contents) for i in range(output_count.value)]
 
     def benchmark(self, input_data: List[Tensor], repeat: int = 10, *, aggregate=True) -> Union[List[float], float]:
+        input_count = len(input_data)
+        inputs = (ctypes.POINTER(Tensor._wrapped_class_) * len(input_data))(
+            *[ctypes.pointer(t._wrapped_object) for t in input_data])
+        output_count = ctypes.c_uint32(self.graphs[0].contents.output_count)
+        outputs = (ctypes.POINTER(Tensor._wrapped_class_) * output_count.value)()
 
-        def func():
-            self.run(input_data)
+        for t in input_data:
+            # To avoid unwanted free, use child_count
+            bindings.tensor_ref_child(t._wrapped_object)
+
+        results = []
+
+        for _ in range(repeat):
+            gc_was_enabled = gc.isenabled()
+            gc.disable()
+            start = time.time()
+            bindings.model_run(
+                self._wrapped_object,
+                input_count,
+                inputs,
+                ctypes.byref(output_count),
+                outputs)
+            end = time.time()
+            if gc_was_enabled:
+                gc.enable()
+            results.append(end - start)
+            # [Tensor(outputs[i].contents) for i in range(output_count.value)]
+
+            for i in range(output_count.value):
+                bindings.tensor_unref(outputs[i].contents)
+
+        for t in input_data:
+            # XXX: Don't know why, but it's unreferenced twice
+            # To avoid unwanted free, fix ref_count
+            if t._wrapped_object.ref_count <= 0:
+                t._wrapped_object.ref_count = 1
+            # Restore child_count
+            bindings.tensor_unref_child(t._wrapped_object)
 
         if aggregate:
-            return timeit.timeit(func, number=repeat) / repeat
+            return statistics.mean(results)
         else:
-            return timeit.repeat(func, number=repeat)
+            return results
 
     def __repr__(self):
         name = self.__class__.__name__
