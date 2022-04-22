@@ -6,7 +6,10 @@ from ctypes import (
     c_long,
     c_uint32,
     c_void_p,
-    CDLL, POINTER, Structure)
+    CDLL,
+    POINTER,
+    pointer,
+    Structure)
 
 
 libconnx = CDLL(os.path.join(os.path.dirname(__file__), 'libconnx.so'))
@@ -145,13 +148,33 @@ model_destroy.restype = c_int32
 hal_set_model = libconnx.hal_set_model
 hal_set_model.argtypes = [c_char_p]
 
-tensor_ref = libconnx.connx_Tensor_ref
-tensor_ref.argtypes = [POINTER(ConnxTensor)]
-tensor_ref.restype = None
+libconnx.connx_Tensor_ref.argtypes = [POINTER(ConnxTensor)]
+libconnx.connx_Tensor_ref.restype = None
 
-tensor_unref = libconnx.connx_Tensor_unref
-tensor_unref.argtypes = [POINTER(ConnxTensor)]
-tensor_unref.restype = c_int32
+libconnx.connx_Tensor_unref.argtypes = [POINTER(ConnxTensor)]
+libconnx.connx_Tensor_unref.restype = c_int32
+
+libconnx.connx_Tensor_ref_child.argtypes = [POINTER(ConnxTensor)]
+libconnx.connx_Tensor_ref_child.restype = None
+libconnx.connx_Tensor_unref_child.argtypes = [POINTER(ConnxTensor)]
+libconnx.connx_Tensor_unref_child.restype = c_int32
+
+
+def tensor_ref(tensor: ConnxTensor):
+    return libconnx.connx_Tensor_ref(pointer(tensor))
+
+
+def tensor_unref(tensor: ConnxTensor):
+    return libconnx.connx_Tensor_unref(pointer(tensor))
+
+
+def tensor_ref_child(tensor: ConnxTensor):
+    return libconnx.connx_Tensor_ref_child(pointer(tensor))
+
+
+def tensor_unref_child(tensor: ConnxTensor):
+    return libconnx.connx_Tensor_unref_child(pointer(tensor))
+
 
 libconnx.connx_Tensor_alloc.argtypes = [c_uint32, c_int32, POINTER(c_int32)]
 libconnx.connx_Tensor_alloc.restype = POINTER(ConnxTensor)
