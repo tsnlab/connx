@@ -1,7 +1,8 @@
 import ctypes
 import math
+import statistics
 import struct
-import timeit
+import time
 
 from threading import Lock
 from typing import List, Optional, Union
@@ -186,33 +187,38 @@ class Model(Wrapper):
         outputs = (ctypes.POINTER(Tensor._wrapped_class_) * output_count.value)()
 
         for t in input_data:
-            # XXX: Don't know why, but it's unreferenced twice
+            # To avoid unwanted free, use child_count
             bindings.tensor_ref_child(t._wrapped_object)
 
-        def func():
+        results = []
+
+        for _ in range(repeat):
+            start = time.time()
             bindings.model_run(
                 self._wrapped_object,
                 input_count,
                 inputs,
                 ctypes.byref(output_count),
                 outputs)
+            end = time.time()
+            results.append(end - start)
+            # [Tensor(outputs[i].contents) for i in range(output_count.value)]
 
             for i in range(output_count.value):
                 bindings.tensor_unref(outputs[i].contents)
-
-        if aggregate:
-            result = timeit.timeit(func, number=repeat) / repeat
-        else:
-            result = timeit.repeat(func, repeat=repeat, number=1)
 
         for t in input_data:
             # XXX: Don't know why, but it's unreferenced twice
             # To avoid unwanted free, fix ref_count
             if t._wrapped_object.ref_count <= 0:
                 t._wrapped_object.ref_count = 1
+            # Restore child_count
             bindings.tensor_unref_child(t._wrapped_object)
 
-        return result
+        if aggregate:
+            return statistics.mean(results)
+        else:
+            return results
 
     def __repr__(self):
         name = self.__class__.__name__
