@@ -1,4 +1,5 @@
 import ctypes
+import gc
 import math
 import statistics
 import struct
@@ -193,6 +194,8 @@ class Model(Wrapper):
         results = []
 
         for _ in range(repeat):
+            gc_was_enabled = gc.isenabled()
+            gc.disable()
             start = time.time()
             bindings.model_run(
                 self._wrapped_object,
@@ -201,6 +204,8 @@ class Model(Wrapper):
                 ctypes.byref(output_count),
                 outputs)
             end = time.time()
+            if gc_was_enabled:
+                gc.enable()
             results.append(end - start)
             # [Tensor(outputs[i].contents) for i in range(output_count.value)]
 
