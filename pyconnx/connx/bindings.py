@@ -1,4 +1,5 @@
 import os
+
 from ctypes import (
     addressof,
     c_char_p,
@@ -30,7 +31,10 @@ class ConnxTensor(Structure):
     } connx_Tensor;
     """
     # Because it contains self pointer, pass here and monkey patch below
-    pass
+
+    def __del__(self):
+        if hasattr(self, 'allocated'):
+            tensor_unref(self)
 
 
 ConnxTensor._fields_ = [

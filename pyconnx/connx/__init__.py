@@ -58,6 +58,7 @@ class Tensor(Wrapper):
         if tensor:
             self._wrapped_object = tensor
         super().__init__()
+        self._wrapped_object.allocated = True
 
     def to_nparray(self) -> 'numpy.ndarray':
         if not NUMPY_AVAILABLE:
@@ -73,11 +74,10 @@ class Tensor(Wrapper):
         if not NUMPY_AVAILABLE:
             raise RuntimeError('numpy is not available')
 
-        tensor = Tensor()
-        tensor._wrapped_object = bindings.alloc_tensor(
+        tensor = Tensor(bindings.alloc_tensor(
             types.ConnxType.from_numpy(nparray.dtype),
             nparray.shape
-        )
+        ))
         data = nparray.tostring()
         assert(len(data) == tensor.size)
 
@@ -87,7 +87,6 @@ class Tensor(Wrapper):
 
     @staticmethod
     def from_bytes(data: bytes) -> 'Tensor':
-        tensor = Tensor()
         format_ = '=II'
         size = struct.calcsize(format_)
         dtype, ndim = struct.unpack(format_, data[:size])
@@ -99,7 +98,7 @@ class Tensor(Wrapper):
             shape.append(struct.unpack(format_, data[:size])[0])
             data = data[size:]
 
-        tensor._wrapped_object = bindings.alloc_tensor(dtype, shape)
+        tensor = Tensor(bindings.alloc_tensor(dtype, shape))
         assert(len(data) == tensor.size)
         ctypes.memmove(tensor._wrapped_object.buffer, data, len(data))
 
