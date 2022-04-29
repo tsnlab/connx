@@ -5,7 +5,7 @@ We are hiring paid employee. Please contact us: contact at tsnlab dot com
 C implementation of Open Neural Network Exchange Runtime
 
 # Requirements
- * python3 >= 3.8  # To build templates and for python bindings
+ * python3         # To build templates and for python bindings
  * [poetry][]      # To setup python develop environment
  * cmake >= 3.1
  * ninja-build
@@ -31,8 +31,6 @@ You can find 'connx' executable in connx/build directory.
 # Install poetry using pipx or pip first
 $ poetry build
 ```
-
-It will automatically compiles library and build sdist, wheel archive on `dist` directory.
 
 ## Compile with sub-opset (optional)
 If you want to compile CONNX with subset of operators, in case of inferencing MNIST only,
