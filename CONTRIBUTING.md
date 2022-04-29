@@ -5,6 +5,16 @@ Welcome to CONNX project and very welcome your contirbutions.
  2. Don't hesitate to send a message to maintainer(@semihlab)
  3. If you are interested in contributing code, please follow contribution guilde lines below
 
+# How to setup python environment
+
+```sh
+poetry install  # To setup development environment and install dependencies
+
+poetry shell  # To run virtualenv enabled shell
+# Or you can manually enable virtualenv
+. $(poetry env info -p)/bin/activate
+```
+
 # How to add new operator
  1. Implement operator in src/opset directory
  2. Convert ONNX test case to CONNX using [onnx-connx][]'s bin/convert utility
@@ -30,7 +40,7 @@ $ flake8
 
 ~~~sh
 $ cp bin/check-clang-format .git/hooks/pre-commit  # Register C lint only
-$ ln -s /usr/bin/flake8 .git/hooks/pre-commit      # Register Python lint only
+$ ln -s $(which flake8) .git/hooks/pre-commit      # Register Python lint only
 $ cp bin/lint .git/hooks/pre-commit                # Register C and Python lint at same time
 ~~~
 
