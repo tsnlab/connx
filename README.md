@@ -46,7 +46,8 @@ Add Conv MatMul MaxPool Relu Reshape
 Run MNIST example. (Mobilenet and YOLO will be coming soon)
 
 ~~~sh
-connx/build$ ninja mnist
+connx$ cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug ports/linux  # Change Debug→Release for release mode
+connx$ ninja -C build mnist
 ~~~
 
 Notice: If you want to run on Raspberry Pi 3, please compile with Release mode(CMAKE\_BUILD\_TYPE=Release) for sanitizer makes some problem.

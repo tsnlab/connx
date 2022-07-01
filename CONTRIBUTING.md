@@ -8,11 +8,11 @@ Welcome to CONNX project and very welcome your contirbutions.
 # How to setup python environment
 
 ```sh
-poetry install  # To setup development environment and install dependencies
-
+poetry install -E numpy  # To setup development environment and install dependencies with optional numpy
 poetry shell  # To run virtualenv enabled shell
 # Or you can manually enable virtualenv
 . $(poetry env info -p)/bin/activate
+# Or use direnv's "layout poetry" for best convenient
 ```
 
 # How to add new operator
