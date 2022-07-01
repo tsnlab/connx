@@ -90,7 +90,7 @@ jobs:
           [[ "$ONNX_VERSION" = "latest" ]] && ONNX_VERSION='' || ONNX_VERSION="~=$ONNX_VERSION"
           pip3 install poetry
           poetry remove connx onnx
-          poetry add "onnx$ONNX_VERSION" "../[numpy]"
+          poetry add "onnx$ONNX_VERSION" "../[numpy]" "protobuf^3.20.0"
           poetry install --no-interaction --no-ansi
       - name: Run pytest for onnx test cases
         env:
