@@ -1,10 +1,9 @@
+import connx
 import struct
 import sys
 import time
 
 import numpy as np
-
-from connx import load_data, load_model
 
 
 WARN = '\033[93m'
@@ -89,13 +88,6 @@ def product(shape):
     return p
 
 
-def run(model_path, input_paths):
-    model = load_model(model_path)
-    input_data = [load_data(p) for p in input_paths]
-    results = model.run(input_data)
-
-    return [data.to_nparray() for data in results]
-
 
 def read_tensor(io):
     # Parse data type
@@ -113,8 +105,16 @@ def read_tensor(io):
 
 
 if __name__ == '__main__':
+    model_path, input_paths = sys.argv[1], sys.argv[2:]
+
     start_timestamp = time.time()
-    outputs = run(sys.argv[1], sys.argv[2:])
+
+    model = connx.load_model(model_path)
+    input_data = [connx.load_data(p) for p in input_paths]
+    results = model.run(input_data)
+
+    outputs = [data.to_nparray() for data in results]
+
     end_timestamp = time.time()
 
     if outputs is not None:

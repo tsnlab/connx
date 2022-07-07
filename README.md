@@ -16,19 +16,17 @@ C implementation of Open Neural Network Exchange Runtime
 
 ## Compile in release mode
 ~~~sh
-connx$ poetry config --local virtualenvs.create false  # To use python directly
-connx$ poetry install --no-dev --no-root  # To install python dependencies
-connx$ mkdir build; cd build                # Make build directory
+connx$ poetry install                                                   # To install python dependencies
+connx$ mkdir build; cd build                                            # Make build directory
 connx/build$ cmake ../ports/linux -G Ninja -D CMAKE_BUILD_TYPE=Release  # Generate build files with "Release" mode
-connx/build$ ninja                          # Compile
+connx/build$ ninja                                                      # Compile
 ~~~
 
-You can find 'connx' executable in connx/build directory.
+You can find 'connx' executable and 'libconnx.so' library in the connx/build directory.
 
 ## Build python bindings
 
 ```sh
-# Install poetry using pipx or pip first
 $ poetry build
 ```
 
@@ -43,10 +41,13 @@ Add Conv MatMul MaxPool Relu Reshape
 ~~~
 
 ## Run examples
-Run MNIST example. (Mobilenet and YOLO will be coming soon)
+Run MNIST example.
 
 ~~~sh
-connx/build$ ninja mnist
+connx/build$ poetry install -E numpy
+connx/build$ poetry run ninja mnist
+connx/build$ poetry run ninja mobilenet
+connx/build$ poetry run ninja yolov4
 ~~~
 
 Notice: If you want to run on Raspberry Pi 3, please compile with Release mode(CMAKE\_BUILD\_TYPE=Release) for sanitizer makes some problem.
@@ -78,18 +79,10 @@ numpy.allclose(reference_nparray, output_nparray)
 connx.Tensor.from_nparray(ndarray)
 ```
 
+Please refer bin/run.py for more information
+
 # ONNX compatibility test
 ONNX compatibility test is moved to onnx-connx project.
-
-# Performance profile report
-If you want to profile performance, you need to compile CONNX in debugging mode first.
-
-~~~sh
-connx/build$ cmake ../ports/linux -G Ninja -DCMAKE_BUILD_TYPE=Debug  # Generate build files
-connx/build$ ninja                                                   # Compile
-connx/build$ ninja mnist                                             # Run an any example
-connx/build$ ninja prof                                              # Print performance profile report
-~~~
 
 # Ports
  * See [Linux](ports/linux/README.md)
