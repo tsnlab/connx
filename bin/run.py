@@ -1,8 +1,8 @@
-import connx
 import struct
 import sys
 import time
 
+import connx
 import numpy as np
 
 
@@ -86,7 +86,6 @@ def product(shape):
         p *= dim
 
     return p
-
 
 
 def read_tensor(io):

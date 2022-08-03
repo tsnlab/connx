@@ -10,7 +10,6 @@ import random
 import sys
 
 import connx
-
 import cv2
 import numpy as np
 
@@ -239,8 +238,6 @@ def load_image(img_path: str) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    import sys
-
     model_path, image_path = sys.argv[1:3]
 
     model = connx.load_model(model_path)
