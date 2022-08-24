@@ -35,13 +35,13 @@ int Abs_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
     int32_t total = connx_Int32_product(X->ndim, X->shape);
 
     switch (X->dtype) {
-        /*{% set type_constrains = [
+        /*{% set type_constraints = [
                 UINT8, UINT16, UINT32, UINT64,
                 INT8, INT16, INT32, INT64,
                 FLOAT16, FLOAT32, FLOAT64
             ]
          %}*/
-        /*{% for DTYPE, TYPE in loop_types(*type_constrains) %}*/
+        /*{% for DTYPE, TYPE in loop_types(*type_constraints) %}*/
         /*{%    if "FLOAT" in DTYPE %}*/
         /*{%        set abs_func = 'fabs' %}*/
         /*{%    elif "UINT" in DTYPE %}*/
