@@ -7,12 +7,13 @@ See: https://github.com/onnx/models/tree/main/vision/object_detection_segmentati
 
 import colorsys
 import random
+import sys
 
+import connx
 import cv2
 import numpy as np
 
 from PIL import Image
-from run import run
 from scipy import special
 
 ANCHORS = [
@@ -167,10 +168,18 @@ def nms(bboxes, iou_threshold, sigma=0.3, method='nms'):
 def read_class_names(class_file_name):
     '''loads class name from a file'''
     names = {}
-    with open(class_file_name, 'r') as data:
-        for ID, name in enumerate(data):
-            names[ID] = name.strip('\n')
-    return names
+    try:
+        with open(class_file_name, 'r') as data:
+            for ID, name in enumerate(data):
+                names[ID] = name.strip('\n')
+    except FileNotFoundError:
+        print(
+            'class file not found. Please download it from here first: '
+            'https://github.com/hhk7734/tensorflow-yolov4/blob/master/test/dataset/coco.names',
+            file=sys.stderr)
+        raise
+    else:
+        return names
 
 
 def draw_bbox(image, bboxes, classes=read_class_names("coco.names"), show_label=True):
@@ -229,9 +238,9 @@ def load_image(img_path: str) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    import sys
-
     model_path, image_path = sys.argv[1:3]
+
+    model = connx.load_model(model_path)
 
     input_size = 416
 
@@ -239,10 +248,12 @@ if __name__ == '__main__':
 
     print(f'{img_orig.size=}, {img.shape=}')
 
-    detections = run(model_path, [img])
-    # detections = [
-    #     np.load(f'output_{i}.npy') for i in range(3)
-    # ]
+    tensors = [connx.Tensor.from_nparray(img)]
+
+    results = model.run(tensors)
+    detections = [
+        data.to_nparray() for data in results
+    ]
     detections = [arr.copy() for arr in detections]  # Because detection is read only
 
     print(detections)
