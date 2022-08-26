@@ -81,7 +81,7 @@ class Tensor(Wrapper):
             nparray.shape
         ))
         data = nparray.tostring()
-        assert(len(data) == tensor.size)
+        assert len(data) == tensor.size
 
         ctypes.memmove(tensor.buffer, data, len(data))
 
@@ -101,7 +101,7 @@ class Tensor(Wrapper):
             data = data[size:]
 
         tensor = Tensor(bindings.alloc_tensor(dtype, shape))
-        assert(len(data) == tensor.size)
+        assert len(data) == tensor.size
         ctypes.memmove(tensor._wrapped_object.buffer, data, len(data))
 
         return tensor
