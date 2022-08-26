@@ -47,10 +47,11 @@ int Abs_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
         {{TYPE}}* X_array = X->buffer;
         {{TYPE}}* Y_array = Y->buffer;
 
+        /*{% if DTYPE.startswith('UINT') %}*/
+        memcpy(&Y_array, &X_array, total * sizeof({{TYPE}}));
+        /*{% else %}*/
         for (int32_t i = 0; i < total; i++) {
-            /*{% if DTYPE.startswith('UINT') %}*/
-            memcpy(&Y_array[i], &X_array[i], 1 * sizeof({{TYPE}}));
-            /*{% elif "INT64" == DTYPE %}*/
+            /*{% if "INT64" == DTYPE %}*/
             Y_array[i] = labs(X_array[i]);
             /*{% elif DTYPE.startswith('FLOAT') %}*/
             Y_array[i] = fabs(X_array[i]);
@@ -58,6 +59,7 @@ int Abs_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
             Y_array[i] = abs(X_array[i]);
             /*{% endif %}*/
         }
+        /*{% endif %}*/
         break;
     }
         /*{% endfor %}*/
