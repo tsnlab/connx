@@ -17,6 +17,7 @@
  */
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
@@ -42,21 +43,20 @@ int Abs_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
             ]
          %}*/
         /*{% for DTYPE, TYPE in loop_types(*type_constraints) %}*/
-        /*{%    if "FLOAT" in DTYPE %}*/
-        /*{%        set abs_func = 'fabs' %}*/
-        /*{%    elif "UINT" in DTYPE %}*/
-        /*{%        set abs_func = '' %}*/
-        /*{%    elif "INT64" in DTYPE %}*/
-        /*{%        set abs_func = 'labs' %}*/
-        /*{%    else %}*/
-        /*{%        set abs_func = 'abs' %}*/
-        /*{%    endif %}*/
     case {{ DTYPE }}: {
         {{TYPE}}* X_array = X->buffer;
         {{TYPE}}* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
-            Y_array[i] = {{abs_func}}(X_array[i]);
+            /*{% if DTYPE.startswith('UINT') %}*/
+            memcpy(&Y_array[i], &X_array[i], 1 * sizeof({{TYPE}}));
+            /*{% elif "INT64" == DTYPE %}*/
+            Y_array[i] = labs(X_array[i]);
+            /*{% elif DTYPE.startswith('FLOAT') %}*/
+            Y_array[i] = fabs(X_array[i]);
+            /*{% else %}*/
+            Y_array[i] = abs(X_array[i]);
+            /*{% endif %}*/
         }
         break;
     }
