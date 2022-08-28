@@ -22,6 +22,7 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+#define ABS(x) (((x) < 0) ? -(x) : (x))
 // clang-format off
 int Abs_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
                         // clang-format on
@@ -51,13 +52,7 @@ int Abs_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
         memcpy(&Y_array, &X_array, total * sizeof({{TYPE}}));
         /*{% else %}*/
         for (int32_t i = 0; i < total; i++) {
-            /*{% if "INT64" == DTYPE %}*/
-            Y_array[i] = labs(X_array[i]);
-            /*{% elif DTYPE.startswith('FLOAT') %}*/
-            Y_array[i] = fabs(X_array[i]);
-            /*{% else %}*/
-            Y_array[i] = abs(X_array[i]);
-            /*{% endif %}*/
+            Y_array[i] = ABS(X_array[i]);
         }
         /*{% endif %}*/
         break;
