@@ -81,7 +81,7 @@ class Tensor(Wrapper):
             nparray.shape
         ))
         data = nparray.tostring()
-        assert(len(data) == tensor.size)
+        assert len(data) == tensor.size
 
         ctypes.memmove(tensor.buffer, data, len(data))
 
@@ -101,7 +101,7 @@ class Tensor(Wrapper):
             data = data[size:]
 
         tensor = Tensor(bindings.alloc_tensor(dtype, shape))
-        assert(len(data) == tensor.size)
+        assert len(data) == tensor.size
         ctypes.memmove(tensor._wrapped_object.buffer, data, len(data))
 
         return tensor
@@ -148,8 +148,12 @@ class Model(Wrapper):
         super().__init__()
         self.model_path = model_path
         with s_model_lock:
-            bindings.hal_set_model(model_path.encode())
-            bindings.model_init(self._wrapped_object)
+            res = bindings.hal_set_model(model_path.encode())
+            if res != 0:
+                raise RuntimeError(f'Failed to set model: {model_path}')
+            res = bindings.model_init(self._wrapped_object)
+            if res != 0:
+                raise RuntimeError(f'Failed to initialize model: {model_path}')
 
     def run(self, input_data: List[Tensor]) -> List[Tensor]:
         input_count = len(input_data)
