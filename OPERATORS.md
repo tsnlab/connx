@@ -10,7 +10,7 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |And|7, 1|X|
 |ArgMax|13, 12, 11, 1|X|
 |ArgMin|13, 12, 11, 1|X|
-|Asin|7|X|
+|Asin|7|O|
 |Asinh|9|X|
 |Atan|7|X|
 |Atanh|9|X|
@@ -19,7 +19,7 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |BitShift|11|X|
 |Cast|13, 9, 6, 1|O without stirng|
 |Ceil|13, 6, 1|X|
-|Clip|13, 12, 11, 6, 1|X|
+|Clip|13, 12, 11, 6, 1|O|
 |Col2Im|18|X|
 |Compress|11, 9|X|
 |Concat|13, 11, 4, 1|O|
@@ -36,11 +36,11 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |DepthToSpace|13, 11, 1|X|
 |DequantizeLinear|13, 10|X|
 |Det|11|X|
-|Div|14, 13, 7, 6, 1|X|
+|Div|14, 13, 7, 6, 1|O|
 |Dropout|13, 12, 10, 7, 6, 1|X|
 |Einsum|12|X|
 |Elu|6, 1|X|
-|Equal|13, 11, 7, 1|X|
+|Equal|13, 11, 7, 1|O|
 |Erf|13, 9|X|
 |Exp|13, 6, 1|O|
 |Expand|13, 8|X|
@@ -55,11 +55,11 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |GlobalAveragePool|1|O|
 |GlobalLpPool|2, 1|X|
 |GlobalMaxPool|1|O|
-|Greater|13, 9, 7, 1|X|
+|Greater|13, 9, 7, 1|O|
 |GridSample|16|X|
 |HardSigmoid|6, 1|X|
 |Hardmax|13, 11, 1|X|
-|Identity|16, 14, 13, 1|X|
+|Identity|16, 14, 13, 1|O|
 |If|16, 13, 11, 1|X|
 |InstanceNormalization|6, 1|X|
 |IsInf|10|X|
@@ -67,8 +67,8 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |LRN|13, 1|X|
 |LSTM|14, 7, 1|X|
 |LeakyRelu|16, 6, 1|O|
-|Less|13, 9, 7, 1|X|
-|Log|13, 6, 1|X|
+|Less|13, 9, 7, 1|O|
+|Log|13, 6, 1|O|
 |Loop|16, 13, 11, 1|X|
 |LpNormalization|1|X|
 |LpPool|11, 2, 1|X|
@@ -176,7 +176,7 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |HannWindow|17|X|
 |HardSwish|14|X|
 |LayerNormalization|17|X|
-|LessOrEqual|16, 12|X|
+|LessOrEqual|16, 12|O|
 |LogSoftmax|13, 11, 1|X|
 |MeanVarianceNormalization|13, 9|X|
 |Mish|18|X|
