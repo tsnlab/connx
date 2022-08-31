@@ -144,6 +144,7 @@ class ConnxModel(Structure):
 
 model_init = libconnx.connx_Model_init
 model_init.argtypes = [POINTER(ConnxModel)]
+model_init.restype = c_int32
 
 model_destroy = libconnx.connx_Model_destroy
 model_destroy.argtypes = [POINTER(ConnxModel)]
@@ -151,6 +152,7 @@ model_destroy.restype = c_int32
 
 hal_set_model = libconnx.hal_set_model
 hal_set_model.argtypes = [c_char_p]
+hal_set_model.restype = c_int32
 
 libconnx.connx_Tensor_ref.argtypes = [POINTER(ConnxTensor)]
 libconnx.connx_Tensor_ref.restype = None
