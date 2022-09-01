@@ -163,7 +163,7 @@ https://github.com/onnx/onnx/blob/main/docs/Operators.md
 |Unsqueeze|13, 11, 1|X|
 |Upsample (deprecated)|10, 9, 7|X|
 |Where|16, 9|X|
-|Xor|7, 1|X|
+|Xor|7, 1|O|
 |**Function**|**Since version**|X|
 |Bernoulli|15|X|
 |BlackmanWindow|17|X|

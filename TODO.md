@@ -1,4 +1,4 @@
-- [X] MNIST
+### MNIST
 - [X] Add
 - [X] Conv
 - [X] MatMul
@@ -11,16 +11,16 @@
 - [X] Sinh
 - [X] Cos
 - [X] Cosh
----  
-- [X] Mobilenet
+
+### Mobilenet
 - [X] Add
 - [X] BatchNormalization
 - [X] Conv
 - [X] GlobalAveragePool
 - [X] Relu
 - [X] Reshape
---- 
-- [X] YOLO v4
+  
+###  YOLO v4
 - [X] Add
 - [X] Cast (without string)
 - [X] Concat
@@ -45,3 +45,13 @@
 - [X] Tanh
 - [X] Tile
 - [X] Transpose
+
+### ResNet v2
+- [X] Add
+- [X] BatchNormalization
+- [X] Conv
+- [ ] Gemm
+- [X] GlobalAveragePool
+- [X] MaxPool
+- [X] Relu
+- [X] Reshape
