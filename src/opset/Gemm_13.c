@@ -23,8 +23,6 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
-#include "connx/types.h"
-
 #define GEMM_DEBUG 0
 
 __attribute__((unused)) static void show_elements_tensor(char* name, int32_t rows, int32_t cols, float32_t* d,
@@ -43,14 +41,10 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
 }
 
 // clang-format off
-// int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-//                          // clang-format on
-//                          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-//                          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
-    int32_t Gemm_13(connx_Graph * graph, __attribute__((unused)) uint32_t output_count, uint32_t * outputs,
-                // clang-format on
-                __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-                __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
+                         // clang-format on
+                         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
 
     connx_Tensor* A = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* B = connx_Graph_get(graph, inputs[1]);
@@ -66,16 +60,11 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
 
     connx_Tensor* C = NULL;
     bool is_biased = false;
-    float32_t bias = 0.0;
 
     if (input_count == 3) {
         C = connx_Graph_get(graph, inputs[2]);
         assert(C != NULL);
         is_biased = true;
-        // for single value for bias
-        if (C->ndim == 0 || (C->ndim == 1 && C->shape[0] == 1)) {
-            bias = *(float32_t*)C->buffer;
-        }
     }
 
     // A, B rows/cols alias for transposed flags
@@ -109,7 +98,6 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
     if (Y == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
-    float32_t(*y)[Y->shape[1]] = Y->buffer;
 
 #if GEMM_DEBUG // TODO: erase this code
     fprintf(stderr, "\n");
@@ -134,33 +122,61 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
     }
 #endif
 
-    // multiplication w/ transposed flag
-    for (int32_t row = 0; row < A_rows; ++row) {     // from A row 0 to row A->shape[0]
-        for (int32_t col = 0; col < B_cols; ++col) { // from B col 0 to col B->shape[1]
-            float32_t sum = 0.0;
-            for (int32_t k = 0; k < A_cols; ++k) { // Repeat * & sum as A # of cols (or B # of rows)
-                float32_t a_val = transA ? a[k][row] : a[row][k];
-                float32_t b_val = transB ? b[col][k] : b[k][col];
-                sum += alpha * a_val * b_val;
-                // fprintf(stderr, "a[%d][%d] b[%d][%d]\n", r, k, k, c);
-            }
-            // fprintf(stderr, "%f\n", sum);
-            if (is_biased) {
-                float32_t(*c)[C->shape[1]] = C->buffer;
-                if (C->ndim == 0 || (C->ndim == 1 && C->shape[0] == 1)) {
-                    // already assigned once above
-                } else if (C->ndim == 2 && C->shape[0] == 1) {
-                    bias = ((float32_t*)C->buffer)[col];
-                } else {
-                    bias = c[row][col];
-                }
-                y[row][col] += sum + beta * bias;
-            } else {
-                y[row][col] = sum;
+    switch (A->dtype) {
+        /*{% set type_constraints = [
+            FLOAT16, FLOAT32, FLOAT64,
+            UINT32, UINT64,
+            INT32, INT64,
+        ]
+        %}*/
+        /*{% for DTYPE, TYPE in loop_types(*type_constraints) %}*/
+    case {{ DTYPE }}: {
+        // clang-format off
+        {{TYPE}} bias = 0;
+        // clang-format on
+        if (is_biased) {
+            // for single value for bias
+            if (C->ndim == 0 || (C->ndim == 1 && C->shape[0] == 1)) {
+                bias = *({{TYPE}}*)C->buffer;
             }
         }
+        float32_t(*y)[Y->shape[1]] = Y->buffer;
+        // multiplication w/ transposed flag
+        for (int32_t row = 0; row < A_rows; ++row) {
+            for (int32_t col = 0; col < B_cols; ++col) {
+                float32_t sum = 0.0;
+                for (int32_t k = 0; k < A_cols; ++k) {
+                    // clang-format off
+                    {{TYPE}} a_val = transA ? a[k][row] : a[row][k];
+                    {{TYPE}} b_val = transB ? b[col][k] : b[k][col];
+                    // clang-format on
+                    sum += alpha * a_val * b_val;
+                    // fprintf(stderr, "a[%d][%d] b[%d][%d]\n", r, k, k, c);
+                }
+                // fprintf(stderr, "%f\n", sum);
+                if (is_biased) {
+                    {{TYPE}}(*c)[C->shape[1]] = C->buffer;
+                    if (C->ndim == 0 || (C->ndim == 1 && C->shape[0] == 1)) {
+                        // already assigned once above, so do nothing
+                    } else if (C->ndim == 2 && C->shape[0] == 1) {
+                        bias = (({{TYPE}}*)C->buffer)[col];
+                    } else {
+                        bias = c[row][col];
+                    }
+                    y[row][col] += sum + beta * bias;
+                } else {
+                    y[row][col] = sum;
+                }
+            }
+        }
+        break;
     }
 
+    /*{% endfor %}*/
+    default:
+        connx_error("Gemm: Datatype %d is not supported yet.\n", A->dtype);
+        return CONNX_NOT_SUPPORTED_DATATYPE;
+    }
 #if GEMM_DEBUG
     connx_debug("Y ndim %d ", Y->ndim);
     connx_Tensor_dump(Y);
