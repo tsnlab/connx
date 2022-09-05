@@ -25,7 +25,7 @@
 
 #include "connx/types.h"
 
-#define GEMM_DEBUG 1
+#define GEMM_DEBUG 0
 
 __attribute__((unused)) static void show_elements_tensor(char* name, int32_t rows, int32_t cols, float32_t* d,
                                                          bool transposed) {
@@ -47,14 +47,13 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
 //                          // clang-format on
 //                          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
 //                          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
-    int32_t Gemm_1(connx_Graph * graph, __attribute__((unused)) uint32_t output_count, uint32_t * outputs,
-               // clang-format on
-               __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-               __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+    int32_t Gemm_13(connx_Graph * graph, __attribute__((unused)) uint32_t output_count, uint32_t * outputs,
+                // clang-format on
+                __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
 
     connx_Tensor* A = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* B = connx_Graph_get(graph, inputs[1]);
-
     assert(A != NULL && B != NULL);
 
     float32_t alpha = *(float32_t*)attributes[0];
@@ -66,16 +65,24 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
     float32_t(*b)[B->shape[1]] = B->buffer;
 
     connx_Tensor* C = NULL;
+    bool is_biased = false;
+    float32_t bias = 0.0;
+
     if (input_count == 3) {
         C = connx_Graph_get(graph, inputs[2]);
         assert(C != NULL);
+        is_biased = true;
+        // for single value for bias
+        if (C->ndim == 0 || (C->ndim == 1 && C->shape[0] == 1)) {
+            bias = *(float32_t*)C->buffer;
+        }
     }
 
-    // Transpose A, b checks
-    int A_rows;
-    int A_cols;
-    int B_rows;
-    int B_cols;
+    // A, B rows/cols alias for transposed flags
+    int32_t A_rows = A->shape[0];
+    int32_t A_cols = A->shape[1];
+    int32_t B_rows = B->shape[0];
+    int32_t B_cols = B->shape[1];
     if (transA && transB) {
         A_rows = A->shape[1];
         A_cols = A->shape[0];
@@ -84,18 +91,9 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
     } else if (transA && !transB) {
         A_rows = A->shape[1];
         A_cols = A->shape[0];
-        B_rows = B->shape[0];
-        B_cols = B->shape[1];
     } else if (!transA && transB) {
-        A_rows = A->shape[0];
-        A_cols = A->shape[1];
         B_rows = B->shape[1];
         B_cols = B->shape[0];
-    } else {
-        A_rows = A->shape[0];
-        A_cols = A->shape[1];
-        B_rows = B->shape[0];
-        B_cols = B->shape[1];
     }
 
     // A's # of cols and B's # of row should be same
@@ -106,14 +104,12 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
 
     // initialize output tensor
     int ndim = A->ndim; // Always 2D
-    int32_t shape[ndim];
-    shape[0] = A_rows;
-    shape[1] = B_cols;
+    int32_t shape[] = {A_rows, B_cols};
     connx_Tensor* Y = connx_Tensor_alloc(A->dtype, ndim, shape);
     if (Y == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
-    __attribute__((unused)) float32_t(*y)[Y->shape[1]] = Y->buffer;
+    float32_t(*y)[Y->shape[1]] = Y->buffer;
 
 #if GEMM_DEBUG // TODO: erase this code
     fprintf(stderr, "\n");
@@ -139,53 +135,28 @@ __attribute__((unused)) static void show_elements_tensor(char* name, int32_t row
 #endif
 
     // multiplication w/ transposed flag
-    for (int32_t r = 0; r < A_rows; ++r) {     // from A row 0 to row A->shape[0]
-        for (int32_t c = 0; c < B_cols; ++c) { // from B col 0 to col B->shape[1]
+    for (int32_t row = 0; row < A_rows; ++row) {     // from A row 0 to row A->shape[0]
+        for (int32_t col = 0; col < B_cols; ++col) { // from B col 0 to col B->shape[1]
             float32_t sum = 0.0;
-            for (int32_t k = 0; k < A_cols; ++k) { // Repeat * & sum as A # of cols == B # of rows
-                float32_t a_val = transA ? a[k][r] : a[r][k];
-                float32_t b_val = transB ? b[c][k] : b[k][c];
-                //  float32_t a_val = a[i][k];
-                //  float32_t b_val = b[k][j];
-                sum += alpha * a_val * b_val; // TODO: + bC
-                fprintf(stderr, "a[%d][%d] b[%d][%d]\n", r, k, k, c);
+            for (int32_t k = 0; k < A_cols; ++k) { // Repeat * & sum as A # of cols (or B # of rows)
+                float32_t a_val = transA ? a[k][row] : a[row][k];
+                float32_t b_val = transB ? b[col][k] : b[k][col];
+                sum += alpha * a_val * b_val;
+                // fprintf(stderr, "a[%d][%d] b[%d][%d]\n", r, k, k, c);
             }
-            fprintf(stderr, "%f\n", sum);
-            y[r][c] = sum;
-        }
-    }
-
-    // bias
-    if (C != NULL) {
-        float32_t bias = 0.0;
-        bool single_value_bias = false;
-        switch (C->ndim) {
-        case 0:
-            single_value_bias = true;
-            break;
-        case 1:
-            if (C->shape[0] == 1) {
-                single_value_bias = true;
-            }
-            break;
-        default:
-            bias = 0.0;
-        }
-        if (single_value_bias)
-            bias = *(float32_t*)C->buffer;
-
-        float32_t(*c)[C->shape[1]] = C->buffer;
-        for (int32_t i = 0; i < Y->shape[0]; ++i) {
-            for (int32_t j = 0; j < Y->shape[1]; ++j) {
-                if (!single_value_bias) {
-                    if (C->ndim == 2 && C->shape[0] == 1) {
-                        bias = ((float32_t*)C->buffer)[j];
-                    } else {
-                        bias = c[i][j];
-                    }
+            // fprintf(stderr, "%f\n", sum);
+            if (is_biased) {
+                float32_t(*c)[C->shape[1]] = C->buffer;
+                if (C->ndim == 0 || (C->ndim == 1 && C->shape[0] == 1)) {
+                    // already assigned once above
+                } else if (C->ndim == 2 && C->shape[0] == 1) {
+                    bias = ((float32_t*)C->buffer)[col];
+                } else {
+                    bias = c[row][col];
                 }
-                y[i][j] += beta * bias;
-                fprintf(stderr, "beta %f bias %f orig value %f single? %d\n", beta, bias, y[i][j], single_value_bias);
+                y[row][col] += sum + beta * bias;
+            } else {
+                y[row][col] = sum;
             }
         }
     }
