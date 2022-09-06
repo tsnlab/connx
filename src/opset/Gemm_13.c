@@ -67,7 +67,7 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         is_biased = true;
     }
 
-    // A, B rows/cols alias for transposed flags
+    // alias for A, B rows/cols whether transposed flags enabled
     int32_t A_rows = A->shape[0];
     int32_t A_cols = A->shape[1];
     int32_t B_rows = B->shape[0];
@@ -140,7 +140,7 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                 bias = *({{TYPE}}*)C->buffer;
             }
         }
-        float32_t(*y)[Y->shape[1]] = Y->buffer;
+        {{TYPE}}(*y)[Y->shape[1]] = Y->buffer;
         // multiplication w/ transposed flag
         for (int32_t row = 0; row < A_rows; ++row) {
             for (int32_t col = 0; col < B_cols; ++col) {
@@ -171,8 +171,8 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         }
         break;
     }
+        /*{% endfor %}*/
 
-    /*{% endfor %}*/
     default:
         connx_error("Gemm: Datatype %d is not supported yet.\n", A->dtype);
         return CONNX_NOT_SUPPORTED_DATATYPE;
