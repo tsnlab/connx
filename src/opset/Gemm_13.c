@@ -63,21 +63,21 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         return CONNX_TENSOR_SHAPE_NOT_MATCHING;
     }
 
+    int32_t shape[] = {A_rows, B_cols};
     connx_Tensor* C = NULL;
     bool is_biased = false;
     if (input_count == 3) {
         C = connx_Graph_get(graph, inputs[2]);
         assert(C != NULL);
         // Check if Unidirectional Broadcasting is possible,
-        // result shape should be (A_rows, B_cols)
-        if (A_rows == C->shape[0] && B_cols == C->shape[1]) { // same shape
+        if (C->ndim == 0) { // scalar type
             is_biased = true;
-        } else if (C->ndim == 0) { // scalar type
-            is_biased = true;
-        } else if (C->ndim == 1 || C->shape[1] == B_cols) {
-            is_biased = true;
+        } else if (C->ndim == 1) {
+            if (C->shape[0] == 1 || C->shape[0] == shape[1]) {
+                is_biased = true;
+            }
         } else if (C->ndim == 2) {
-            if ((C->shape[0] == 1 && C->shape[1] == B_cols) || (C->shape[1] == 1 && C->shape[0] == A_rows)) {
+            if ((C->shape[0] == 1 || C->shape[0] == shape[0]) && (C->shape[1] == 1 || C->shape[1] == shape[1])) {
                 is_biased = true;
             }
         }
@@ -90,7 +90,6 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
 
     // initialize output tensor
     int ndim = 2; // Always 2D
-    int32_t shape[] = {A_rows, B_cols};
     connx_Tensor* Y = connx_Tensor_alloc(A->dtype, ndim, shape);
     if (Y == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
@@ -118,13 +117,15 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         // multiplication w/ transposed flag
         for (int32_t row = 0; row < A_rows; ++row) {
             for (int32_t col = 0; col < B_cols; ++col) {
-                float32_t sum = 0.0;
+                // clang-format off
+                {{TYPE}} sum = 0.0;
+                // clang-format on
                 for (int32_t k = 0; k < A_cols; ++k) {
                     // clang-format off
                     {{TYPE}} a_val = transA ? a[k][row] : a[row][k];
                     {{TYPE}} b_val = transB ? b[col][k] : b[k][col];
                     // clang-format on
-                    sum += alpha * a_val * b_val;
+                    sum += a_val * b_val;
                 }
 
                 if (is_biased) {
@@ -141,9 +142,9 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                     } else {
                         bias = c[row][col];
                     }
-                    y[row][col] += sum + beta * bias;
+                    y[row][col] += alpha * sum + beta * bias;
                 } else {
-                    y[row][col] = sum;
+                    y[row][col] = alpha * sum;
                 }
             }
         }
