@@ -142,7 +142,7 @@ int Gemm_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
                     } else {
                         bias = c[row][col];
                     }
-                    y[row][col] += alpha * sum + beta * bias;
+                    y[row][col] = alpha * sum + beta * bias;
                 } else {
                     y[row][col] = alpha * sum;
                 }
