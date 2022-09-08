@@ -1,8 +1,10 @@
 # Impelemetation of operators for famous models
-We extracted operators list from real onnx model file.  
+Here's the list to implement that we extracted the operators from real onnx model file.  
+
 You can find the models in official onnx-model repository.  
 https://github.com/onnx/models
 
+# Operators list to be implemented
 ## MNIST
 - [X] Add
 - [X] Conv
@@ -55,7 +57,7 @@ https://github.com/onnx/models
 - [X] Add
 - [X] BatchNormalization
 - [X] Conv
-- [ ] Gemm
+- [X] Gemm
 - [X] GlobalAveragePool
 - [X] MaxPool
 - [X] Relu

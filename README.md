@@ -1,58 +1,85 @@
+CONNX is ONNX(Open Neural Network Exchange) Runtime.  
+
+Sections:
+- [Notice](#notice)
+- [CONNX](#connx)
+- [Installation instructions](#installation-instructions)
+- [Features](#features)
+- [Usage](#usage)
+- [How to use](#how-to-use)
+  - [CONNX running process overview](#connx-running-process-overview)
+  - [Run examples](#run-examples)
+- [Run MNIST example.](#run-mnist-example)
+- [Run MOBILENET example.](#run-mobilenet-example)
+- [Run YOLOV4 example.](#run-yolov4-example)
+    - [Using python bindings](#using-python-bindings)
+- [ONNX compatibility test](#onnx-compatibility-test)
+- [Ports](#ports)
+- [Contribution](#contribution)
+- [Supported platforms](#supported-platforms)
+- [License](#license)
+
 # Notice
 We are hiring paid employee. Please contact us: contact at tsnlab dot com
 
 # CONNX
-C implementation of Open Neural Network Exchange Runtime
+CONNX(**'C'** stands for C language) is a technology that implemented ONNX Runtime using C.   
+It aims for a technology that can be easily ported to various embedded devices such as ESP32, Rpi3/4 and etc.
+* Overall Architecture
+  ![](/assets/images/CONNX_architecture.png)
+  
 
-# Requirements
- * python3 >= 3.8  # To build templates and for python bindings
- * [poetry][]      # To setup python develop environment
- * cmake >= 3.1
- * ninja-build
+# Installation instructions
+* See [Requirements & Installation](INSTALL.md)
 
-[poetry]: https://pypi.org/project/poetry/
+# Features
+* Portability
+  * It can be ported any platform, because it's written in C.
+  * No Dependency : It runs standalone without any libs(BLAS, eigen...)
+  * HAL(Hardware Abstraction Layer) : It seperates logic and platform-dependent code.
+* Small Footprint
+  * Operator plugin : It reduce the size of the footprint by selecting operator at the time of compile.
+  * Preprocessor : **onnx-connx project** pre-processes and Strip ONNX to reduce footprint size by 0.5 to 5%.
+  * CONNX format : Conversion to connx format. It's functionally identical to ONNX but simple to parse
+* High Performance
+  * It isolate the Tensor operation from the
+* Open source 
+  * See [License](#License) 
+  * See [CONTRIBUTING.md](CONTRIBUTING.md)
 
-# Quick start
+# Usage
+* Infrencing : better performance for a wide variety of ML models
+* Edge ML : can be used any tiny devices
 
-## Compile in release mode
-~~~sh
-connx$ poetry install                                                   # To install python dependencies
-connx$ mkdir build; cd build                                            # Make build directory
-connx/build$ cmake ../ports/linux -G Ninja -D CMAKE_BUILD_TYPE=Release  # Generate build files with "Release" mode
-connx/build$ ninja                                                      # Compile
-~~~
-
-You can find 'connx' executable and 'libconnx.so' library in the connx/build directory.
-
-## Build python bindings
-
-```sh
-$ poetry build
-```
-
-It will automatically compiles library and build sdist, wheel archive on `dist` directory.
-
-## Compile with sub-opset (optional)
-If you want to compile CONNX with subset of operators, in case of inferencing MNIST only,
-just make ports/linux/opset.txt file as below. And just follow the compile process.
-
-~~~
-Add Conv MatMul MaxPool Relu Reshape
-~~~
+# How to use
+## CONNX running process overview
+1. Load the ONNX model.
+2. Create the runtime to run ONNX model.
+3. After feeding C-ONNX Tensor input into the runtime, the output is in C-ONNX Tensor format.
 
 ## Run examples
 Run MNIST example.
-
+ 
 ~~~sh
-connx/build$ poetry install -E numpy
+# Run MNIST example.
 connx/build$ poetry run ninja mnist
+# Run MOBILENET example.
 connx/build$ poetry run ninja mobilenet
+# Run YOLOV4 example.
 connx/build$ poetry run ninja yolov4
 ~~~
+or use connx excutable
+~~~sh
+connx/build$ ./connx ../examples/mnist/ ../examples/mnist/test_data_set_1/input_0.data
+~~~
+or use python script
+~~~
+connx$ python3 bin/run.py examples/mnist/ examples/mnist/test_data_set_1/input_0.data
+~~~
 
-Notice: If you want to run on Raspberry Pi 3, please compile with Release mode(CMAKE\_BUILD\_TYPE=Release) for sanitizer makes some problem.
+> Notice: If you want to run on Raspberry Pi 3, please compile with Release mode(CMAKE\_BUILD\_TYPE=Release) for sanitizer makes some problem.
 
-## Using python bindings
+### Using python bindings
 
 ```py
 import connx
@@ -74,7 +101,6 @@ assert reference_data.shape == output_data[0].shape
 import numpy
 numpy.allclose(reference_nparray, output_nparray)
 
-
 # You can also convert numpy.ndarray to connx.Tensor
 connx.Tensor.from_nparray(ndarray)
 ```
@@ -87,6 +113,8 @@ ONNX compatibility test is moved to onnx-connx project.
 # Ports
  * See [Linux](ports/linux/README.md)
  * See [ESP32](ports/esp32/README.md)
+![](/assets/images/esp32_test.png)  
+ * See [ZYNQ](ports/zynq/README.md)
 
 # Contribution
 See [CONTRIBUTING.md](CONTRIBUTING.md)
@@ -96,6 +124,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
  * x86 - with CLFAGS=-m32
  * Raspberry pi 4 (w/ 64-bit O/S)
  * Raspberry pi 3 (32-bit O/S)
+ * ESP32 (No O/S, firmware)
+ * ZYNQ (No O/S, firmware)
 
 # License
 CONNX is licensed under GPLv3. See [LICENSE](LICENSE)
