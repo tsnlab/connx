@@ -1,4 +1,11 @@
-### MNIST
+# Impelemetation of operators for famous models
+Here's the list to implement that we extracted the operators from real onnx model file.  
+
+You can find the models in official onnx-model repository.  
+https://github.com/onnx/models
+
+# Operators list to be implemented
+## MNIST
 - [X] Add
 - [X] Conv
 - [X] MatMul
@@ -12,7 +19,7 @@
 - [X] Cos
 - [X] Cosh
 
-### Mobilenet
+## Mobilenet
 - [X] Add
 - [X] BatchNormalization
 - [X] Conv
@@ -20,7 +27,7 @@
 - [X] Relu
 - [X] Reshape
   
-###  YOLO v4
+##  YOLO v4
 - [X] Add
 - [X] Cast (without string)
 - [X] Concat
@@ -50,7 +57,7 @@
 - [X] Add
 - [X] BatchNormalization
 - [X] Conv
-- [ ] Gemm
+- [X] Gemm
 - [X] GlobalAveragePool
 - [X] MaxPool
 - [X] Relu

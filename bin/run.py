@@ -120,7 +120,7 @@ if __name__ == '__main__':
         for i in range(len(outputs)):
             print('# output[{}]'.format(i))
             print(outputs[i])
-            print(f'# output[i].shape = {outputs[i].shape}')
+            print(f'# output[{i}].shape = {outputs[i].shape}')
 
     # Print elapsed time
     print(f'Elapsed time: {end_timestamp - start_timestamp} sec')
