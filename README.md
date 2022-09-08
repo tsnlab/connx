@@ -1,26 +1,9 @@
-CONNX is ONNX(Open Neural Network Exchange) Runtime.  
+# CONNX - C implementation of ONNX runtime.  
 
-Sections:
-- [Notice](#notice)
-- [CONNX](#connx)
-- [Installation instructions](#installation-instructions)
-- [Features](#features)
-- [Usage](#usage)
-- [How to use](#how-to-use)
-  - [CONNX running process overview](#connx-running-process-overview)
-  - [Run examples](#run-examples)
-- [Run MNIST example.](#run-mnist-example)
-- [Run MOBILENET example.](#run-mobilenet-example)
-- [Run YOLOV4 example.](#run-yolov4-example)
-    - [Using python bindings](#using-python-bindings)
-- [ONNX compatibility test](#onnx-compatibility-test)
-- [Ports](#ports)
-- [Contribution](#contribution)
-- [Supported platforms](#supported-platforms)
-- [License](#license)
+[<img alt="github" src="https://img.shields.io/badge/github-tsnlab/connx-8da0cb?logo=github" height="20">](https://github.com/tsnlab/connx)
+![Build Status](https://github.com/tsnlab/connx/actions/workflows/build.yml/badge.svg)
+[![GPL](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://github.com/emilk/egui/blob/master/LICENSE-GPL)
 
-# Notice
-We are hiring paid employee. Please contact us: contact at tsnlab dot com
 
 # CONNX
 CONNX(**'C'** stands for C language) is a technology that implemented ONNX Runtime using C.   
@@ -28,10 +11,6 @@ It aims for a technology that can be easily ported to various embedded devices s
 * Overall Architecture
   ![](/assets/images/CONNX_architecture.png)
   
-
-# Installation instructions
-* See [Requirements & Installation](INSTALL.md)
-
 # Features
 * Portability
   * It can be ported any platform, because it's written in C.
@@ -57,8 +36,10 @@ It aims for a technology that can be easily ported to various embedded devices s
 2. Create the runtime to run ONNX model.
 3. After feeding C-ONNX Tensor input into the runtime, the output is in C-ONNX Tensor format.
 
+# Installation instructions
+* See [Requirements & Installation](INSTALL.md)
+
 ## Run examples
-Run MNIST example.
  
 ~~~sh
 # Run MNIST example.
