@@ -1,5 +1,5 @@
 # Connx Installation
-
+  
 ## Prerequisites
  * python3 >= 3.8  : To build templates and for python bindings
  * [poetry][]      : To setup python develop environment
@@ -22,6 +22,10 @@ $ cd connx
 ```  
 
 ## Build
+### Build process overview
+Optional information for your understanding
+![Build Prcess](/assets/images/onnx_build.drawio.png)
+
 ### Release mode
 ```
 connx$ poetry install  
@@ -35,7 +39,3 @@ connx/build$ ninja                                                      # Compil
 ~~~
 
 > You can find **connx** executable and **libconnx.so** library in the **connx/build** directory.  
-  
-### Build process overview
-Optional information for your understanding
-![Build Prcess](/assets/images/onnx_build.drawio.png)
