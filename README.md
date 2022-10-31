@@ -6,9 +6,13 @@
 
 
 # CONNX
-CONNX(**'C'** stands for C language) is a technology that implemented ONNX Runtime using C.   
-It aims for a technology that can be easily ported to various embedded devices such as ESP32, Rpi3/4 and etc.
-* Overall Architecture
+CONNX is abbreviation of C language implementation of ONNX Runtime. It's targeted to running on IoT devices
+such as ESP32, Raspberry Pi 3/4 or FreeRTOS. CONNX can be used as an alternative of tflite.
+
+## MNIST example on ESP32
+![](/assets/images/esp32_test.png)  
+
+## Architecture
   ![](/assets/images/CONNX_architecture.png)
   
 # Features
@@ -94,7 +98,6 @@ ONNX compatibility test is moved to onnx-connx project.
 # Ports
  * See [Linux](ports/linux/README.md)
  * See [ESP32](ports/esp32/README.md)
-![](/assets/images/esp32_test.png)  
  * See [ZYNQ](ports/zynq/README.md)
 
 # Contribution
