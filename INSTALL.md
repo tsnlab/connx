@@ -1,5 +1,5 @@
 # Connx Installation
-  
+
 ## Prerequisites
  * python3 >= 3.8  : To build templates and for python bindings
  * [poetry][]      : To setup python develop environment
@@ -15,27 +15,37 @@ $ curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-po
 # Add export PATH="$HOME/.poetry/bin:$PATH" in .bashrc
 $ poetry install -E numpy
 ```
+
+
 ## Download the source code
+
 ```
 $ git clone https://github.com/tsnlab/connx.git
 $ cd connx
-```  
+```
+
 
 ## Build
+
 ### Build process overview
 Optional information for your understanding
 ![Build Prcess](/assets/images/onnx_build.drawio.png)
 
+
 ### Release mode
+
 ```
 connx$ poetry install  
 ```
+
+
 ### Debug mode
-~~~sh
+
+```sh
 connx$ poetry install                                                   # To install python dependencies
 connx$ mkdir build; cd build                                            # Make build directory
 connx/build$ cmake ../ports/linux -G Ninja -D CMAKE_BUILD_TYPE=Debug  # Generate build files with "Debug" mode
 connx/build$ ninja                                                      # Compile
-~~~
+```
 
 > You can find **connx** executable and **libconnx.so** library in the **connx/build** directory.  
