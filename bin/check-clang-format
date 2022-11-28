@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-CLANG_FORMAT_CMD='clang-format-10'
+CLANG_FORMAT_CMD='clang-format-11'
 
 if ! type "$CLANG_FORMAT_CMD" &>/dev/null; then
     echo "$CLANG_FORMAT_CMD not found"
