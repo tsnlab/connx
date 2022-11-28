@@ -2,8 +2,6 @@ name: Lint
 
 on:
   push:
-    branches:
-      - master
   pull_request:
 
 jobs:
@@ -14,8 +12,8 @@ jobs:
       uses: actions/checkout@master
     - name: Run shellcheck
       uses: ludeeus/action-shellcheck@master
-    - name: Install ubuntu packages to lint
-      run: sudo apt install clang-format-10
+    - name: Install ubuntu packages to lint&build
+      run: sudo apt install clang-format-11 cmake
     - name: Check C lint
       run: bin/check-clang-format
     - name: Setup python
