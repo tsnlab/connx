@@ -182,7 +182,7 @@ def read_class_names(class_file_name):
         return names
 
 
-def draw_bbox(image, bboxes, classes=read_class_names("coco.names"), show_label=True):
+def draw_bbox(image, bboxes, classes=read_class_names("examples/yolov4/coco.names"), show_label=True):
     """
     bboxes: [x_min, y_min, x_max, y_max, probability, cls_id] format coordinates.
     """
