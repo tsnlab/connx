@@ -75,7 +75,7 @@ https://github.com/onnx/models
 - [ ] ArgMin
 - [X] Asin
 - [ ] Asinh
-- [ ] Atan
+- [X] Atan
 - [ ] Atanh
 - [ ] AveragePool
 - [X] BatchNormalization
