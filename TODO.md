@@ -62,3 +62,156 @@ https://github.com/onnx/models
 - [X] MaxPool
 - [X] Relu
 - [X] Reshape
+
+
+### ONNX operators
+
+- [X] Abs
+- [ ] Acos
+- [ ] Acosh
+- [X] Add
+- [X] And
+- [ ] ArgMax
+- [ ] ArgMin
+- [X] Asin
+- [ ] Asinh
+- [ ] Atan
+- [ ] Atanh
+- [ ] AveragePool
+- [X] BatchNormalization
+- [ ] BitShift
+- [ ] BitwiseAnd
+- [ ] BitwiseNot
+- [ ] BitwiseOr
+- [ ] BitwiseXor
+- [X] Cast
+- [ ] Ceil
+- [ ] Col2Im
+- [ ] Compress
+- [X] Concat
+- [ ] ConcatFromSequence
+- [ ] Constant
+- [ ] ConstantOfShape
+- [X] Conv
+- [ ] ConvInteger
+- [ ] ConvTranspose
+- [X] Cos
+- [X] Cosh
+- [ ] CumSum
+- [ ] DFT
+- [ ] DepthToSpace
+- [ ] DequantizeLinear
+- [ ] Det
+- [X] Div
+- [ ] Dropout
+- [ ] Einsum
+- [X] Equal
+- [ ] Erf
+- [X] Exp
+- [ ] Expand
+- [ ] EyeLike
+- [ ] Flatten
+- [ ] Floor
+- [ ] GRU
+- [X] Gather
+- [ ] GatherElements
+- [ ] GatherND
+- [X] Gemm
+- [X] GlobalAveragePool
+- [ ] GlobalLpPool
+- [X] GlobalMaxPool
+- [X] Greater
+- [ ] GridSample
+- [ ] Hardmax
+- [X] Identity
+- [ ] If
+- [ ] InstanceNormalization
+- [ ] IsInf
+- [ ] IsNaN
+- [ ] LRN
+- [ ] LSTM
+- [X] Less
+- [X] Log
+- [ ] Loop
+- [ ] LpNormalization
+- [ ] LpPool
+- [X] MatMul
+- [ ] MatMulInteger
+- [ ] Max
+- [X] MaxPool
+- [ ] MaxRoiPool
+- [ ] MaxUnpool
+- [ ] Mean
+- [ ] MelWeightMatrix
+- [ ] Min
+- [ ] Mod
+- [X] Mul
+- [ ] Multinomial
+- [ ] Neg
+- [ ] NonMaxSuppression
+- [X] NonZero
+- [X] Not
+- [ ] OneHot
+- [ ] Optional
+- [ ] OptionalGetElement
+- [ ] OptionalHasElement
+- [X] Or
+- [ ] Pad
+- [ ] Pow
+- [ ] QLinearConv
+- [ ] QLinearMatMul
+- [ ] QuantizeLinear
+- [ ] RNN
+- [ ] RandomNormal
+- [ ] RandomNormalLike
+- [ ] RandomUniform
+- [ ] RandomUniformLike
+- [ ] Reciprocal
+- [ ] ReduceMax
+- [ ] ReduceMean
+- [ ] ReduceMin
+- [ ] ReduceProd
+- [ ] ReduceSum
+- [X] Reshape
+- [X] Resize
+- [ ] ReverseSequence
+- [ ] RoiAlign
+- [ ] Round
+- [ ] STFT
+- [ ] Scan
+- [ ] Scatter
+- [ ] ScatterElements
+- [ ] ScatterND
+- [ ] SequenceAt
+- [ ] SequenceConstruct
+- [ ] SequenceEmpty
+- [ ] SequenceErase
+- [ ] SequenceInsert
+- [ ] SequenceLength
+- [X] Shape
+- [X] Sigmoid
+- [X] Sign
+- [X] Sin
+- [X] Sinh
+- [ ] Size
+- [X] Slice
+- [ ] SpaceToDepth
+- [X] Split
+- [ ] SplitToSequence
+- [ ] Sqrt
+- [X] Squeeze
+- [ ] StringNormalizer
+- [X] Sub
+- [ ] Sum
+- [X] Tan
+- [X] Tanh
+- [ ] TfIdfVectorizer
+- [X] Tile
+- [ ] TopK
+- [X] Transpose
+- [ ] Trilu
+- [ ] Unique
+- [ ] Unsqueeze
+- [ ] Upsample
+- [ ] Where
+- [X] Xor
