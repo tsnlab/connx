@@ -74,7 +74,7 @@ https://github.com/onnx/models
 - [ ] ArgMax
 - [ ] ArgMin
 - [X] Asin
-- [ ] Asinh
+- [X] Asinh
 - [X] Atan
 - [ ] Atanh
 - [ ] AveragePool
