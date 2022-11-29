@@ -68,6 +68,12 @@ int Mod_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
                 int32_t input_offset_a = is_likely_shape ? i : connx_Tensor_get_broadcasted_input_offset(C, A, i);
                 int32_t input_offset_b = is_likely_shape ? i : connx_Tensor_get_broadcasted_input_offset(C, B, i);
                 C_array[i] = A_array[input_offset_a] % B_array[input_offset_b];
+                /*{% if DTYPE in (INT8, INT16, INT32, INT64) %}*/
+                // The sign of the remainder is the same as that of the Divisor.
+                if (B_array[input_offset_b] * C_array[i] < 0) {
+                    C_array[i] += B_array[input_offset_b];
+                }
+                /*{% endif %}*/
             }
         }
         /*{% endif %}*/
