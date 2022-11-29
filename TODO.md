@@ -85,7 +85,7 @@ https://github.com/onnx/models
 - [ ] BitwiseOr
 - [ ] BitwiseXor
 - [X] Cast
-- [ ] Ceil
+- [X] Ceil
 - [ ] Col2Im
 - [ ] Compress
 - [X] Concat
