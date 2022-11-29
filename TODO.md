@@ -67,7 +67,7 @@ https://github.com/onnx/models
 ### ONNX operators
 
 - [X] Abs
-- [ ] Acos
+- [X] Acos
 - [ ] Acosh
 - [X] Add
 - [X] And
