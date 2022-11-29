@@ -157,7 +157,7 @@ https://github.com/onnx/models
 - [ ] OptionalHasElement
 - [X] Or
 - [ ] Pad
-- [ ] Pow
+- [X] Pow
 - [ ] QLinearConv
 - [ ] QLinearMatMul
 - [ ] QuantizeLinear
