@@ -68,7 +68,7 @@ https://github.com/onnx/models
 
 - [X] Abs
 - [X] Acos
-- [ ] Acosh
+- [X] Acosh
 - [X] Add
 - [X] And
 - [ ] ArgMax
