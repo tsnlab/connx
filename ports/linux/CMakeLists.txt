@@ -22,9 +22,9 @@ string(PREPEND SRC "src/")
 string(REPLACE "\n" ";src/" SRC ${SRC})
 
 # list up original source files
-file(GLOB_RECURSE CONNX_HDR "${CONNX_HOME}/include/*")
-file(GLOB_RECURSE CONNX_SRC "${CONNX_HOME}/src/*")
-file(GLOB_RECURSE HAL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*")
+file(GLOB_RECURSE CONNX_HDR "${CONNX_HOME}/include/**/*")
+file(GLOB_RECURSE CONNX_SRC "${CONNX_HOME}/src/**/*")
+file(GLOB_RECURSE HAL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/**/*")
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/opset.txt)
     set(OPSET ${CMAKE_CURRENT_SOURCE_DIR}/opset.txt)
 else()
