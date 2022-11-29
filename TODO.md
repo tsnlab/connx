@@ -111,7 +111,7 @@ https://github.com/onnx/models
 - [ ] Expand
 - [ ] EyeLike
 - [ ] Flatten
-- [ ] Floor
+- [X] Floor
 - [ ] GRU
 - [X] Gather
 - [ ] GatherElements
