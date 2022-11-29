@@ -76,7 +76,7 @@ https://github.com/onnx/models
 - [X] Asin
 - [X] Asinh
 - [X] Atan
-- [ ] Atanh
+- [X] Atanh
 - [ ] AveragePool
 - [X] BatchNormalization
 - [ ] BitShift
