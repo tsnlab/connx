@@ -144,7 +144,7 @@ https://github.com/onnx/models
 - [ ] Mean
 - [ ] MelWeightMatrix
 - [ ] Min
-- [ ] Mod
+- [X] Mod
 - [X] Mul
 - [ ] Multinomial
 - [ ] Neg
