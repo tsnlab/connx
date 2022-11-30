@@ -147,7 +147,7 @@ https://github.com/onnx/models
 - [X] Mod
 - [X] Mul
 - [ ] Multinomial
-- [ ] Neg
+- [X] Neg
 - [ ] NonMaxSuppression
 - [X] NonZero
 - [X] Not
