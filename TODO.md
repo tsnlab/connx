@@ -193,7 +193,7 @@ https://github.com/onnx/models
 - [X] Sign
 - [X] Sin
 - [X] Sinh
-- [ ] Size
+- [X] Size
 - [X] Slice
 - [ ] SpaceToDepth
 - [X] Split
