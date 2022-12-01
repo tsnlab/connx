@@ -176,7 +176,7 @@ https://github.com/onnx/models
 - [X] Resize
 - [ ] ReverseSequence
 - [ ] RoiAlign
-- [ ] Round
+- [X] Round
 - [ ] STFT
 - [ ] Scan
 - [ ] Scatter
