@@ -52,9 +52,12 @@ int Mod_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
 
         /*{% if DTYPE in (FLOAT32, FLOAT64) %}*/
         for (int32_t i = 0; i < total; i++) {
+            /*{% set f = 'f' if DTYPE == FLOAT32 else '' %}*/
             int32_t input_offset_a = is_likely_shape ? i : connx_Tensor_get_broadcasted_input_offset(C, A, i);
             int32_t input_offset_b = is_likely_shape ? i : connx_Tensor_get_broadcasted_input_offset(C, B, i);
-            C_array[i] = fmod(A_array[input_offset_a], B_array[input_offset_b]);
+            // clang-format off
+            C_array[i] = fmod{{f}}(A_array[input_offset_a], B_array[input_offset_b]);
+            // clang-format on
         }
         /*{% else %}*/
         if (is_fmod) {
