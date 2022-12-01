@@ -19,21 +19,25 @@
 #include <connx/accel.h>
 #include <connx/connx.h>
 
+// clang-format off
 int Size_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
+                         // clang-format on
                          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
                          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
-    connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
-    connx_Tensor* Y = connx_Tensor_alloc(INT64, 1, (int32_t[]){1,});
-    if (Y == NULL) {
+    connx_Tensor* data = connx_Graph_get(graph, inputs[0]);
+    // clang-format off
+    connx_Tensor* size = connx_Tensor_alloc(INT64, 1, (int32_t[]){1,});
+    // clang-format on
+    if (size == NULL) {
         return CONNX_NOT_ENOUGH_MEMORY;
     }
 
-    int32_t total = connx_Int32_product(X->ndim, X->shape);
-    int64_t* Y_buffer = (int64_t*)Y->buffer;
+    int32_t total = connx_Int32_product(data->ndim, data->shape);
+    int64_t* size_buffer = (int64_t*)size->buffer;
 
-    Y_buffer[0] = total;
+    size_buffer[0] = total;
 
-    connx_Graph_set(graph, outputs[0], Y);
+    connx_Graph_set(graph, outputs[0], size);
 
     return CONNX_OK;
 }

@@ -15,7 +15,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <stdio.h>
 #include <math.h>
 
 #include <connx/accel.h>
@@ -23,9 +22,9 @@
 
 // clang-format off
 int Round_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-                         // clang-format on
-                         __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-                         __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                          // clang-format on
+                          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     connx_Tensor* X = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* Y = connx_Tensor_alloc_like(X);
     if (Y == NULL) {
@@ -43,11 +42,14 @@ int Round_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
 
         for (int32_t i = 0; i < total; i++) {
             // round() malfuntions when X is negative
+            // clang-format off
             Y_array[i] = floor{{f}}(X_array[i] + 0.5);
+            // clang-format on
 
             // In case of halfs, the rule is to round them to the nearest even integer
-            if ((fabs{{f}}(fmod{{f}}(X_array[i], 1.0)) == 0.5) &&
-                    (fmod(Y_array[i], 2.0) != 0)) {
+            // clang-format off
+            if ((fabs{{f}}(fmod{{f}}(X_array[i], 1.0)) == 0.5) && (fmod(Y_array[i], 2.0) != 0)) {
+                // clang-format on
                 Y_array[i] -= 1.0;
             }
         }

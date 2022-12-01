@@ -16,18 +16,17 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <assert.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <math.h>
+#include <stdint.h>
 
 #include <connx/accel.h>
 #include <connx/connx.h>
 
 // clang-format off
 int Pow_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uint32_t output_count, uint32_t* outputs,
-                          // clang-format on
-                          __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
-                          __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
+                        // clang-format on
+                        __attribute__((unused)) uint32_t input_count, uint32_t* inputs,
+                        __attribute__((unused)) uint32_t attribute_count, __attribute__((unused)) void** attributes) {
     // Inputs
     connx_Tensor* A = connx_Graph_get(graph, inputs[0]);
     connx_Tensor* B = connx_Graph_get(graph, inputs[1]);
@@ -75,7 +74,7 @@ int Pow_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
         /*{% for DTYPE_A, TYPE_A in loop_types(*supported_A_types) %}*/
     case {{ DTYPE_A }}: {
         switch (B->dtype) {
-        /*{% for DTYPE_B, TYPE_B in loop_types(*supported_B_types) %}*/
+            /*{% for DTYPE_B, TYPE_B in loop_types(*supported_B_types) %}*/
         case {{ DTYPE_B }}: {
             {{TYPE_A}}* A_array = A->buffer;
             {{TYPE_B}}* B_array = B->buffer;
@@ -88,10 +87,10 @@ int Pow_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
             for (int32_t i = 0; i < total; i++) {
                 int32_t input_offset_a = is_likely ? i : connx_Tensor_get_broadcasted_input_offset(C, A, i);
                 int32_t input_offset_b = is_likely ? i : connx_Tensor_get_broadcasted_input_offset(C, B, i);
-                C_array[i] = {{ func }}(A_array[input_offset_a], B_array[input_offset_b]);
+                C_array[i] = {{func}}(A_array[input_offset_a], B_array[input_offset_b]);
             }
         } break;
-        /*{% endfor %}*/
+            /*{% endfor %}*/
         }
     } break;
     /*{% endfor %}*/

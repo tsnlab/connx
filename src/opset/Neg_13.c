@@ -41,7 +41,7 @@ int Neg_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t outp
         {{TYPE}}* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
-            Y_array[i] = - X_array[i];
+            Y_array[i] = -X_array[i];
         }
         break;
     }
