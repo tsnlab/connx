@@ -73,11 +73,13 @@ int Where_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
         {{TYPE}}* output_array = output->buffer;
 
         for (int32_t i = 0; i < total; i++) {
+            int32_t input_offset_x = connx_Tensor_get_broadcasted_input_offset(output, X, i);
+            int32_t input_offset_y = connx_Tensor_get_broadcasted_input_offset(output, Y, i);
             // TODO: handle string using memcpy or strcpy
             if (condition_array[i]) {
-                output_array[i] = X_array[i];
+                output_array[i] = X_array[input_offset_x];
             } else {
-                output_array[i] = Y_array[i];
+                output_array[i] = Y_array[input_offset_y];
             }
         }
         break;
