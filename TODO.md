@@ -213,5 +213,5 @@ https://github.com/onnx/models
 - [ ] Unique
 - [ ] Unsqueeze
 - [ ] Upsample
-- [ ] Where
+- [X] Where
 - [X] Xor
