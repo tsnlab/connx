@@ -80,7 +80,7 @@ https://github.com/onnx/models
 - [ ] AveragePool
 - [X] BatchNormalization
 - [X] BitShift
-- [ ] BitwiseAnd
+- [X] BitwiseAnd
 - [ ] BitwiseNot
 - [ ] BitwiseOr
 - [ ] BitwiseXor
