@@ -79,7 +79,7 @@ https://github.com/onnx/models
 - [X] Atanh
 - [ ] AveragePool
 - [X] BatchNormalization
-- [ ] BitShift
+- [X] BitShift
 - [ ] BitwiseAnd
 - [ ] BitwiseNot
 - [ ] BitwiseOr
