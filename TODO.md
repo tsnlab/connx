@@ -82,8 +82,8 @@ https://github.com/onnx/models
 - [X] BitShift
 - [X] BitwiseAnd
 - [ ] BitwiseNot
-- [ ] BitwiseOr
-- [ ] BitwiseXor
+- [X] BitwiseOr
+- [X] BitwiseXor
 - [X] Cast
 - [X] Ceil
 - [ ] Col2Im
