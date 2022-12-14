@@ -85,6 +85,9 @@ int Where_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
         break;
     }
         /*{% endfor %}*/
+    default:
+        connx_error("Where: Unsupported data type: %d", X->dtype);
+        return CONNX_NOT_SUPPORTED_DATATYPE;
     }
 
     connx_Graph_set(graph, outputs[0], output);
