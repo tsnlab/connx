@@ -91,6 +91,9 @@ int Pow_{{ op_version }}(connx_Graph* graph, __attribute__((unused)) uint32_t ou
             }
         } break;
             /*{% endfor %}*/
+        default:
+            connx_error("Pow: Unsupported data type: %d", A->dtype);
+            return CONNX_NOT_SUPPORTED_DATATYPE;
         }
     } break;
     /*{% endfor %}*/
