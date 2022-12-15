@@ -50,7 +50,7 @@ int Celu_{{op_version}}(connx_Graph* graph, __attribute__((unused)) uint32_t out
         {{TYPE}}* Y_array = Y->buffer;
 
         for (int32_t i = 0; i < total; i++) {
-            Y_array[i] = max(0,X_array[i]) + min(0,alpha*(exp(X_array[i]/alpha)-1));
+            Y_array[i] = max(0, X_array[i]) + min(0, alpha * (exp(X_array[i] / alpha) - 1));
         }
         break;
     }
