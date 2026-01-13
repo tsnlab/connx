@@ -126,19 +126,19 @@ bool connx_Tensor_is_likely_same_shape(connx_Tensor* A, connx_Tensor* B) {
 
     // Prepended dimensions must be 1, 1, 1
     for (int32_t i = 0; i < pad_a; i += 1) {
-        if (A->shape[i] != 1) {
+        if (B->shape[i] != 1) {
             return false;
         }
     }
     for (int32_t i = 0; i < pad_b; i += 1) {
-        if (B->shape[i] != 1) {
+        if (A->shape[i] != 1) {
             return false;
         }
     }
 
     // All the rest dimensions must be equal
     for (int32_t i = 0; i < ndim_small; i += 1) {
-        if (A->shape[i + pad_a] != B->shape[i + pad_b]) {
+        if (A->shape[i + pad_b] != B->shape[i + pad_a]) {
             return false;
         }
     }
