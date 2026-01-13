@@ -189,7 +189,7 @@ int connx_Model_init(connx_Model* model) {
 }
 
 int connx_Model_destroy(connx_Model* model) {
-    if (model != NULL)
+    if (model == NULL)
         return CONNX_OK;
     if (model->graphs != NULL) {
         for (uint32_t i = 0; i < model->graph_count; i++) {
